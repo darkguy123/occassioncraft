@@ -11,7 +11,7 @@ export default function UserDashboardPage() {
     );
 
   return (
-    <div className="container mx-auto max-w-5xl py-12 px-4">
+    <div className="container mx-auto max-w-7xl py-12 px-4">
       <div className="space-y-2 mb-8">
         <h1 className="text-4xl font-bold font-headline">My Tickets</h1>
         <p className="text-muted-foreground">All your upcoming events in one place.</p>
@@ -19,11 +19,13 @@ export default function UserDashboardPage() {
 
       <div className="space-y-8">
         {myEvents.length > 0 ? (
-             myEvents.map(event => (
-                <UpcomingEventCard key={event.id} event={event} />
-            ))
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {myEvents.map(event => (
+                    <UpcomingEventCard key={event.id} event={event} />
+                ))}
+            </div>
         ) : (
-            <Card className="text-center p-12">
+            <Card className="text-center p-12 bg-card/80 backdrop-blur-sm">
                 <CardTitle>No Tickets Yet</CardTitle>
                 <CardDescription className="mt-2">When you purchase tickets for an event, they will appear here.</CardDescription>
             </Card>
