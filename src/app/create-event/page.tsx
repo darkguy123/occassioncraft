@@ -152,16 +152,24 @@ export default function CreateEventPage() {
   const isAuthorized = (vendorData && vendorData.status === 'approved') || !!adminRole;
 
   useEffect(() => {
-    if (!isLoading && !isAuthorized) {
-      // User is not loading and is not an approved vendor or an admin
-      toast({
-        variant: "destructive",
-        title: "Unauthorized",
-        description: "You need to be an approved vendor to create an event.",
-      });
-      router.push('/vendor');
+    if (!isLoading && !user) {
+        // Redirect if not logged in
+        router.push('/login');
+        return;
     }
-  }, [isLoading, isAuthorized, router, toast]);
+
+    if (!isLoading && user && !isAuthorized) {
+        // This condition is met when we have finished loading, we know there's a user,
+        // but they are NOT an approved vendor or an admin.
+        toast({
+            variant: "destructive",
+            title: "Unauthorized",
+            description: "Your vendor account must be approved to create an event.",
+        });
+        router.push('/vendor');
+    }
+  }, [isLoading, isAuthorized, user, router, toast]);
+
 
   if (isLoading) {
     return (
@@ -176,10 +184,10 @@ export default function CreateEventPage() {
   }
   
   if (!isAuthorized) {
-    // This will show briefly before the redirect happens
+    // This will show a loading state while we wait for auth data or during the redirect.
     return (
        <div className="flex items-center justify-center min-h-screen">
-          <p>Redirecting...</p>
+          <p>Verifying authorization...</p>
        </div>
     );
   }
