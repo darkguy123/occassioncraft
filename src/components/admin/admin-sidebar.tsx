@@ -8,9 +8,9 @@ import { Badge } from '@/components/ui/badge';
 
 const navItems = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
-    { href: '/admin/events', icon: Calendar, label: 'Events', badge: 12 },
+    { href: '/admin/events', icon: Calendar, label: 'Events' },
     { href: '/admin/users', icon: Users, label: 'Users' },
-    { href_prefix: '/admin/vendors', icon: Building, label: 'Vendors' },
+    { href: '/admin/vendors', icon: Building, label: 'Vendors' },
     { href: '/admin/tickets', icon: Ticket, label: 'Tickets' },
     { href: '/admin/approvals', icon: TicketCheck, label: 'Approvals', badge: 12 },
     { href: '/admin/settings', icon: Settings, label: 'Settings' },
@@ -30,11 +30,11 @@ export function AdminSidebar() {
                 </div>
                 <nav className="flex-1 p-4 space-y-1">
                     {navItems.map((item) => {
-                        const isActive = item.href ? pathname === item.href : (item.href_prefix && pathname.startsWith(item.href_prefix));
+                        const isActive = pathname === item.href;
                         return (
                             <Link
                                 key={item.label}
-                                href={item.href || item.href_prefix || '#'}
+                                href={item.href || '#'}
                                 className={cn(
                                     "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-muted",
                                     isActive && "text-primary bg-muted"
