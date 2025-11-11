@@ -1,11 +1,23 @@
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, MapPin, CalendarDays, Ticket } from 'lucide-react';
+import { Search, Globe, Music, Palette, Code, Utensils, Award } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { sampleEvents } from '@/lib/placeholder-data';
 import EventCard from '@/components/event-card';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+
+const categoryIcons = {
+  All: Globe,
+  Music: Music,
+  Arts: Palette,
+  Tech: Code,
+  Food: Utensils,
+  Sports: Award,
+};
+
+const categories = ['All', 'Music', 'Arts', 'Tech', 'Food', 'Sports'] as const;
+
 
 export default function Home() {
   const heroImage = PlaceHolderImages.find(img => img.id === 'hero');
@@ -43,13 +55,16 @@ export default function Home() {
 
       <div className="container mx-auto px-4 py-12">
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6 mb-8">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="music">Music</TabsTrigger>
-            <TabsTrigger value="arts">Arts & Culture</TabsTrigger>
-            <TabsTrigger value="tech">Tech</TabsTrigger>
-            <TabsTrigger value="food">Food & Drink</TabsTrigger>
-            <TabsTrigger value="sports">Sports</TabsTrigger>
+          <TabsList className="mb-8 w-full justify-start overflow-x-auto h-auto bg-transparent p-0">
+             {categories.map((category) => {
+                const Icon = categoryIcons[category as keyof typeof categoryIcons];
+                return (
+                  <TabsTrigger key={category} value={category.toLowerCase()} className="flex-shrink-0">
+                    <Icon className="mr-2 h-4 w-4" />
+                    <span>{category === 'Arts' ? 'Arts & Culture' : category === 'Food' ? 'Food & Drink' : category}</span>
+                  </TabsTrigger>
+                );
+              })}
           </TabsList>
           
           <TabsContent value="all">
@@ -87,6 +102,13 @@ export default function Home() {
               ))}
             </div>
           </TabsContent>
+           <TabsContent value="sports">
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                {sampleEvents.filter(e => e.category === 'Sports').map((event) => (
+                    <EventCard key={event.id} event={event} />
+                ))}
+             </div>
+           </TabsContent>
         </Tabs>
 
         <div className="text-center mt-12">
