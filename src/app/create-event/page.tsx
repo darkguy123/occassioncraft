@@ -132,25 +132,23 @@ export default function CreateEventPage() {
         price: data.ticketPrice,
         imageUrl: data.bannerUrl || '',
         organizer: vendorData?.companyName || user.displayName || 'Admin',
-        status: (userData?.roles || []).includes('admin') ? 'approved' : 'pending' as const,
+        status: userData.roles.includes('admin') ? 'approved' : 'pending' as const,
         createdAt: serverTimestamp()
     };
     
     addDocumentNonBlocking(eventCollectionRef, newEventData);
 
     toast({
-        title: (userData?.roles || []).includes('admin') ? "Event Created" : "Event Submitted for Approval",
-        description: `"${data.name}" has been ${(userData?.roles || []).includes('admin') ? 'published' : 'sent for review'}.`,
+        title: userData.roles.includes('admin') ? "Event Created" : "Event Submitted for Approval",
+        description: `"${data.name}" has been ${userData.roles.includes('admin') ? 'published' : 'sent for review'}.`,
     });
 
-    router.push((userData?.roles || []).includes('admin') ? '/admin/events' : '/vendor/dashboard');
+    router.push(userData.roles.includes('admin') ? '/admin/events' : '/vendor/dashboard');
   };
 
   const isLoading = isUserLoading || isVendorLoading || isUserDataLoading;
-  const userRoles = userData?.roles || [];
-  const isAdmin = userRoles.includes('admin');
-  const isApprovedVendor = userRoles.includes('vendor') && vendorData?.status === 'approved';
-  const isAuthorized = isAdmin || isApprovedVendor;
+  
+  const isAuthorized = userData?.roles.includes('admin') || (userData?.roles.includes('vendor') && vendorData?.status === 'approved');
 
   useEffect(() => {
     if (isLoading) {
