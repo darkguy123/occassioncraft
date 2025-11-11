@@ -1,3 +1,4 @@
+
 export type Event = {
   id: string;
   name: string;
@@ -40,4 +41,13 @@ export type Notification = {
   createdAt: string;
   read: boolean;
   link?: string;
+};
+
+export type User = {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    profileImageUrl?: string;
+    dateJoined?: string;
 };
