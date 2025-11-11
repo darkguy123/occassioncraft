@@ -21,7 +21,7 @@ import { Step3VendorInfo } from "@/components/signup/step-3-vendor-info";
 import { Step4Avatar } from "@/components/signup/step-4-avatar";
 import { Step5Terms } from "@/components/signup/step-5-terms";
 import Link from "next/link";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "firebase/auth";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -111,6 +111,9 @@ export default function SignupPage() {
       const user = userCredential.user;
 
       if (user) {
+        // Send verification email
+        await sendEmailVerification(user);
+
         await updateProfile(user, {
             displayName: data.fullName,
             photoURL: data.avatarUrl,
@@ -236,7 +239,7 @@ export default function SignupPage() {
              <PartyPopper className="mx-auto h-12 w-12 text-primary" />
             <AlertDialogTitle className="text-2xl">Welcome Aboard!</AlertDialogTitle>
             <AlertDialogDescription>
-              Your account has been created successfully. You're now ready to explore events and experiences.
+              Your account has been created. We've sent a verification link to your email address. Please check your inbox!
             </AlertDialogDescription>
           </AlertDialogHeader>
             <AlertDialogAction onClick={() => router.push('/')} className="w-full">

@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from "next/link"
@@ -108,7 +109,7 @@ export default function LoginPage() {
                     <Checkbox id="remember-me" {...register("rememberMe")} />
                     <Label htmlFor="remember-me" className="text-sm font-normal">Remember me</Label>
                 </div>
-                <Link href="#" className="inline-block text-sm underline">
+                <Link href="/forgot-password" className="inline-block text-sm underline">
                   Forgot your password?
                 </Link>
               </div>
