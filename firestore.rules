@@ -59,6 +59,7 @@ service cloud.firestore {
      */
     match /users/{userId} {
       allow read, write: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
     }
 
     /**
@@ -68,6 +69,7 @@ service cloud.firestore {
      */
     match /vendors/{vendorId} {
       allow read, write: if isOwner(vendorId) || isAdmin();
+      allow list: if isAdmin();
     }
 
     /**
@@ -154,6 +156,8 @@ service cloud.firestore {
       allow get: if isOwner(userId) || isAdmin();
       // Only admins can create/update a wallet document to protect the balance.
       allow create, update: if isAdmin();
+      // Admin can list all wallets.
+      allow list: if isAdmin();
     }
 
     match /wallets/{userId}/transactions/{transactionId} {
