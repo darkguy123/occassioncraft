@@ -17,13 +17,14 @@ export const metadata: Metadata = {
 };
 
 function Favicon() {
+  const defaultFavicon = "https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Fbrightened-image-remove-photos%20(4).png?alt=media&token=665db9b9-ef34-4be3-a3fe-f5716e7db870";
   if (typeof window !== 'undefined') {
-    const faviconUrl = window.localStorage.getItem('websiteFavicon');
+    const faviconUrl = localStorage.getItem('websiteFavicon');
     if (faviconUrl) {
       return <link rel="icon" href={faviconUrl} />;
     }
   }
-  return <link rel="icon" href="/favicon.ico" />;
+  return <link rel="icon" href={defaultFavicon} />;
 }
 
 export default function RootLayout({
