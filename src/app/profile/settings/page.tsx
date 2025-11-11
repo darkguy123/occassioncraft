@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Edit, Upload } from 'lucide-react';
 import { ImageCropperDialog } from '@/components/shared/image-cropper-dialog';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { Label } from '@/components/ui/label';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required."),
