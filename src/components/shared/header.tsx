@@ -1,17 +1,34 @@
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { UserNav } from './user-nav';
 import { Ticket } from 'lucide-react';
+import Image from 'next/image';
+import { useState, useEffect } from 'react';
 
 export function Header() {
   const isLoggedIn = true; // Placeholder for authentication state
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    // This code runs only on the client, after hydration
+    const savedLogo = localStorage.getItem('websiteLogo');
+    if (savedLogo) {
+      setLogoUrl(savedLogo);
+    }
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
         <div className="mr-4 flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <Ticket className="h-6 w-6 text-primary" />
+            {logoUrl ? (
+                <Image src={logoUrl} alt="OccasionCraft Logo" width={32} height={32} className="h-8 w-auto" />
+            ) : (
+                <Ticket className="h-6 w-6 text-primary" />
+            )}
             <span className="font-bold font-headline text-lg">OccasionCraft</span>
           </Link>
           <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">

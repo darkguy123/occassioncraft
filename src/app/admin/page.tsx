@@ -1,10 +1,16 @@
+'use client';
+
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Upload } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import Image from "next/image";
+import { useToast } from "@/hooks/use-toast";
 
 const sampleVendors = [
   { id: 'v1', name: 'MusicMakers Inc.', email: 'contact@musicmakers.com', status: 'Approved', events: 5 },
@@ -26,6 +32,39 @@ const sampleUsers = [
 
 
 export default function AdminDashboardPage() {
+    const [logoPreview, setLogoPreview] = useState<string | null>(null);
+    const { toast } = useToast();
+
+    useEffect(() => {
+        const savedLogo = localStorage.getItem('websiteLogo');
+        if (savedLogo) {
+            setLogoPreview(savedLogo);
+        }
+    }, []);
+
+    const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setLogoPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const saveLogo = () => {
+        if (logoPreview) {
+            localStorage.setItem('websiteLogo', logoPreview);
+            toast({
+                title: "Logo Saved",
+                description: "The new website logo has been saved. It may take a moment to update.",
+            });
+            // Optionally, force a reload to see changes immediately in the header
+             setTimeout(() => window.location.reload(), 1000);
+        }
+    };
+
   return (
     <div className="container mx-auto py-12 px-4">
       <div className="space-y-2 mb-8">
@@ -34,10 +73,11 @@ export default function AdminDashboardPage() {
       </div>
 
       <Tabs defaultValue="vendors" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="vendors">Manage Vendors</TabsTrigger>
           <TabsTrigger value="events">Manage Events</TabsTrigger>
           <TabsTrigger value="users">Manage Users</TabsTrigger>
+          <TabsTrigger value="settings">Site Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="vendors">
@@ -164,6 +204,45 @@ export default function AdminDashboardPage() {
                     ))}
                 </TableBody>
               </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="settings">
+          <Card>
+            <CardHeader>
+              <CardTitle>Site Settings</CardTitle>
+              <CardDescription>Manage general site settings and appearance.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div>
+                    <h3 className="text-lg font-medium">Website Logo</h3>
+                    <p className="text-sm text-muted-foreground">Upload a logo to be displayed in the header.</p>
+                </div>
+
+                <div className="flex items-center gap-6">
+                    <div className="w-32 h-32 bg-secondary rounded-md flex items-center justify-center">
+                        {logoPreview ? (
+                            <Image src={logoPreview} alt="Logo preview" width={128} height={128} className="object-contain" />
+                        ) : (
+                            <span className="text-sm text-muted-foreground">Preview</span>
+                        )}
+                    </div>
+                     <div className="flex-1">
+                        <label htmlFor="logo-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80">
+                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
+                                <p className="text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                <p className="text-xs text-muted-foreground">PNG, JPG, SVG (max. 800x400px)</p>
+                            </div>
+                            <Input id="logo-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/svg+xml" onChange={handleLogoUpload} />
+                        </label>
+                    </div>
+                </div>
+
+                 <div className="flex justify-end">
+                    <Button onClick={saveLogo} disabled={!logoPreview}>Save Changes</Button>
+                </div>
             </CardContent>
           </Card>
         </TabsContent>
