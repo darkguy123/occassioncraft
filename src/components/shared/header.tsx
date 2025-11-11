@@ -4,7 +4,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { UserNav } from './user-nav';
-import { Ticket } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useUser } from '@/firebase';
@@ -15,16 +14,11 @@ export function Header() {
   const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
-    // This hook runs only on the client, after the initial render.
-    // It marks that the component has mounted.
     setHasMounted(true);
   }, []);
 
   useEffect(() => {
-    if (!hasMounted) {
-      // Don't run this on the server or during the first client render.
-      return;
-    }
+    if (!hasMounted) return;
     
     const updateLogo = () => {
       const savedLogo = localStorage.getItem('websiteLogo');
@@ -35,15 +29,14 @@ export function Header() {
       }
     };
 
-    updateLogo(); // Check for the logo as soon as the client has mounted.
+    updateLogo();
 
-    // Listen for changes from the admin settings page.
     window.addEventListener('storage', updateLogo);
 
     return () => {
       window.removeEventListener('storage', updateLogo);
     };
-  }, [hasMounted]); // This effect depends on the component being mounted.
+  }, [hasMounted]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
