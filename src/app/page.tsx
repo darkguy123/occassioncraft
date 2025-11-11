@@ -5,10 +5,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Globe, Music, Palette, Code, Utensils, Award, MapPin } from 'lucide-react';
+import { Search, Globe, Music, Palette, Code, Utensils, Award } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
 const categoryIcons = {
@@ -23,8 +22,6 @@ const categoryIcons = {
 const categories = ['All', 'Music', 'Arts', 'Tech', 'Food', 'Sports'] as const;
 
 export default function Home() {
-  const [showLocationSearch, setShowLocationSearch] = useState(false);
-  const [locationQuery, setLocationQuery] = useState('');
   const router = useRouter();
 
   const defaultHeroImage = {
@@ -32,18 +29,8 @@ export default function Home() {
       imageHint: 'concert stage lights'
   };
 
-  const handleLocationSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && locationQuery.trim() !== '') {
-      router.push(`/events?location=${encodeURIComponent(locationQuery.trim())}`);
-    }
-  };
-
   const handleSearchClick = () => {
-    if (locationQuery.trim() !== '') {
-      router.push(`/events?location=${encodeURIComponent(locationQuery.trim())}`);
-    } else {
-        router.push('/events');
-    }
+    router.push('/events');
   }
 
   return (
@@ -79,40 +66,13 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="mt-8 w-full max-w-3xl bg-white/10 backdrop-blur-lg p-4 rounded-xl shadow-lg border border-white/20"
+            className="mt-8 w-full max-w-xl bg-white/10 backdrop-blur-lg p-4 rounded-xl shadow-lg border border-white/20"
           >
-            <div className="flex flex-col md:flex-row items-center gap-2">
+            <div className="flex items-center gap-2">
               <div className="relative flex-grow w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input placeholder="Search events..." className="pl-10 text-base" />
               </div>
-              <AnimatePresence>
-                {showLocationSearch && (
-                   <motion.div
-                      key="location-input"
-                      initial={{ width: 0, opacity: 0 }}
-                      animate={{ width: 'auto', opacity: 1 }}
-                      exit={{ width: 0, opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="relative flex-grow w-full overflow-hidden"
-                    >
-                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input 
-                            placeholder="Search by location..." 
-                            className="pl-10 text-base w-full" 
-                            autoFocus 
-                            onBlur={() => setShowLocationSearch(false)}
-                            value={locationQuery}
-                            onChange={(e) => setLocationQuery(e.target.value)}
-                            onKeyDown={handleLocationSearch}
-                        />
-                    </motion.div>
-                )}
-              </AnimatePresence>
-               <Button variant="ghost" size="icon" className="text-white hover:bg-white/20" onClick={() => setShowLocationSearch(!showLocationSearch)}>
-                    <MapPin className="h-5 w-5" />
-                    <span className="sr-only">Search by location</span>
-                </Button>
               <Button size="lg" className="font-bold" onClick={handleSearchClick}>
                 <Search className="mr-2 h-5 w-5" />
                 Find Events
