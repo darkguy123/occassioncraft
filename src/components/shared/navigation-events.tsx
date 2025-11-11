@@ -19,13 +19,15 @@ export function NavigationEvents() {
     history.pushState = function (...args) {
       const url = args[2];
       if (url && (new URL(url.toString(), window.location.origin)).pathname !== pathname) {
-        showLoader();
+        // Wrap in setTimeout to avoid updating state during render
+        setTimeout(() => showLoader(), 0);
       }
       return originalPushState.apply(history, args);
     }
     
     const handlePopState = () => {
-        showLoader();
+        // Wrap in setTimeout to avoid updating state during render
+        setTimeout(() => showLoader(), 0);
     };
 
     window.addEventListener('popstate', handlePopState);
