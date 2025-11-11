@@ -88,13 +88,6 @@ service cloud.firestore {
       allow update, delete: if isOwner(vendorId) || isAdmin();
     }
     
-    // Collection Group Queries for Events
-    match /{path=**}/events/{eventId} {
-       // Allows public to query for approved events (e.g., for the homepage).
-       // Allows admins to query all events (e.g., for the admin dashboard).
-       allow list: if request.query.get('status') == 'approved' || isAdmin();
-    }
-
     /**
      * ────────────────────────────────────────────────
      * 🎫 Tickets (under each user)
@@ -103,13 +96,6 @@ service cloud.firestore {
     match /users/{userId}/tickets/{ticketId} {
       allow read, write: if isOwner(userId) || isAdmin();
     }
-    
-    // Collection Group Queries for Tickets
-    match /{path=**}/tickets/{ticketId} {
-       // Only admins can perform collection group queries on tickets.
-       allow list: if isAdmin();
-    }
-
 
     /**
      * ────────────────────────────────────────────────
@@ -138,6 +124,7 @@ service cloud.firestore {
      */
     match /roles_admin/{userId} {
       allow read, write: if isAdmin();
+      allow list: if isAdmin();
     }
 
     /**
@@ -169,6 +156,24 @@ service cloud.firestore {
       // Only admins or a secure backend process should create transactions.
       // For this app, we'll allow admins to create them.
       allow create: if isAdmin();
+    }
+    
+    /**
+     * ────────────────────────────────────────────────
+     * 🌐 Collection Group Queries
+     * ────────────────────────────────────────────────
+     */
+     
+    // This rule allows the public homepage to query for approved events across all vendors.
+    // It also allows admins to list all events for the admin panel.
+    match /{path=**}/events/{eventId} {
+       allow list: if request.query.get('status') == 'approved' || isAdmin();
+    }
+    
+    // This rule allows admins to query for any ticket across all users,
+    // which is necessary for the main admin tickets view.
+    match /{path=**}/tickets/{ticketId} {
+       allow list: if isAdmin();
     }
   }
 }
