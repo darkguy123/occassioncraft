@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Calendar, Ticket, Building, Settings, ShieldCheck, TicketCheck } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Ticket, Building, Settings, ShieldCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 const navItems = [
@@ -12,7 +12,6 @@ const navItems = [
     { href: '/admin/users', icon: Users, label: 'Users' },
     { href: '/admin/vendors', icon: Building, label: 'Vendors' },
     { href: '/admin/tickets', icon: Ticket, label: 'All Tickets' },
-    { href: '/admin/approvals', icon: TicketCheck, label: 'Approvals', badge: 12 },
     { href: '/admin/settings', icon: Settings, label: 'Settings' },
 ];
 

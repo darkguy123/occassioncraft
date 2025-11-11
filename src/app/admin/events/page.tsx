@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, CheckCircle, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import {
   Card,
@@ -27,13 +27,16 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { format } from 'date-fns';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collectionGroup, query } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { collectionGroup, query, getDocs, where } from 'firebase/firestore';
 import type { Event } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AdminEventsPage() {
   const firestore = useFirestore();
+  const { toast } = useToast();
+
   const eventsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collectionGroup(firestore, 'events'));
@@ -52,6 +55,30 @@ export default function AdminEventsPage() {
       default:
         return 'outline';
     }
+  };
+
+  const handleUpdateStatus = async (eventId: string, vendorId: string, eventName: string, status: 'approved' | 'rejected') => {
+    if (!firestore) return;
+
+    const eventQuery = query(
+      collectionGroup(firestore, 'events'),
+      where('id', '==', eventId),
+      where('vendorId', '==', vendorId)
+    );
+
+    const querySnapshot = await getDocs(eventQuery);
+    if (querySnapshot.empty) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not find the event to update.' });
+      return;
+    }
+
+    const eventDocRef = querySnapshot.docs[0].ref;
+    updateDocumentNonBlocking(eventDocRef, { status });
+
+    toast({
+      title: `Event ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+      description: `"${eventName}" has been ${status}.`,
+    });
   };
 
   return (
@@ -121,6 +148,17 @@ export default function AdminEventsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                         {event.status === 'pending' && (
+                          <>
+                            <DropdownMenuItem onClick={() => handleUpdateStatus(event.id, event.vendorId!, event.name, 'approved')}>
+                              <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Approve
+                            </DropdownMenuItem>
+                             <DropdownMenuItem onClick={() => handleUpdateStatus(event.id, event.vendorId!, event.name, 'rejected')}>
+                              <XCircle className="mr-2 h-4 w-4 text-red-500" /> Reject
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                          </>
+                        )}
                         <DropdownMenuItem asChild>
                            <Link href={`/events/${event.id}`}>View Details</Link>
                         </DropdownMenuItem>
@@ -150,5 +188,3 @@ export default function AdminEventsPage() {
     </div>
   );
 }
-
-    
