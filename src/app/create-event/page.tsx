@@ -30,7 +30,7 @@ const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters.").default(""),
   date: z.date({ required_error: "An event date is required." }),
   startTime: z.string().min(1, "Start time is required."),
-  endTime: z.string().optional(),
+  endTime: z.string().optional().default(""),
   isOnline: z.boolean().default(false),
   location: z.string().optional().default(""),
   description: z.string().optional().default(""),
@@ -196,8 +196,9 @@ export default function CreateEventPage() {
                 name="name"
                 render={({ field }) => (
                 <FormItem>
+                    <FormLabel>Event Title</FormLabel>
                     <FormControl>
-                    <Input {...field} placeholder="Event Name" className="text-3xl font-bold h-auto py-2 border-0 shadow-none px-0 focus-visible:ring-0" />
+                    <Input {...field} placeholder="My Awesome Event" className="text-xl font-bold h-auto py-2" />
                     </FormControl>
                     <FormMessage />
                 </FormItem>
@@ -279,7 +280,12 @@ export default function CreateEventPage() {
                             name="location"
                             render={({ field }) => (
                             <FormItem>
-                                <FormControl><Input placeholder="Add a venue or address" {...field} className="h-12" /></FormControl>
+                                <FormControl>
+                                    <div className="relative">
+                                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                        <Input placeholder="Search with Google Maps..." {...field} className="h-12 pl-10" />
+                                    </div>
+                                </FormControl>
                                 <FormMessage />
                             </FormItem>
                             )}
@@ -341,7 +347,7 @@ export default function CreateEventPage() {
                                                 <RadioGroupItem value="standard" className="sr-only" />
                                             </FormControl>
                                              <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer h-28">
-                                                 <div className="w-full h-full bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-950 rounded-sm p-1">
+                                                 <div className="w-full h-full bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900 dark:to-blue-950 rounded-sm p-1">
                                                     <div className="w-full h-full border-2 border-dashed border-blue-400/50 rounded-sm flex flex-col justify-between p-1">
                                                         <div className="h-2 w-1/2 bg-blue-300 dark:bg-blue-700 rounded-full"></div>
                                                         <div className="h-1 w-full bg-blue-300 dark:bg-blue-700 rounded-full"></div>
