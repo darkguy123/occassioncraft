@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Ticket } from "lucide-react";
+import { ArrowLeft, Ticket, PartyPopper } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
 import { Step1AccountDetails } from "@/components/signup/step-1-account-details";
@@ -22,6 +22,14 @@ import { Step4Avatar } from "@/components/signup/step-4-avatar";
 import { Step5Terms } from "@/components/signup/step-5-terms";
 import Link from "next/link";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 const signupSchema = z.object({
   fullName: z.string().min(3, { message: "Full name must be at least 3 characters." }),
@@ -49,6 +57,7 @@ export type SignupSchema = z.infer<typeof signupSchema>;
 export default function SignupPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(1);
+  const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
   
   const auth = useAuth();
   const firestore = useFirestore();
@@ -153,19 +162,7 @@ export default function SignupPage() {
         }
       }
 
-      toast({
-        title: "Account Created",
-        description: "You have successfully signed up.",
-      });
-      
-      const finalRoles = Array.from(new Set(data.roles));
-      if (finalRoles.includes('admin')) {
-          router.push('/admin');
-      } else if (finalRoles.includes('vendor')) {
-          router.push('/vendor/dashboard');
-      } else {
-          router.push('/dashboard');
-      }
+      setShowWelcomeDialog(true);
 
     } catch (error: any) {
       toast({
@@ -186,50 +183,67 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-8rem)] py-12 px-4">
-      <Card className="mx-auto max-w-md w-full">
-        <CardHeader className="text-center">
-            <Ticket className="mx-auto h-8 w-8 text-primary" />
-            <CardTitle className="text-2xl font-headline">Create an Account</CardTitle>
-            <CardDescription>Join our platform in just a few steps.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <div className="space-y-4 mb-8">
-                {currentStep > 0 && (
-                    <Button variant="ghost" onClick={handlePrev} className="text-muted-foreground">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back
-                    </Button>
-                )}
-                <Progress value={progress} className="h-2" />
-            </div>
+    <>
+      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)] py-12 px-4">
+        <Card className="mx-auto max-w-md w-full">
+          <CardHeader className="text-center">
+              <Ticket className="mx-auto h-8 w-8 text-primary" />
+              <CardTitle className="text-2xl font-headline">Create an Account</CardTitle>
+              <CardDescription>Join our platform in just a few steps.</CardDescription>
+          </CardHeader>
+          <CardContent>
+              <div className="space-y-4 mb-8">
+                  {currentStep > 0 && (
+                      <Button variant="ghost" onClick={handlePrev} className="text-muted-foreground">
+                          <ArrowLeft className="mr-2 h-4 w-4" />
+                          Back
+                      </Button>
+                  )}
+                  <Progress value={progress} className="h-2" />
+              </div>
 
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="overflow-hidden relative h-96">
-                <AnimatePresence initial={false} custom={direction}>
-                  <motion.div
-                    key={currentStep}
-                    custom={direction}
-                    variants={variants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                    transition={{ x: { type: "spring", stiffness: 300, damping: 30 }, opacity: { duration: 0.2 } }}
-                    className="absolute w-full"
-                  >
-                    <CurrentStepComponent form={form} onNext={handleNext} />
-                  </motion.div>
-                </AnimatePresence>
-              </form>
-            </Form>
-           <div className="mt-4 text-center text-sm">
-            Already have an account?{" "}
-            <Link href="/login" className="underline">
-              Log in
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="overflow-hidden relative h-96">
+                  <AnimatePresence initial={false} custom={direction}>
+                    <motion.div
+                      key={currentStep}
+                      custom={direction}
+                      variants={variants}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{ x: { type: "spring", stiffness: 300, damping: 30 }, opacity: { duration: 0.2 } }}
+                      className="absolute w-full"
+                    >
+                      <CurrentStepComponent form={form} onNext={handleNext} />
+                    </motion.div>
+                  </AnimatePresence>
+                </form>
+              </Form>
+            <div className="mt-4 text-center text-sm">
+              Already have an account?{" "}
+              <Link href="/login" className="underline">
+                Log in
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <AlertDialog open={showWelcomeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader className="text-center">
+             <PartyPopper className="mx-auto h-12 w-12 text-primary" />
+            <AlertDialogTitle className="text-2xl">Welcome Aboard!</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your account has been created successfully. You're now ready to explore events and experiences.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+            <AlertDialogAction onClick={() => router.push('/')} className="w-full">
+              Continue
+            </AlertDialogAction>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
