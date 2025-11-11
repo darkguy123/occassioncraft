@@ -68,42 +68,42 @@ export default function Home() {
           </TabsList>
           
           <TabsContent value="all">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {sampleEvents.map((event) => (
                 <EventCard key={event.id} event={event} />
               ))}
             </div>
           </TabsContent>
           <TabsContent value="music">
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {sampleEvents.filter(e => e.category === 'Music').map((event) => (
                 <EventCard key={event.id} event={event} />
               ))}
             </div>
           </TabsContent>
            <TabsContent value="arts">
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {sampleEvents.filter(e => e.category === 'Arts').map((event) => (
                 <EventCard key={event.id} event={event} />
               ))}
             </div>
           </TabsContent>
            <TabsContent value="tech">
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {sampleEvents.filter(e => e.category === 'Tech').map((event) => (
                 <EventCard key={event.id} event={event} />
               ))}
             </div>
           </TabsContent>
            <TabsContent value="food">
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {sampleEvents.filter(e => e.category === 'Food').map((event) => (
                 <EventCard key={event.id} event={event} />
               ))}
             </div>
           </TabsContent>
            <TabsContent value="sports">
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                 {sampleEvents.filter(e => e.category === 'Sports').map((event) => (
                     <EventCard key={event.id} event={event} />
                 ))}
