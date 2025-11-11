@@ -11,7 +11,7 @@ import { useUser } from '@/firebase';
 
 export function Header() {
   const { user, isUserLoading } = useUser();
-  const [logoUrl, setLogoUrl] = useState<string>('/assets/logo.svg');
+  const [logoUrl, setLogoUrl] = useState<string>('/assets/logo.png');
 
   useEffect(() => {
     const updateLogo = () => {
@@ -19,7 +19,7 @@ export function Header() {
       if (savedLogo) {
         setLogoUrl(savedLogo);
       } else {
-        setLogoUrl('/assets/logo.svg');
+        setLogoUrl('/assets/logo.png');
       }
     };
 

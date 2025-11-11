@@ -12,7 +12,7 @@ import { Suspense, useState, useEffect } from 'react';
 import { ThemeProvider } from '@/context/theme-provider';
 
 function Favicon() {
-    const [faviconUrl, setFaviconUrl] = useState("/favicon.ico");
+    const [faviconUrl, setFaviconUrl] = useState("/favicon.png");
 
     useEffect(() => {
         const loadFavicon = () => {
@@ -20,7 +20,7 @@ function Favicon() {
             if (savedFavicon) {
                 setFaviconUrl(savedFavicon);
             } else {
-                setFaviconUrl('/favicon.ico');
+                setFaviconUrl('/favicon.png');
             }
         };
 
@@ -40,7 +40,7 @@ function Favicon() {
 export function RootProvider({ children }: { children: React.ReactNode }) {
     return (
         <ThemeProvider>
-          <Suspense fallback={<link rel="icon" href="/favicon.ico" />}>
+          <Suspense fallback={<link rel="icon" href="/favicon.png" />}>
              <Favicon />
           </Suspense>
           <FirebaseClientProvider>
