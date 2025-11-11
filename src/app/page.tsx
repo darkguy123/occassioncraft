@@ -1,3 +1,6 @@
+
+'use client';
+
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { sampleEvents } from '@/lib/placeholder-data';
 import EventCard from '@/components/event-card';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useEffect, useState } from 'react';
 
 const categoryIcons = {
   All: Globe,
@@ -20,18 +24,43 @@ const categories = ['All', 'Music', 'Arts', 'Tech', 'Food', 'Sports'] as const;
 
 
 export default function Home() {
-  const heroImage = PlaceHolderImages.find(img => img.id === 'hero');
+  const defaultHeroImage = PlaceHolderImages.find(img => img.id === 'hero');
+  const [heroBannerUrl, setHeroBannerUrl] = useState(defaultHeroImage?.imageUrl);
+  const [heroBannerHint, setHeroBannerHint] = useState(defaultHeroImage?.imageHint);
+
+  useEffect(() => {
+    const savedBanner = localStorage.getItem('heroBannerImage');
+    if (savedBanner) {
+      setHeroBannerUrl(savedBanner);
+      setHeroBannerHint('custom banner');
+    }
+
+    const handleStorageChange = () => {
+      const updatedBanner = localStorage.getItem('heroBannerImage');
+      if (updatedBanner) {
+        setHeroBannerUrl(updatedBanner);
+        setHeroBannerHint('custom banner');
+      } else {
+        setHeroBannerUrl(defaultHeroImage?.imageUrl);
+        setHeroBannerHint(defaultHeroImage?.imageHint);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [defaultHeroImage]);
 
   return (
     <div className="flex flex-col min-h-screen">
       <section className="relative w-full h-[60vh] text-white">
-        {heroImage && (
+        {heroBannerUrl && (
              <Image
-             src={heroImage.imageUrl}
-             alt={heroImage.description}
+             src={heroBannerUrl}
+             alt="Hero Banner"
              fill
              className="object-cover"
-             data-ai-hint={heroImage.imageHint}
+             data-ai-hint={heroBannerHint}
+             priority
            />
         )}
         <div className="absolute inset-0 bg-black/50" />
