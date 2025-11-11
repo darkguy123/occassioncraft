@@ -4,6 +4,10 @@ import { Header } from '@/components/shared/header';
 import { Footer } from '@/components/shared/footer';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { LoaderProvider } from '@/context/loader-context';
+import { PageLoader } from '@/components/shared/page-loader';
+import { NavigationEvents } from '@/components/shared/navigation-events';
+import { Suspense } from 'react';
 
 export const metadata: Metadata = {
   title: 'OccasionCraft',
@@ -24,14 +28,18 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col">
         <FirebaseClientProvider>
-          <Header />
-          <main className="flex-grow">{children}</main>
-          <Footer />
-          <Toaster />
+          <LoaderProvider>
+            <Header />
+            <main className="flex-grow">{children}</main>
+            <Footer />
+            <Toaster />
+            <PageLoader />
+            <Suspense fallback={null}>
+              <NavigationEvents />
+            </Suspense>
+          </LoaderProvider>
         </FirebaseClientProvider>
       </body>
     </html>
   );
 }
-
-    
