@@ -14,8 +14,10 @@ service cloud.firestore {
     	return request.auth.uid == userId;
     }
 
-    // Users can read and write their own profile data. Admins can read/write any user's data.
     match /users/{userId} {
+      // Admins can list all users.
+      allow list: if isAdmin();
+      // Users can read and write their own profile data. Admins can read/write any user's data.
       allow read, write: if isOwner(userId) || isAdmin();
     }
     
@@ -29,9 +31,12 @@ service cloud.firestore {
       allow read, write: if isOwner(userId) || isAdmin();
     }
     
-    // Publicly readable collections
     match /events/{eventId} {
+       // Admins can list all events.
+       allow list: if isAdmin();
+       // Events are publicly readable.
        allow read: if true;
+       // Events can be written by their vendor owner or an admin.
        allow write: if isAdmin() || request.resource.data.vendorId == request.auth.uid;
     }
     
@@ -40,8 +45,10 @@ service cloud.firestore {
        allow write: if isAdmin();
     }
 
-    // Vendors can manage their own profiles and events. Admins have full access.
     match /vendors/{vendorId} {
+      // Admins can list all vendors.
+      allow list: if isAdmin();
+      // Vendors can read and write their own profiles. Admins have full access.
       allow read, write: if isOwner(vendorId) || isAdmin();
     }
     
