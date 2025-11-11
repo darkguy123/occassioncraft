@@ -9,19 +9,30 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Ticket } from "lucide-react"
+import { Ticket, X } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useForm, SubmitHandler } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { useAuth, useFirestore } from "@/firebase";
-import { initiateEmailSignUp } from "@/firebase/non-blocking-login";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 
 
 const signupSchema = z.object({
@@ -41,8 +52,20 @@ export default function SignupPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
+  const [privacyPolicyContent, setPrivacyPolicyContent] = useState('');
+  const [isPolicyDialogOpen, setIsPolicyDialogOpen] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<SignupSchema>({
+  useEffect(() => {
+    // This runs on the client and retrieves the content from localStorage
+    const savedContent = localStorage.getItem('privacyPolicy');
+    if (savedContent) {
+      setPrivacyPolicyContent(savedContent);
+    } else {
+      setPrivacyPolicyContent('Privacy Policy content has not been set by an admin yet.')
+    }
+  }, []);
+
+  const { register, handleSubmit, formState: { errors }, setValue } = useForm<SignupSchema>({
     resolver: zodResolver(signupSchema)
   });
 
@@ -80,6 +103,11 @@ export default function SignupPage() {
       });
     }
   };
+
+  const handleAcceptPolicy = () => {
+    setValue('terms', true, { shouldValidate: true });
+    setIsPolicyDialogOpen(false);
+  }
 
 
   return (
@@ -119,9 +147,31 @@ export default function SignupPage() {
               <div className="grid gap-1.5 leading-none">
                 <Label htmlFor="terms" className="text-sm font-normal">
                   I agree to the{" "}
-                  <Link href="/privacy" className="underline underline-offset-4 hover:text-primary">
-                    Privacy Policy
-                  </Link>
+                  <Dialog open={isPolicyDialogOpen} onOpenChange={setIsPolicyDialogOpen}>
+                    <DialogTrigger asChild>
+                      <span className="underline underline-offset-4 hover:text-primary cursor-pointer">
+                          Privacy Policy
+                      </span>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[625px]">
+                      <DialogHeader>
+                        <DialogTitle>Privacy Policy</DialogTitle>
+                        <DialogDescription>
+                          Our commitment to your privacy.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <ScrollArea className="h-96 w-full rounded-md border p-4">
+                         <p className="whitespace-pre-wrap text-sm">{privacyPolicyContent || 'Loading...'}</p>
+                      </ScrollArea>
+                      <DialogFooter>
+                        <Button type="button" onClick={handleAcceptPolicy}>I Accept</Button>
+                      </DialogFooter>
+                       <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+                        <X className="h-4 w-4" />
+                        <span className="sr-only">Close</span>
+                      </DialogClose>
+                    </DialogContent>
+                  </Dialog>
                 </Label>
                  {errors.terms && <p className="text-destructive text-xs">{errors.terms.message}</p>}
               </div>
@@ -144,5 +194,3 @@ export default function SignupPage() {
     </div>
   )
 }
-
-    
