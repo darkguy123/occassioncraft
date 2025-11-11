@@ -14,14 +14,16 @@ interface UpcomingEventCardProps {
   event: Event;
 }
 
-const calculateTimeLeft = (eventDate: string) => {
+type TimeLeft = {
+  days?: number;
+  hours?: number;
+  minutes?: number;
+  seconds?: number;
+};
+
+const calculateTimeLeft = (eventDate: string): TimeLeft => {
   const difference = +new Date(eventDate) - +new Date();
-  let timeLeft = {
-    days: 0,
-    hours: 0,
-    minutes: 0,
-    seconds: 0,
-  };
+  let timeLeft: TimeLeft = {};
 
   if (difference > 0) {
     timeLeft = {
@@ -36,17 +38,26 @@ const calculateTimeLeft = (eventDate: string) => {
 };
 
 export function UpcomingEventCard({ event }: UpcomingEventCardProps) {
-  const [timeLeft, setTimeLeft] = useState(calculateTimeLeft(event.date));
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>({});
+  const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasMounted) return;
+
+    setTimeLeft(calculateTimeLeft(event.date));
+
+    const timer = setInterval(() => {
       setTimeLeft(calculateTimeLeft(event.date));
     }, 1000);
 
-    return () => clearTimeout(timer);
-  });
+    return () => clearInterval(timer);
+  }, [hasMounted, event.date]);
   
-  const hasEnded = !Object.values(timeLeft).some(val => val > 0);
+  const hasEnded = timeLeft.days === 0 && timeLeft.hours === 0 && timeLeft.minutes === 0 && timeLeft.seconds === 0;
 
   return (
     <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl">
@@ -65,28 +76,32 @@ export function UpcomingEventCard({ event }: UpcomingEventCardProps) {
                 <h3 className="font-headline font-semibold text-2xl leading-tight text-primary">{event.name}</h3>
                 <p className="text-muted-foreground text-sm mt-1">by {event.organizer}</p>
                 
-                <div className="my-6">
-                  {hasEnded ? (
-                    <div className="text-center text-lg font-bold text-destructive">Event has ended</div>
+                <div className="my-6 min-h-[68px] flex items-center justify-center">
+                  {hasMounted && Object.keys(timeLeft).length > 0 ? (
+                    hasEnded ? (
+                      <div className="text-center text-lg font-bold text-destructive">Event has ended</div>
+                    ) : (
+                      <div className="flex justify-center gap-4 text-center">
+                          <div>
+                              <div className="text-3xl font-bold">{String(timeLeft.days).padStart(2, '0')}</div>
+                              <div className="text-xs text-muted-foreground">Days</div>
+                          </div>
+                           <div>
+                              <div className="text-3xl font-bold">{String(timeLeft.hours).padStart(2, '0')}</div>
+                              <div className="text-xs text-muted-foreground">Hours</div>
+                          </div>
+                           <div>
+                              <div className="text-3xl font-bold">{String(timeLeft.minutes).padStart(2, '0')}</div>
+                              <div className="text-xs text-muted-foreground">Minutes</div>
+                          </div>
+                           <div>
+                              <div className="text-3xl font-bold">{String(timeLeft.seconds).padStart(2, '0')}</div>
+                              <div className="text-xs text-muted-foreground">Seconds</div>
+                          </div>
+                      </div>
+                    )
                   ) : (
-                    <div className="flex justify-center gap-4 text-center">
-                        <div>
-                            <div className="text-3xl font-bold">{String(timeLeft.days).padStart(2, '0')}</div>
-                            <div className="text-xs text-muted-foreground">Days</div>
-                        </div>
-                         <div>
-                            <div className="text-3xl font-bold">{String(timeLeft.hours).padStart(2, '0')}</div>
-                            <div className="text-xs text-muted-foreground">Hours</div>
-                        </div>
-                         <div>
-                            <div className="text-3xl font-bold">{String(timeLeft.minutes).padStart(2, '0')}</div>
-                            <div className="text-xs text-muted-foreground">Minutes</div>
-                        </div>
-                         <div>
-                            <div className="text-3xl font-bold">{String(timeLeft.seconds).padStart(2, '0')}</div>
-                            <div className="text-xs text-muted-foreground">Seconds</div>
-                        </div>
-                    </div>
+                    <div className="text-center text-lg font-bold text-muted-foreground">Loading countdown...</div>
                   )}
                 </div>
 
