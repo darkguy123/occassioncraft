@@ -38,8 +38,9 @@ export default function VendorDashboardPage() {
     const totalTicketsSold = vendorEvents.reduce((acc, event) => acc + event.ticketsSold, 0);
 
     const isLoading = isUserLoading || isVendorLoading || isUserDataLoading;
-    const isVendor = userData?.roles.includes('vendor');
-    const isAdmin = userData?.roles.includes('admin');
+    const userRoles = userData?.roles || [];
+    const isVendor = userRoles.includes('vendor');
+    const isAdmin = userRoles.includes('admin');
     const isAuthorized = isAdmin || (isVendor && vendorData?.status === 'approved');
 
 
