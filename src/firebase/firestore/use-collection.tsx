@@ -65,11 +65,14 @@ export function useCollection<T = any>(
     // If the query is not yet available, do nothing and wait.
     if (!memoizedTargetRefOrQuery) {
       setIsLoading(false);
+      setData(null);
+      setError(null);
       return;
     }
     
     setIsLoading(true);
     setError(null);
+    setData(null);
 
     const unsubscribe = onSnapshot(
       memoizedTargetRefOrQuery,

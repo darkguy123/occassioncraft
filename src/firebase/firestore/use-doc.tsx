@@ -51,11 +51,14 @@ export function useDoc<T = any>(
     // If the document reference is not yet available, do nothing and wait.
     if (!memoizedDocRef) {
         setIsLoading(false);
+        setData(null);
+        setError(null);
         return;
     }
 
     setIsLoading(true);
     setError(null);
+    setData(null);
 
     const unsubscribe = onSnapshot(
       memoizedDocRef,
