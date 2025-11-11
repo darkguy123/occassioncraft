@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -32,6 +33,25 @@ import { collectionGroup, query, getDocs, where } from 'firebase/firestore';
 import type { Event } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { motion } from 'framer-motion';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { y: 10, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+  },
+};
 
 export default function AdminEventsPage() {
   const firestore = useFirestore();
@@ -114,7 +134,11 @@ export default function AdminEventsPage() {
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <motion.tbody
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
               {isLoading && (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
@@ -125,7 +149,7 @@ export default function AdminEventsPage() {
                 ))
               )}
               {events && events.map((event) => (
-                <TableRow key={event.id}>
+                <motion.tr key={event.id} variants={itemVariants}>
                   <TableCell>
                     <div className="font-medium">{event.name}</div>
                     <div className="text-sm text-muted-foreground">
@@ -176,9 +200,9 @@ export default function AdminEventsPage() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
-                </TableRow>
+                </motion.tr>
               ))}
-            </TableBody>
+            </motion.tbody>
           </Table>
            {!isLoading && events?.length === 0 && (
                 <p className="text-center text-muted-foreground py-8">No events found.</p>
