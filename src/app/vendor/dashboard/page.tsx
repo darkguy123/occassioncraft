@@ -3,20 +3,30 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
-import { BarChart2, Ticket, DollarSign, PlusCircle, QrCode, AlertTriangle } from "lucide-react";
+import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "@/components/ui/table";
+import { BarChart2, Ticket, DollarSign, PlusCircle, QrCode, AlertTriangle, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { doc } from "firebase/firestore";
-import type { User } from "@/lib/types"; // Simplified type
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, deleteDocumentNonBlocking } from "@/firebase";
+import { doc, collection, query, where } from "firebase/firestore";
+import type { User, Event } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from 'next/navigation';
 import { useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Badge } from "@/components/ui/badge";
 
 export default function VendorDashboardPage() {
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
     const router = useRouter();
+    const { toast } = useToast();
 
     const userDocRef = useMemoFirebase(() => {
         if (!user) return null;
@@ -25,20 +35,36 @@ export default function VendorDashboardPage() {
 
     const { data: userData, isLoading: isUserDataLoading } = useDoc<User>(userDocRef);
 
-    const isLoading = isUserLoading || isUserDataLoading;
+    const vendorEventsQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(firestore, 'events'), where('vendorId', '==', user.uid));
+    }, [user, firestore]);
+
+    const { data: vendorEvents, isLoading: areEventsLoading } = useCollection<Event>(vendorEventsQuery);
+
+    const isLoading = isUserLoading || isUserDataLoading || areEventsLoading;
     const isVendor = (userData?.roles || []).includes('vendor');
 
     useEffect(() => {
-        if (isLoading) return;
+        if (isUserLoading || isUserDataLoading) return;
         if (!user) {
             router.push('/login');
             return;
         }
         if (!isVendor) {
-            // Redirect non-vendors to the vendor landing page to sign up
             router.push('/vendor');
         }
-    }, [isLoading, user, isVendor, router]);
+    }, [isUserLoading, isUserDataLoading, user, isVendor, router]);
+    
+    const handleDelete = (eventId: string, eventName: string) => {
+        if (!firestore) return;
+        const eventRef = doc(firestore, 'events', eventId);
+        deleteDocumentNonBlocking(eventRef);
+        toast({
+          title: "Event Deleted",
+          description: `The event "${eventName}" has been successfully deleted.`,
+        });
+    }
 
     if (isLoading) {
         return (
@@ -53,8 +79,8 @@ export default function VendorDashboardPage() {
             </div>
         )
     }
-
-    // A placeholder for a potential pending/rejected status in the future
+    
+    // This check is a placeholder for a more robust vendor status check (e.g. from a 'vendors' collection)
     const vendorStatus = 'approved'; 
 
     if (vendorStatus === 'pending') {
@@ -124,8 +150,8 @@ export default function VendorDashboardPage() {
             <BarChart2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="text-xs text-muted-foreground">No active events</p>
+            <div className="text-2xl font-bold">{vendorEvents?.length || 0}</div>
+             <p className="text-xs text-muted-foreground">Total events you've created</p>
           </CardContent>
         </Card>
       </div>
@@ -139,19 +165,56 @@ export default function VendorDashboardPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableCell>Event</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell className="text-right">Tickets Sold</TableCell>
-                <TableCell className="text-right">Revenue</TableCell>
-                <TableCell className="text-right">Actions</TableCell>
+                <TableHead>Event</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Price</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow>
-                <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
-                  You haven't created any events yet.
-                </TableCell>
-              </TableRow>
+              {areEventsLoading && (
+                <TableRow>
+                    <TableCell colSpan={5}><Skeleton className="h-20" /></TableCell>
+                </TableRow>
+              )}
+              {!areEventsLoading && vendorEvents && vendorEvents.length > 0 ? (
+                vendorEvents.map(event => (
+                  <TableRow key={event.id}>
+                    <TableCell className="font-medium">{event.name}</TableCell>
+                    <TableCell><Badge variant="secondary">{event.status || 'Published'}</Badge></TableCell>
+                    <TableCell>${event.price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">
+                       <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem asChild>
+                                    <Link href={`/admin/events/${event.id}/edit`}>
+                                        <Edit className="mr-2 h-4 w-4" /> Edit
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(event.id, event.name)}>
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                 !areEventsLoading && (
+                    <TableRow>
+                        <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
+                        You haven't created any events yet.
+                        </TableCell>
+                    </TableRow>
+                 )
+              )}
             </TableBody>
           </Table>
         </CardContent>

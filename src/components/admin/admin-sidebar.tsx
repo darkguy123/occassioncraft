@@ -1,10 +1,10 @@
+
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { LayoutDashboard, Users, Calendar, Ticket, Building, Settings, ShieldCheck } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 
 const navItems = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
@@ -41,7 +41,6 @@ export function AdminSidebar() {
                             >
                                 <item.icon className="h-4 w-4" />
                                 <span>{item.label}</span>
-                                {item.badge && <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full">{item.badge}</Badge>}
                             </Link>
                         );
                     })}

@@ -6,14 +6,15 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, MapPin, Ticket } from 'lucide-react';
-import type { Event } from '@/lib/types';
+import type { Event, UserTicket } from '@/lib/types';
 import { format } from 'date-fns';
 
 interface UpcomingEventCardProps {
   event: Event;
+  ticket: UserTicket;
 }
 
-export function UpcomingEventCard({ event }: UpcomingEventCardProps) {
+export function UpcomingEventCard({ event, ticket }: UpcomingEventCardProps) {
   return (
     <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-card/60 backdrop-blur-sm rounded-xl flex flex-col">
         <div className="relative h-48 w-full">
@@ -38,7 +39,7 @@ export function UpcomingEventCard({ event }: UpcomingEventCardProps) {
                 </div>
                 <div className="flex items-center text-muted-foreground">
                     <MapPin className="h-4 w-4 mr-2" />
-                    <span>{event.location}</span>
+                    <span>{event.isOnline ? 'Online Event' : event.location}</span>
                 </div>
             </div>
             
@@ -47,8 +48,8 @@ export function UpcomingEventCard({ event }: UpcomingEventCardProps) {
                     <Ticket className='h-5 w-5 text-primary'/>
                     <span className='font-bold'>1 Ticket</span>
                 </div>
-                <Button asChild variant="outline">
-                    <Link href="#">View Details</Link>
+                <Button asChild>
+                    <Link href={`/events/${event.id}/tickets/${ticket.ticketId}`}>View Ticket</Link>
                 </Button>
             </div>
       </CardContent>

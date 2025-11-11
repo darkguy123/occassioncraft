@@ -1,16 +1,18 @@
 
 'use client';
 
-import { Card, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardTitle, CardDescription, CardContent, CardHeader } from "@/components/ui/card"
 import { UpcomingEventCard } from '@/components/dashboard/upcoming-event-card';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
 import type { UserTicket, Event } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMemo } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function UserDashboardPage() {
-    const { user } = useUser();
+    const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
 
     const ticketsQuery = useMemoFirebase(() => {
@@ -37,7 +39,7 @@ export default function UserDashboardPage() {
         }).filter(item => item.event); // Filter out items where event was not found
     }, [tickets, events]);
     
-    const isLoading = ticketsLoading || (eventIds.length > 0 && eventsLoading);
+    const isLoading = isUserLoading || ticketsLoading || (eventIds.length > 0 && eventsLoading);
 
   return (
     <div className="container mx-auto max-w-7xl py-12 px-4">
@@ -67,13 +69,20 @@ export default function UserDashboardPage() {
         ) : myEvents.length > 0 ? (
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {myEvents.map(item => (
-                    <UpcomingEventCard key={item.ticketId} event={item.event!} />
+                    <UpcomingEventCard key={item.ticketId} event={item.event!} ticket={item}/>
                 ))}
             </div>
         ) : (
-            <Card className="text-center p-12 bg-card/80 backdrop-blur-sm">
-                <CardTitle>No Tickets Yet</CardTitle>
-                <CardDescription className="mt-2">When you purchase tickets for an event, they will appear here.</CardDescription>
+            <Card className="text-center p-12 bg-card/80 backdrop-blur-sm border-2 border-dashed">
+                <CardHeader>
+                    <CardTitle>No Tickets Yet</CardTitle>
+                    <CardDescription className="mt-2">When you purchase tickets for an event, they will appear here.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <Button asChild>
+                        <Link href="/events">Discover Events</Link>
+                    </Button>
+                </CardContent>
             </Card>
         )}
       </div>
