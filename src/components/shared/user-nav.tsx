@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import Link from 'next/link';
@@ -14,11 +13,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LayoutDashboard, Users, User, LogOut, Ticket, Shield, Settings, Wallet } from 'lucide-react';
+import { LayoutDashboard, LogOut, Ticket, Shield, Settings, Wallet } from 'lucide-react';
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import type { Vendor, User as UserType } from '@/lib/types';
-import Image from 'next/image';
+import type { User } from '@/lib/types';
 
 export function UserNav() {
   const auth = useAuth();
@@ -30,15 +28,7 @@ export function UserNav() {
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
-  const { data: userProfileData } = useDoc<UserType>(userDocRef);
-
-  const vendorRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'vendors', user.uid);
-  }, [firestore, user]);
-
-  const { data: vendorData, isLoading: isVendorLoading } = useDoc<Vendor>(vendorRef);
-
+  const { data: userProfileData } = useDoc<User>(userDocRef);
 
   const handleLogout = () => {
     if(auth) {
@@ -91,7 +81,7 @@ export function UserNav() {
               </Link>
             </DropdownMenuItem>
           )}
-          {isVendor && (vendorData?.status === 'approved' || isAdmin) && (
+          {isVendor && (
             <DropdownMenuItem asChild>
               <Link href="/vendor/dashboard">
                 <LayoutDashboard className="mr-2 h-4 w-4" />

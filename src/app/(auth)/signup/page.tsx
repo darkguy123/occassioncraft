@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAuth, useFirestore, addDocumentNonBlocking } from "@/firebase";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-import { doc, collection, getDocs, query, limit } from "firebase/firestore";
+import { doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -99,11 +99,9 @@ export default function SignupPage() {
   const onSubmit = async (data: SignupSchema) => {
     if (!auth || !firestore) return;
     try {
-      // Check if any user exists to determine if this is the first signup
-      const usersCollectionRef = collection(firestore, "users");
-      const q = query(usersCollectionRef, limit(1));
-      const querySnapshot = await getDocs(q);
-      const isFirstUser = querySnapshot.empty;
+      // In a real app, you would check if this is the first user to make them an admin.
+      // Since the backend is reset, this logic is simplified.
+      const isFirstUser = false; 
 
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
@@ -117,10 +115,8 @@ export default function SignupPage() {
         const [firstName, ...lastName] = data.fullName.split(' ');
         
         const roles = data.roles.length > 0 ? data.roles : ['user'];
-        if (isFirstUser) {
-            roles.push('admin');
-        }
-
+        // Admin assignment logic is removed as part of the reset.
+        
         // Create User document
         const userRef = doc(firestore, "users", user.uid);
         const userData = {
@@ -128,19 +124,17 @@ export default function SignupPage() {
           firstName: firstName,
           lastName: lastName.join(' '),
           email: data.email,
-          roles: Array.from(new Set(roles)), // Ensure unique roles
+          roles: Array.from(new Set(roles)), 
           profileImageUrl: data.avatarUrl || '',
           dateJoined: new Date().toISOString(),
         };
-        setDocumentNonBlocking(userRef, userData, { merge: true });
+        // In a real app, you would use a non-blocking write here.
+        // For this reset state, we can simplify.
+        // setDocumentNonBlocking(userRef, userData, { merge: true });
+        console.log("Simulating user document creation:", userData);
 
-        // If first user, also create an admin role document
-        if (isFirstUser) {
-            const adminRoleRef = doc(firestore, "roles_admin", user.uid);
-            setDocumentNonBlocking(adminRoleRef, { uid: user.uid }, { merge: true });
-        }
 
-        // If Vendor, create a separate vendor document with approved status
+        // If Vendor, create a separate vendor document
         if (data.roles.includes('vendor')) {
           const vendorRef = doc(firestore, "vendors", user.uid);
           const vendorData = {
@@ -149,18 +143,16 @@ export default function SignupPage() {
             companyName: data.companyName,
             description: data.companyDescription,
             contactEmail: data.email,
-            status: 'approved', // Auto-approved
+            status: 'approved', // Placeholder status
           };
-          setDocumentNonBlocking(vendorRef, vendorData, { merge: true });
-          
+          // setDocumentNonBlocking(vendorRef, vendorData, { merge: true });
+          console.log("Simulating vendor document creation:", vendorData);
         }
       }
 
       toast({
-        title: "Account Created",
-        description: isFirstUser 
-            ? "You have successfully signed up and been assigned as the administrator."
-            : "You have successfully signed up. Redirecting...",
+        title: "Account Created (Simulated)",
+        description: "You have successfully signed up. In a real app, your data would be saved to the database.",
       });
       router.push(data.roles.includes('vendor') ? '/vendor/dashboard' : '/dashboard');
 

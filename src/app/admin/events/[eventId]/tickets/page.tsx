@@ -1,58 +1,18 @@
+
 'use client';
 
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { notFound } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, X, Trash2 } from 'lucide-react';
 import Link from 'next/link';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
-import type { Ticket } from '@/lib/types'; // Assuming Ticket type is defined
-import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ManageTicketsPage({ params }: { params: { eventId: string } }) {
-  const firestore = useFirestore();
-
-  const ticketsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'tickets'), where('eventId', '==', params.eventId));
-  }, [firestore, params.eventId]);
-
-  const { data: tickets, isLoading } = useCollection<Ticket>(ticketsQuery);
-
-  const eventName = tickets?.[0]?.event?.name || 'Event'; // Placeholder until event data is loaded
-
-  // This is just a placeholder as in a real app, this would be a more complex system.
-  const pendingTickets: any[] = [];
-  
-  // In a real app, you would fetch event details separately.
-  // For now, we show a generic loading state if no tickets have loaded yet.
-  if (isLoading && !tickets) {
-    return (
-        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-10 w-1/3" />
-            <Skeleton className="h-6 w-1/2" />
-            <Card>
-                <CardHeader><Skeleton className="h-8 w-1/4" /></CardHeader>
-                <CardContent><Skeleton className="h-24 w-full" /></CardContent>
-            </Card>
-             <Card>
-                <CardHeader><Skeleton className="h-8 w-1/4" /></CardHeader>
-                <CardContent><Skeleton className="h-48 w-full" /></CardContent>
-            </Card>
-        </div>
-    );
-  }
   
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -61,45 +21,16 @@ export default function ManageTicketsPage({ params }: { params: { eventId: strin
             <Link href="/admin/events">&larr; Back to Events</Link>
          </Button>
         <h1 className="text-3xl font-bold tracking-tight">Manage Tickets</h1>
-        <p className="text-muted-foreground">Approve, deny, and view tickets for &quot;{eventName}&quot;.</p>
+        <p className="text-muted-foreground">This page is a placeholder. The database has been reset.</p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>Pending Approval</CardTitle>
-          <CardDescription>These tickets were submitted by vendors and require your approval.</CardDescription>
+          <CardDescription>This functionality is disabled because the project backend was reset.</CardDescription>
         </CardHeader>
         <CardContent>
-            <Table>
-                 <TableHeader>
-                    <TableRow>
-                        <TableHead>User</TableHead>
-                        <TableHead>Submission Date</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {pendingTickets.map(ticket => (
-                         <TableRow key={ticket.id}>
-                            <TableCell>{ticket.userName}</TableCell>
-                            <TableCell>{new Date(ticket.purchaseDate).toLocaleDateString()}</TableCell>
-                            <TableCell><Badge variant="secondary">Pending</Badge></TableCell>
-                            <TableCell className="text-right space-x-2">
-                                <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700">
-                                    <Check className="mr-2 h-4 w-4"/> Approve
-                                </Button>
-                                 <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700">
-                                    <X className="mr-2 h-4 w-4"/> Deny
-                                </Button>
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-             {pendingTickets.length === 0 && (
-                <p className="text-center text-muted-foreground py-8">No tickets are pending approval.</p>
-            )}
+          <p className="text-center text-muted-foreground py-8">No tickets are pending approval.</p>
         </CardContent>
       </Card>
 
@@ -112,36 +43,20 @@ export default function ManageTicketsPage({ params }: { params: { eventId: strin
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Ticket ID</TableHead>
-                <TableHead>Event</TableHead>
-                <TableHead>Purchase Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableCell>Ticket ID</TableCell>
+                <TableCell>Event</TableCell>
+                <TableCell>Purchase Date</TableCell>
+                <TableCell className="text-right">Actions</TableCell>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && (
-                  Array.from({ length: 3 }).map((_, i) => (
-                      <TableRow key={i}><TableCell colSpan={4}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
-                  ))
-              )}
-              {tickets && tickets.map((ticket) => (
-                <TableRow key={ticket.id}>
-                  <TableCell className="font-mono">{ticket.id}</TableCell>
-                  <TableCell>{ticket.event.name}</TableCell>
-                  <TableCell>{new Date(ticket.purchaseDate).toLocaleDateString()}</TableCell>
-                  <TableCell className="text-right">
-                    <Button size="icon" variant="ghost" className="text-red-600 hover:text-red-700">
-                        <Trash2 className="h-4 w-4"/>
-                        <span className="sr-only">Delete Ticket</span>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              <TableRow>
+                <TableCell colSpan={4} className="text-center text-muted-foreground py-12">
+                   No approved tickets for this event yet.
+                </TableCell>
+              </TableRow>
             </TableBody>
           </Table>
-           {!isLoading && tickets?.length === 0 && (
-                <p className="text-center text-muted-foreground py-8">No approved tickets for this event yet.</p>
-            )}
         </CardContent>
       </Card>
     </div>

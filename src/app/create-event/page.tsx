@@ -17,14 +17,12 @@ import { Step4Details } from "@/components/create-event/step-4-details";
 import { Step5Publish } from "@/components/create-event/step-5-publish";
 import { Progress } from "@/components/ui/progress"
 import { ArrowLeft } from "lucide-react"
-import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
-import type { Vendor, User as UserType } from "@/lib/types";
-import { doc, collection, serverTimestamp } from "firebase/firestore";
+import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import type { User as UserType } from "@/lib/types";
+import { doc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { v4 as uuidv4 } from 'uuid';
-
 
 const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters.").max(100, "Event name must be less than 100 characters."),
@@ -61,13 +59,7 @@ export default function CreateEventPage() {
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
-  const vendorRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'vendors', user.uid);
-  }, [firestore, user]);
-
   const { data: userData, isLoading: isUserDataLoading } = useDoc<UserType>(userDocRef);
-  const { data: vendorData, isLoading: isVendorLoading } = useDoc<Vendor>(vendorRef);
   
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema.pick(
@@ -109,66 +101,39 @@ export default function CreateEventPage() {
   const handlePrev = () => {
     if (currentStep > 0) {
       setDirection(-1);
-      setCurrentStep(prev => prev + 1);
+      setCurrentStep(prev => prev - 1);
     }
   };
   
   const onSubmit = (data: EventFormValues) => {
-    if (!firestore || !user) return;
-
-    const eventId = uuidv4();
-    const vendorIdForPath = user.uid;
-    const eventCollectionRef = collection(firestore, 'vendors', vendorIdForPath, 'events');
-
-    const newEventData = {
-        id: eventId,
-        vendorId: user.uid,
-        name: data.name,
-        description: data.description,
-        date: data.date.toISOString(),
-        time: data.startTime,
-        location: data.location,
-        category: data.category,
-        price: data.ticketPrice,
-        imageUrl: data.bannerUrl || '',
-        organizer: vendorData?.companyName || user.displayName || 'Admin',
-        status: (userData?.roles || []).includes('admin') ? 'approved' : 'pending' as const,
-        createdAt: serverTimestamp()
-    };
-    
-    addDocumentNonBlocking(eventCollectionRef, newEventData);
-
+    // This is where event creation logic would go.
+    // As the backend is reset, we will just show a toast.
     toast({
-        title: (userData?.roles || []).includes('admin') ? "Event Created" : "Event Submitted for Approval",
-        description: `"${data.name}" has been ${(userData?.roles || []).includes('admin') ? 'published' : 'sent for review'}.`,
+        title: "Event Submission (Simulated)",
+        description: "Your event has been submitted. In a real app, this would be saved to the database.",
     });
-
-    router.push((userData?.roles || []).includes('admin') ? '/admin/events' : '/vendor/dashboard');
+    const isAdmin = (userData?.roles || []).includes('admin');
+    router.push(isAdmin ? '/admin/events' : '/vendor/dashboard');
   };
 
-  const isLoading = isUserLoading || isVendorLoading || isUserDataLoading;
+  const isLoading = isUserLoading || isUserDataLoading;
   
-  const isAuthorized = (userData?.roles || []).includes('admin') || ((userData?.roles || []).includes('vendor') && vendorData?.status === 'approved');
+  const isAuthorized = (userData?.roles || []).includes('admin') || (userData?.roles || []).includes('vendor');
 
   useEffect(() => {
-    if (isLoading) {
-      return; 
-    }
-
+    if (isLoading) return; 
     if (!user) {
       router.push('/login');
       return;
     }
-    
     if (!isAuthorized) {
         toast({
             variant: "destructive",
             title: "Unauthorized",
-            description: "Your vendor account must be approved to create an event.",
+            description: "You must be a vendor or admin to create an event.",
         });
-        router.push('/vendor/dashboard');
+        router.push('/dashboard');
     }
-
   }, [isLoading, user, isAuthorized, router, toast]);
 
   if (isLoading || !isAuthorized) {

@@ -6,14 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Globe, Music, Palette, Code, Utensils, Award } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import EventCard from '@/components/event-card';
-import { useEffect, useState } from 'react';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collectionGroup, query, where } from 'firebase/firestore';
-import type { Event } from '@/lib/types';
-import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
-
 
 const categoryIcons = {
   All: Globe,
@@ -26,103 +19,23 @@ const categoryIcons = {
 
 const categories = ['All', 'Music', 'Arts', 'Tech', 'Food', 'Sports'] as const;
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: {
-      duration: 0.5,
-    },
-  },
-};
-
-
 export default function Home() {
   const defaultHeroImage = {
       imageUrl: 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2F67e206b7d52d22580e4ec0d8_890.jpg?alt=media&token=c0a35579-2cdf-4d20-9aa9-6163ff95eddf',
       imageHint: 'concert stage lights'
   };
-  const [heroBannerUrl, setHeroBannerUrl] = useState(defaultHeroImage?.imageUrl);
-  const [heroBannerHint, setHeroBannerHint] = useState(defaultHeroImage?.imageHint);
-
-  const firestore = useFirestore();
-  const eventsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collectionGroup(firestore, 'events'), where('status', '==', 'approved'));
-  }, [firestore]);
-
-  const { data: events, isLoading } = useCollection<Event>(eventsQuery);
-
-
-  useEffect(() => {
-    const savedBanner = localStorage.getItem('heroBannerImage');
-    if (savedBanner) {
-      setHeroBannerUrl(savedBanner);
-      setHeroBannerHint('custom banner');
-    }
-
-    const handleStorageChange = () => {
-      const updatedBanner = localStorage.getItem('heroBannerImage');
-      if (updatedBanner) {
-        setHeroBannerUrl(updatedBanner);
-        setHeroBannerHint('custom banner');
-      } else {
-        setHeroBannerUrl(defaultHeroImage?.imageUrl);
-        setHeroBannerHint(defaultHeroImage?.imageHint);
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
-  
-  const renderEventList = (filteredEvents?: Event[]) => {
-    if (isLoading) {
-      return Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="space-y-2">
-            <Skeleton className="h-48 w-full" />
-            <Skeleton className="h-6 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
-        </div>
-      ));
-    }
-
-    if (!filteredEvents || filteredEvents.length === 0) {
-        return <p className="col-span-full text-center text-muted-foreground">No events found in this category.</p>;
-    }
-
-    return filteredEvents.map((event) => (
-       <motion.div key={event.id} variants={itemVariants}>
-          <EventCard event={event} />
-        </motion.div>
-    ));
-  };
-
 
   return (
     <div className="flex flex-col min-h-screen">
       <section className="relative w-full h-[60vh] text-white">
-        {heroBannerUrl && (
-             <Image
-             src={heroBannerUrl}
-             alt="Hero Banner"
-             fill
-             className="object-cover"
-             data-ai-hint={heroBannerHint}
-             priority
-           />
-        )}
+        <Image
+          src={defaultHeroImage.imageUrl}
+          alt="Hero Banner"
+          fill
+          className="object-cover"
+          data-ai-hint={defaultHeroImage.imageHint}
+          priority
+        />
         <div className="absolute inset-0 bg-black/70" />
         <div className="relative z-10 flex flex-col items-center justify-center h-full text-center px-4">
           <motion.h1 
@@ -176,69 +89,18 @@ export default function Home() {
           </TabsList>
           
           <TabsContent value="all">
-            <motion.div 
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              {renderEventList(events || [])}
-            </motion.div>
+            <p className="col-span-full text-center text-muted-foreground py-12">No events found. The database has been reset.</p>
           </TabsContent>
-          <TabsContent value="music">
-             <motion.div 
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-             >
-              {renderEventList(events?.filter(e => e.category === 'Music'))}
-            </motion.div>
-          </TabsContent>
-           <TabsContent value="arts">
-             <motion.div 
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-             >
-               {renderEventList(events?.filter(e => e.category === 'Arts'))}
-            </motion.div>
-          </TabsContent>
-           <TabsContent value="tech">
-             <motion.div 
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-             >
-               {renderEventList(events?.filter(e => e.category === 'Tech'))}
-            </motion.div>
-          </TabsContent>
-           <TabsContent value="food">
-             <motion.div 
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-             >
-              {renderEventList(events?.filter(e => e.category === 'Food'))}
-            </motion.div>
-          </TabsContent>
-           <TabsContent value="sports">
-             <motion.div 
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-             >
-                {renderEventList(events?.filter(e => e.category === 'Sports'))}
-             </motion.div>
-           </TabsContent>
+          {categories.slice(1).map(cat => (
+            <TabsContent key={cat} value={cat.toLowerCase()}>
+               <p className="col-span-full text-center text-muted-foreground py-12">No events found in this category.</p>
+            </TabsContent>
+          ))}
         </Tabs>
 
         <div className="text-center mt-12">
-            <Button variant="outline" size="lg">Load More Events</Button>        </div>
+            <Button variant="outline" size="lg">Load More Events</Button>
+        </div>
       </div>
     </div>
   );
