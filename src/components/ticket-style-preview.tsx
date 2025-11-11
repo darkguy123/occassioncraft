@@ -7,6 +7,8 @@ import { Ticket, MapPin, Calendar } from 'lucide-react';
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useEffect, useState } from 'react';
+import QRCode from 'qrcode';
 
 interface TicketStylePreviewProps {
     eventData: Partial<EventFormValues>;
@@ -36,10 +38,29 @@ const ticketStyles = {
 export function TicketStylePreview({ eventData }: TicketStylePreviewProps) {
     const { name, date, startTime, location, ticketStyle = 'simple' } = eventData;
     const style = ticketStyles[ticketStyle];
-    const qrCodeImage = {
-        imageUrl: '/assets/qr-code.png',
-        imageHint: 'qr code'
-    };
+    const [qrCodeUrl, setQrCodeUrl] = useState('');
+
+    useEffect(() => {
+        const generateQrCode = async () => {
+            try {
+                // Use a placeholder value for the preview
+                const url = await QRCode.toDataURL('sample-ticket-id', {
+                    errorCorrectionLevel: 'H',
+                    margin: 1,
+                    color: {
+                        dark: ticketStyle === 'minimal' ? '#FFFFFF' : '#000000',
+                        light: '#00000000'
+                    }
+                });
+                setQrCodeUrl(url);
+            } catch (err) {
+                console.error('Could not generate QR code', err);
+            }
+        };
+
+        generateQrCode();
+    }, [ticketStyle]);
+
 
     const formattedDate = date ? format(date, "MMM d, yyyy") : 'Your Date';
     const formattedTime = startTime || 'Your Time';
@@ -77,14 +98,14 @@ export function TicketStylePreview({ eventData }: TicketStylePreviewProps) {
                         <p className={cn("text-xs", style.mutedTextColor)}>Jane Doe</p>
                         <p className={cn("font-semibold", style.highlightTextColor)}>General Admission</p>
                     </div>
-                    <div className="bg-white p-1 rounded-md shadow-lg">
-                         <Image
-                            src={qrCodeImage.imageUrl}
+                    <div className="bg-white/80 p-1 rounded-md shadow-lg backdrop-blur-sm">
+                         {qrCodeUrl && <Image
+                            src={qrCodeUrl}
                             alt="QR Code"
                             width={64}
                             height={64}
-                            data-ai-hint={qrCodeImage.imageHint}
-                        />
+                            data-ai-hint="qr code"
+                        />}
                     </div>
                 </div>
             </div>
@@ -94,5 +115,3 @@ export function TicketStylePreview({ eventData }: TicketStylePreviewProps) {
         </Card>
     )
 }
-
-    
