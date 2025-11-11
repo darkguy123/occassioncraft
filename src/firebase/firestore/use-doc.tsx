@@ -49,8 +49,9 @@ export function useDoc<T = any>(
 
   useEffect(() => {
     // If the document reference is not yet available, do nothing and wait.
+    // This is the critical guard to prevent invalid queries.
     if (!memoizedDocRef) {
-        setIsLoading(false);
+        setIsLoading(false); // No longer loading, we are just waiting for a valid ref.
         setData(null);
         setError(null);
         return;

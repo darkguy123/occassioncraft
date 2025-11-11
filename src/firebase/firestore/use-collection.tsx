@@ -63,8 +63,9 @@ export function useCollection<T = any>(
 
   useEffect(() => {
     // If the query is not yet available, do nothing and wait.
+    // This is the critical guard to prevent invalid queries.
     if (!memoizedTargetRefOrQuery) {
-      setIsLoading(false);
+      setIsLoading(false); // No longer loading, we are just waiting for a valid query.
       setData(null);
       setError(null);
       return;
