@@ -1,8 +1,60 @@
 
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Default locked mode. All reads and writes are denied.
+  
+    // Helper function to check for admin role
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+  
+  	// Helper function to check if a user owns a document
+    function isOwner(userId) {
+    	return request.auth.uid == userId;
+    }
+
+    // Users can read and write their own profile data. Admins can read/write any user's data.
+    match /users/{userId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+    
+    // Users can read/write their own notifications.
+    match /users/{userId}/notifications/{notificationId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+    
+    // Publicly readable collections
+    match /events/{eventId} {
+       allow read: if true;
+       allow write: if isAdmin() || request.resource.data.vendorId == request.auth.uid;
+    }
+    
+    match /categories/{categoryId} {
+    	 allow read: if true;
+       allow write: if isAdmin();
+    }
+
+    // Vendors can manage their own profiles and events. Admins have full access.
+    match /vendors/{vendorId} {
+      allow read, write: if isOwner(vendorId) || isAdmin();
+    }
+    
+    // Wallets are private to the user or an admin.
+    match /wallets/{userId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+    
+    match /wallets/{userId}/transactions/{transactionId} {
+       allow read, write: if isOwner(userId) || isAdmin();
+    }
+    
+    // Admin role definitions are write-only for other admins
+    match /roles_admin/{userId} {
+    	allow read, write: if isAdmin();
+    }
+
+    // Default deny
     match /{document=**} {
       allow read, write: if false;
     }

@@ -5,8 +5,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useAuth, useFirestore, addDocumentNonBlocking } from "@/firebase";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { useAuth, useFirestore, setDocumentNonBlocking } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -92,17 +91,13 @@ export default function SignupPage() {
   const handlePrev = () => {
     if (currentStep > 0) {
       setDirection(-1);
-      setCurrentStep(prev => prev - 1);
+      setCurrentStep(prev => prev + 1);
     }
   };
 
   const onSubmit = async (data: SignupSchema) => {
     if (!auth || !firestore) return;
     try {
-      // In a real app, you would check if this is the first user to make them an admin.
-      // Since the backend is reset, this logic is simplified.
-      const isFirstUser = false; 
-
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
 
@@ -115,7 +110,13 @@ export default function SignupPage() {
         const [firstName, ...lastName] = data.fullName.split(' ');
         
         const roles = data.roles.length > 0 ? data.roles : ['user'];
-        // Admin assignment logic is removed as part of the reset.
+        
+        // Admin Seeder Logic: Assign 'admin' role if the email matches.
+        if (data.email.toLowerCase() === 'valentinoboss18@gmail.com') {
+            if (!roles.includes('admin')) {
+                roles.push('admin');
+            }
+        }
         
         // Create User document
         const userRef = doc(firestore, "users", user.uid);
@@ -128,10 +129,13 @@ export default function SignupPage() {
           profileImageUrl: data.avatarUrl || '',
           dateJoined: new Date().toISOString(),
         };
-        // In a real app, you would use a non-blocking write here.
-        // For this reset state, we can simplify.
-        // setDocumentNonBlocking(userRef, userData, { merge: true });
-        console.log("Simulating user document creation:", userData);
+        setDocumentNonBlocking(userRef, userData, { merge: true });
+
+        // If the user is an admin, create an entry in the roles_admin collection
+        if (roles.includes('admin')) {
+            const adminRoleRef = doc(firestore, "roles_admin", user.uid);
+            setDocumentNonBlocking(adminRoleRef, { isAdmin: true }, { merge: true });
+        }
 
 
         // If Vendor, create a separate vendor document
@@ -143,18 +147,25 @@ export default function SignupPage() {
             companyName: data.companyName,
             description: data.companyDescription,
             contactEmail: data.email,
-            status: 'approved', // Placeholder status
+            status: 'approved', // Defaulting to approved for simplicity
           };
-          // setDocumentNonBlocking(vendorRef, vendorData, { merge: true });
-          console.log("Simulating vendor document creation:", vendorData);
+          setDocumentNonBlocking(vendorRef, vendorData, { merge: true });
         }
       }
 
       toast({
-        title: "Account Created (Simulated)",
-        description: "You have successfully signed up. In a real app, your data would be saved to the database.",
+        title: "Account Created",
+        description: "You have successfully signed up.",
       });
-      router.push(data.roles.includes('vendor') ? '/vendor/dashboard' : '/dashboard');
+      
+      const finalRoles = Array.from(new Set(data.roles));
+      if (finalRoles.includes('admin')) {
+          router.push('/admin');
+      } else if (finalRoles.includes('vendor')) {
+          router.push('/vendor/dashboard');
+      } else {
+          router.push('/dashboard');
+      }
 
     } catch (error: any) {
       toast({
