@@ -46,7 +46,7 @@ export function UserNav() {
   }
   
   const avatarImage = {
-      imageUrl: `https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Fuser-avatar-1.jpg?alt=media`,
+      imageUrl: '/assets/user-avatar-1.jpg',
       imageHint: 'person portrait'
   };
 

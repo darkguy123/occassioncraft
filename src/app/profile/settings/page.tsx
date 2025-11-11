@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,7 +8,6 @@ import * as z from 'zod';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { updateProfile, getAuth, updateEmail } from 'firebase/auth';
-import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -75,13 +75,6 @@ export default function ProfileSettingsPage() {
     setIsCropperOpen(false);
   };
 
-  const uploadCroppedImage = async (uid: string, dataUrl: string) => {
-    const storage = getStorage();
-    const storageRef = ref(storage, `users/${uid}/profile.jpg`);
-    await uploadString(storageRef, dataUrl, 'data_url');
-    return getDownloadURL(storageRef);
-  };
-
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user || !userRef) return;
     
@@ -89,7 +82,7 @@ export default function ProfileSettingsPage() {
 
     try {
       if (croppedAvatarUrl) {
-        photoURL = await uploadCroppedImage(user.uid, croppedAvatarUrl);
+        photoURL = croppedAvatarUrl; // Use the local data URL
       }
       
       const auth = getAuth();
@@ -255,5 +248,3 @@ export default function ProfileSettingsPage() {
     </>
   );
 }
-
-    

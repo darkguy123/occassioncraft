@@ -11,13 +11,15 @@ import { useUser } from '@/firebase';
 
 export function Header() {
   const { user, isUserLoading } = useUser();
-  const [logoUrl, setLogoUrl] = useState<string | null>('https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/Untitled-1.png?alt=media&token=8371eb7f-ae3c-4453-a5bb-4bb581dca4d6');
+  const [logoUrl, setLogoUrl] = useState<string | null>('/assets/logo.svg');
 
   useEffect(() => {
     const updateLogo = () => {
       const savedLogo = localStorage.getItem('websiteLogo');
       if (savedLogo) {
         setLogoUrl(savedLogo);
+      } else {
+        setLogoUrl('/assets/logo.svg');
       }
     };
 

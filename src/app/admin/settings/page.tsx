@@ -10,8 +10,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Upload, BookText, FileText, Info, Image as ImageIcon, Palette } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
-import { useUser } from '@/firebase';
 
 // Type to hold file data and preview
 type FileUploadState = {
@@ -21,7 +19,6 @@ type FileUploadState = {
 
 export default function AdminSettingsPage() {
   const { toast } = useToast();
-  const { user } = useUser();
 
   const [logo, setLogo] = useState<FileUploadState>({ file: null, preview: null });
   const [favicon, setFavicon] = useState<FileUploadState>({ file: null, preview: null });
@@ -82,63 +79,33 @@ export default function AdminSettingsPage() {
     }
   };
 
-  const uploadAsset = async (fileState: FileUploadState): Promise<string | null> => {
-    if (!fileState.file || !fileState.preview || !user) return null;
-    
-    const storage = getStorage();
-    // Use the original filename to create a unique path
-    const storageRef = ref(storage, `public/assets/${fileState.file.name}`);
-    
-    await uploadString(storageRef, fileState.preview, 'data_url');
-    return getDownloadURL(storageRef);
-  };
-
-  const handleSaveBranding = async () => {
-    if (!user) {
-      toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to save changes.' });
-      return;
-    }
-    
+  const handleSaveBranding = () => {
     let changesMade = false;
-    try {
-      if (logo.file) {
-        const logoUrl = await uploadAsset(logo);
-        if (logoUrl) {
-          localStorage.setItem('websiteLogo', logoUrl);
-          changesMade = true;
-        }
-      }
-      if (favicon.file) {
-        const faviconUrl = await uploadAsset(favicon);
-        if (faviconUrl) {
-          localStorage.setItem('websiteFavicon', faviconUrl);
-          changesMade = true;
-        }
-      }
+    if (logo.preview) {
+      localStorage.setItem('websiteLogo', logo.preview);
+      changesMade = true;
+    }
+    if (favicon.preview) {
+      localStorage.setItem('websiteFavicon', favicon.preview);
+      changesMade = true;
+    }
 
-      if (changesMade) {
+    if (changesMade) {
+      toast({
+        title: 'Branding Updated',
+        description: 'Your new branding has been saved. The site will update shortly.',
+      });
+      // This event tells other parts of the app (like the header) to update.
+      window.dispatchEvent(new Event('storage'));
+    } else {
         toast({
-          title: 'Branding Updated',
-          description: 'Your new branding has been saved. The site will update shortly.',
-        });
-        // This event tells other parts of the app (like the header) to update.
-        window.dispatchEvent(new Event('storage'));
-      } else {
-         toast({
-          title: 'No New Images Selected',
-          description: 'Please select a new logo or favicon to upload.',
-        });
-      }
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
+        title: 'No New Images Selected',
+        description: 'Please select a new logo or favicon to upload.',
+      });
     }
   };
 
-  const handleSaveAppearance = async () => {
-     if (!user) {
-      toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to save changes.' });
-      return;
-    }
+  const handleSaveAppearance = () => {
     // Function to convert hex to HSL string "H S% L%"
     const hexToHslString = (hex: string): string => {
         let r = 0, g = 0, b = 0;
@@ -178,22 +145,15 @@ export default function AdminSettingsPage() {
     localStorage.setItem('theme-background', hexToHslString(backgroundColor));
     localStorage.setItem('theme-accent', hexToHslString(accentColor));
     
-    try {
-      if (heroBanner.file) {
-        const bannerUrl = await uploadAsset(heroBanner);
-        if (bannerUrl) {
-          localStorage.setItem('heroBannerImage', bannerUrl);
-        }
-      }
-      
-      toast({
-          title: 'Appearance Saved',
-          description: 'Your new theme settings have been saved. The theme will update dynamically.',
-      });
-      window.dispatchEvent(new Event('storage'));
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Banner Upload Failed', description: error.message });
+    if (heroBanner.preview) {
+        localStorage.setItem('heroBannerImage', heroBanner.preview);
     }
+    
+    toast({
+        title: 'Appearance Saved',
+        description: 'Your new theme settings have been saved. The theme will update dynamically.',
+    });
+    window.dispatchEvent(new Event('storage'));
   };
   
   const handleSaveContent = () => {
@@ -349,7 +309,3 @@ export default function AdminSettingsPage() {
     </div>
   );
 }
-
-    
-
-    

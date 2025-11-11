@@ -24,7 +24,7 @@ const categories = ['All', 'Music', 'Arts', 'Tech', 'Food', 'Sports'] as const;
 
 export default function Home() {
   const defaultHeroImage = {
-      imageUrl: `https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Fhero.jpg?alt=media`,
+      imageUrl: '/assets/hero.jpg',
       imageHint: 'festival crowd'
   };
   const [heroBannerUrl, setHeroBannerUrl] = useState(defaultHeroImage?.imageUrl);
@@ -50,7 +50,7 @@ export default function Home() {
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, [defaultHeroImage]);
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen">

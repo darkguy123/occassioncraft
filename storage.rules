@@ -14,19 +14,20 @@ service firebase.storage {
     }
 
     // Rules for user profile images
-    // Users can read anyone's profile image, but can only write to their own.
+    // This rule is no longer active as we are not using Firebase Storage for avatars.
+    // Kept for reference.
     match /users/{userId}/profile.jpg {
       allow read: if true;
       allow write: if isOwner(userId);
     }
 
-    // Rules for public assets uploaded by admin
-    // Anyone can read these assets, but only authenticated users (admins) can write them.
+    // Rules for public assets 
+    // This rule allows anyone to read files from the /public/assets path,
+    // which is where admin-uploaded assets would be stored if using Storage.
+    // Write access is restricted to authenticated users.
     match /public/assets/{allPaths=**} {
       allow read: if true;
       allow write: if isSignedIn();
     }
   }
 }
-
-    

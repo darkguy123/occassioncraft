@@ -1,8 +1,8 @@
 
 import type { Event, Ticket, VendorEvent } from '@/lib/types';
 
-const storageBaseUrl = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2F';
-const storageToken = 'alt=media';
+// Note: All image paths are now relative to the /public folder.
+// For example, '/assets/event-1.jpg' maps to 'public/assets/event-1.jpg'.
 
 export const sampleEvents: Event[] = [
   {
@@ -15,7 +15,7 @@ export const sampleEvents: Event[] = [
     category: 'Music',
     price: 75.00,
     organizer: 'MusicMakers Inc.',
-    imageUrl: `${storageBaseUrl}event-1.jpg?${storageToken}`,
+    imageUrl: '/assets/event-1.jpg',
     imageHint: 'concert music',
   },
   {
@@ -28,7 +28,7 @@ export const sampleEvents: Event[] = [
     category: 'Arts',
     price: 25.00,
     organizer: 'ArtVisionaries',
-    imageUrl: `${storageBaseUrl}event-2.jpg?${storageToken}`,
+    imageUrl: '/assets/event-2.jpg',
     imageHint: 'art gallery',
   },
   {
@@ -41,7 +41,7 @@ export const sampleEvents: Event[] = [
     category: 'Tech',
     price: 199.00,
     organizer: 'TechForward',
-    imageUrl: `${storageBaseUrl}event-3.jpg?${storageToken}`,
+    imageUrl: '/assets/event-3.jpg',
     imageHint: 'tech conference',
   },
   {
@@ -54,7 +54,7 @@ export const sampleEvents: Event[] = [
     category: 'Food',
     price: 40.00,
     organizer: 'TasteMasters',
-    imageUrl: `${storageBaseUrl}event-4.jpg?${storageToken}`,
+    imageUrl: '/assets/event-4.jpg',
     imageHint: 'food festival',
   },
   {
@@ -67,7 +67,7 @@ export const sampleEvents: Event[] = [
     category: 'Sports',
     price: 30.00,
     organizer: 'ZenLife',
-    imageUrl: `${storageBaseUrl}event-5.jpg?${storageToken}`,
+    imageUrl: '/assets/event-5.jpg',
     imageHint: 'yoga class',
   },
   {
@@ -80,7 +80,7 @@ export const sampleEvents: Event[] = [
     category: 'Music',
     price: 20.00,
     organizer: 'LiveLoud',
-    imageUrl: `${storageBaseUrl}event-6.jpg?${storageToken}`,
+    imageUrl: '/assets/event-6.jpg',
     imageHint: 'rock band',
   },
   {
@@ -93,7 +93,7 @@ export const sampleEvents: Event[] = [
     category: 'Arts',
     price: 15.00,
     organizer: 'ArtVisionaries',
-    imageUrl: `${storageBaseUrl}event-7.jpg?${storageToken}`,
+    imageUrl: '/assets/event-7.jpg',
     imageHint: 'painting exhibition',
   },
   {
@@ -106,7 +106,7 @@ export const sampleEvents: Event[] = [
     category: 'Tech',
     price: 50.00,
     organizer: 'TechForward',
-    imageUrl: `${storageBaseUrl}event-8.jpg?${storageToken}`,
+    imageUrl: '/assets/event-8.jpg',
     imageHint: 'startup pitch',
   },
 ];

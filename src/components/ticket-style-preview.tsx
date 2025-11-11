@@ -14,7 +14,7 @@ interface TicketStylePreviewProps {
 export function TicketStylePreview({ eventData }: TicketStylePreviewProps) {
     const { name, date, startTime, location } = eventData;
     const qrCodeImage = {
-        imageUrl: `https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Fqr-code.png?alt=media`,
+        imageUrl: '/assets/qr-code.png',
         imageHint: 'qr code'
     };
 
