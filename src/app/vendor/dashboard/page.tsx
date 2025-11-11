@@ -11,7 +11,7 @@ import Link from "next/link";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
-import type { Vendor } from "@/lib/types";
+import type { Vendor, User as UserType } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from 'next/navigation';
 import { useEffect } from "react";
@@ -26,19 +26,21 @@ export default function VendorDashboardPage() {
         return doc(firestore, 'vendors', user.uid);
     }, [firestore, user]);
 
-    const adminRoleRef = useMemoFirebase(() => {
+    const userDocRef = useMemoFirebase(() => {
         if (!user) return null;
-        return doc(firestore, 'roles_admin', user.uid);
+        return doc(firestore, 'users', user.uid);
     }, [firestore, user]);
 
     const { data: vendorData, isLoading: isVendorLoading } = useDoc<Vendor>(vendorRef);
-    const { data: adminRole, isLoading: isAdminLoading } = useDoc(adminRoleRef);
+    const { data: userData, isLoading: isUserDataLoading } = useDoc<UserType>(userDocRef);
 
     const totalRevenue = vendorEvents.reduce((acc, event) => acc + event.revenue, 0);
     const totalTicketsSold = vendorEvents.reduce((acc, event) => acc + event.ticketsSold, 0);
 
-    const isLoading = isUserLoading || isVendorLoading || isAdminLoading;
-    const isAuthorized = (vendorData && vendorData.status === 'approved') || !!adminRole;
+    const isLoading = isUserLoading || isVendorLoading || isUserDataLoading;
+    const isVendor = userData?.roles.includes('vendor');
+    const isAdmin = userData?.roles.includes('admin');
+    const isAuthorized = isAdmin || (isVendor && vendorData?.status === 'approved');
 
 
     useEffect(() => {
@@ -51,13 +53,11 @@ export default function VendorDashboardPage() {
             return;
         }
 
-        // If data has loaded and user is neither an approved vendor nor an admin,
-        // and also not a pending vendor, then redirect.
-        if (!isAuthorized && vendorData?.status !== 'pending') {
+        if (!isVendor && !isAdmin) {
             router.push('/vendor');
         }
 
-    }, [isLoading, user, isAuthorized, vendorData, router]);
+    }, [isLoading, user, isVendor, isAdmin, router]);
 
     if (isLoading) {
         return (
@@ -73,7 +73,7 @@ export default function VendorDashboardPage() {
         )
     }
     
-    if (vendorData?.status === 'pending') {
+    if (isVendor && vendorData?.status === 'pending') {
          return (
              <div className="container mx-auto py-12 px-4 text-center">
                  <Card className="max-w-lg mx-auto">

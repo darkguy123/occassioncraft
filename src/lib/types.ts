@@ -48,11 +48,14 @@ export type Notification = {
   link?: string;
 };
 
+export type UserRole = 'user' | 'vendor' | 'admin';
+
 export type User = {
     id: string;
     firstName: string;
     lastName: string;
     email: string;
+    roles: UserRole[];
     profileImageUrl?: string;
     dateJoined?: string;
 };

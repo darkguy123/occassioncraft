@@ -16,14 +16,8 @@ import {
 import { LayoutDashboard, Users, User, LogOut, Ticket, Shield, Settings } from 'lucide-react';
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import type { Vendor } from '@/lib/types';
+import type { Vendor, User as UserType } from '@/lib/types';
 import Image from 'next/image';
-
-// Extended user data type that could come from Firestore
-interface UserProfileData {
-  profileImageUrl?: string;
-  // other fields from your user document in Firestore
-}
 
 export function UserNav() {
   const auth = useAuth();
@@ -35,15 +29,8 @@ export function UserNav() {
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
-  const { data: userProfileData } = useDoc<UserProfileData>(userDocRef);
+  const { data: userProfileData } = useDoc<UserType>(userDocRef);
 
-  const adminRoleRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'roles_admin', user.uid);
-  }, [firestore, user]);
-
-  const { data: adminRole, isLoading: isAdminLoading } = useDoc(adminRoleRef);
-  
   const vendorRef = useMemoFirebase(() => {
     if (!user) return null;
     return doc(firestore, 'vendors', user.uid);
@@ -61,7 +48,8 @@ export function UserNav() {
   const avatarImageSrc = userProfileData?.profileImageUrl || user?.photoURL;
   const avatarFallback = user?.displayName?.split(' ').map(n => n[0]).join('') || user?.email?.[0].toUpperCase() || 'U';
 
-  const isVendorOrAdmin = (!isVendorLoading && vendorData?.status === 'approved') || (!isAdminLoading && adminRole);
+  const isVendor = userProfileData?.roles.includes('vendor');
+  const isAdmin = userProfileData?.roles.includes('admin');
 
   return (
     <DropdownMenu>
@@ -94,7 +82,7 @@ export function UserNav() {
               <span>My Tickets</span>
             </Link>
           </DropdownMenuItem>
-          {isVendorOrAdmin && (
+          {isVendor && (vendorData?.status === 'approved' || isAdmin) && (
             <DropdownMenuItem asChild>
               <Link href="/vendor/dashboard">
                 <LayoutDashboard className="mr-2 h-4 w-4" />
@@ -102,7 +90,7 @@ export function UserNav() {
               </Link>
             </DropdownMenuItem>
           )}
-          {!isAdminLoading && adminRole && (
+          {isAdmin && (
             <DropdownMenuItem asChild>
                 <Link href="/admin">
                 <Shield className="mr-2 h-4 w-4" />

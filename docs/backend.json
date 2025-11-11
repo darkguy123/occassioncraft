@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Event": {
@@ -113,13 +114,26 @@
           "type": "string",
           "description": "Email address of the user.",
           "format": "email"
+        },
+        "roles": {
+          "type": "array",
+          "description": "The roles assigned to the user.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "user",
+              "vendor",
+              "admin"
+            ]
+          }
         }
       },
       "required": [
         "id",
         "firstName",
         "lastName",
-        "email"
+        "email",
+        "roles"
       ]
     },
     "Ticket": {

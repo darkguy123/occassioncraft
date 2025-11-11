@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -17,7 +18,7 @@ import { Step5Publish } from "@/components/create-event/step-5-publish";
 import { Progress } from "@/components/ui/progress"
 import { ArrowLeft } from "lucide-react"
 import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
-import type { Vendor } from "@/lib/types";
+import type { Vendor, User as UserType } from "@/lib/types";
 import { doc, collection, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -55,18 +56,18 @@ export default function CreateEventPage() {
   const router = useRouter();
   const { toast } = useToast();
 
+  const userDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
   const vendorRef = useMemoFirebase(() => {
     if (!user) return null;
     return doc(firestore, 'vendors', user.uid);
   }, [firestore, user]);
 
-  const adminRoleRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'roles_admin', user.uid);
-  }, [firestore, user]);
-
+  const { data: userData, isLoading: isUserDataLoading } = useDoc<UserType>(userDocRef);
   const { data: vendorData, isLoading: isVendorLoading } = useDoc<Vendor>(vendorRef);
-  const { data: adminRole, isLoading: isAdminLoading } = useDoc(adminRoleRef);
   
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema.pick(
@@ -108,7 +109,7 @@ export default function CreateEventPage() {
   const handlePrev = () => {
     if (currentStep > 0) {
       setDirection(-1);
-      setCurrentStep(prev => prev + 1);
+      setCurrentStep(prev => prev - 1);
     }
   };
   
@@ -116,9 +117,6 @@ export default function CreateEventPage() {
     if (!firestore || !user) return;
 
     const eventId = uuidv4();
-    // If user is admin, they don't have a vendor-specific collection. 
-    // We'll create the event under their own user ID in the vendors collection for consistency,
-    // or you could have a dedicated 'admin_events' collection. For now, this works.
     const vendorIdForPath = user.uid;
     const eventCollectionRef = collection(firestore, 'vendors', vendorIdForPath, 'events');
 
@@ -134,62 +132,56 @@ export default function CreateEventPage() {
         price: data.ticketPrice,
         imageUrl: data.bannerUrl || '',
         organizer: vendorData?.companyName || user.displayName || 'Admin',
-        status: adminRole ? 'approved' : 'pending' as const, // Admins auto-approve
+        status: userData?.roles.includes('admin') ? 'approved' : 'pending' as const,
         createdAt: serverTimestamp()
     };
     
     addDocumentNonBlocking(eventCollectionRef, newEventData);
 
     toast({
-        title: adminRole ? "Event Created" : "Event Submitted for Approval",
-        description: `"${data.name}" has been ${adminRole ? 'published' : 'sent for review'}.`,
+        title: userData?.roles.includes('admin') ? "Event Created" : "Event Submitted for Approval",
+        description: `"${data.name}" has been ${userData?.roles.includes('admin') ? 'published' : 'sent for review'}.`,
     });
 
-    router.push(adminRole ? '/admin/events' : '/vendor/dashboard');
+    router.push(userData?.roles.includes('admin') ? '/admin/events' : '/vendor/dashboard');
   };
 
-  const isLoading = isUserLoading || isVendorLoading || isAdminLoading;
-  const isAuthorized = (vendorData && vendorData.status === 'approved') || !!adminRole;
+  const isLoading = isUserLoading || isVendorLoading || isUserDataLoading;
+  const isAdmin = userData?.roles.includes('admin');
+  const isApprovedVendor = userData?.roles.includes('vendor') && vendorData?.status === 'approved';
+  const isAuthorized = isAdmin || isApprovedVendor;
 
   useEffect(() => {
     if (isLoading) {
-      return; // Wait until all data is loaded
+      return; 
     }
 
     if (!user) {
       router.push('/login');
       return;
     }
-
-    // Only check for authorization and redirect if loading is complete
+    
     if (!isAuthorized) {
-      toast({
-        variant: "destructive",
-        title: "Unauthorized",
-        description: "Your vendor account must be approved to create an event.",
-      });
-      router.push('/vendor');
+        toast({
+            variant: "destructive",
+            title: "Unauthorized",
+            description: "Your vendor account must be approved to create an event.",
+        });
+        router.push('/vendor/dashboard');
     }
+
   }, [isLoading, user, isAuthorized, router, toast]);
 
-  if (isLoading) {
+  if (isLoading || !isAuthorized) {
     return (
         <div className="flex items-center justify-center min-h-screen">
           <div className="space-y-4 w-full max-w-md p-8">
+            <p>Verifying authorization...</p>
             <Skeleton className="h-10 w-3/4" />
             <Skeleton className="h-14 w-full" />
             <Skeleton className="h-10 w-full" />
           </div>
         </div>
-    );
-  }
-  
-  if (!isAuthorized) {
-    // This will show a loading state while we wait for auth data or during the redirect.
-    return (
-       <div className="flex items-center justify-center min-h-screen">
-          <p>Verifying authorization...</p>
-       </div>
     );
   }
 

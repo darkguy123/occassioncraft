@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from "react";
@@ -27,7 +28,7 @@ const signupSchema = z.object({
   fullName: z.string().min(3, { message: "Full name must be at least 3 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
-  userType: z.enum(['User', 'Vendor']),
+  roles: z.array(z.string()).min(1, { message: "Please select at least one role." }),
   companyName: z.string().optional(),
   companyDescription: z.string().optional(),
   avatarUrl: z.string().optional(),
@@ -35,7 +36,7 @@ const signupSchema = z.object({
     errorMap: () => ({ message: "You must accept the terms and conditions." }),
   }),
 }).refine(data => {
-    if (data.userType === 'Vendor') {
+    if (data.roles.includes('vendor')) {
         return !!data.companyName && data.companyName.length >= 2;
     }
     return true;
@@ -61,7 +62,7 @@ export default function SignupPage() {
       fullName: "",
       email: "",
       password: "",
-      userType: "User",
+      roles: ["user"],
       companyName: "",
       companyDescription: "",
       avatarUrl: "",
@@ -72,8 +73,8 @@ export default function SignupPage() {
 
   const steps = [
     { id: 1, component: Step1AccountDetails, fields: ['fullName', 'email', 'password'] },
-    { id: 2, component: Step2UserType, fields: ['userType'] },
-    ...(form.watch('userType') === 'Vendor' ? [{ id: 3, component: Step3VendorInfo, fields: ['companyName'] }] : []),
+    { id: 2, component: Step2UserType, fields: ['roles'] },
+    ...(form.watch('roles').includes('vendor') ? [{ id: 3, component: Step3VendorInfo, fields: ['companyName'] }] : []),
     { id: 4, component: Step4Avatar, fields: [] },
     { id: 5, component: Step5Terms, fields: ['terms'] },
   ];
@@ -104,6 +105,8 @@ export default function SignupPage() {
       if (user) {
         const [firstName, ...lastName] = data.fullName.split(' ');
         
+        const roles = data.roles.length > 0 ? data.roles : ['user'];
+
         // Create User document
         const userRef = doc(firestore, "users", user.uid);
         const userData = {
@@ -111,14 +114,14 @@ export default function SignupPage() {
           firstName: firstName,
           lastName: lastName.join(' '),
           email: data.email,
-          userType: data.userType,
+          roles: roles,
           profileImageUrl: data.avatarUrl || '',
           dateJoined: new Date().toISOString(),
         };
         setDocumentNonBlocking(userRef, userData, { merge: true });
 
         // If Vendor, create a separate vendor document with approved status
-        if (data.userType === 'Vendor') {
+        if (data.roles.includes('vendor')) {
           const vendorRef = doc(firestore, "vendors", user.uid);
           const vendorData = {
             id: user.uid,
@@ -136,7 +139,7 @@ export default function SignupPage() {
         title: "Account Created",
         description: "You have successfully signed up. Redirecting...",
       });
-      router.push(data.userType === 'Vendor' ? '/vendor/dashboard' : '/dashboard');
+      router.push(data.roles.includes('vendor') ? '/vendor/dashboard' : '/dashboard');
 
     } catch (error: any) {
       toast({

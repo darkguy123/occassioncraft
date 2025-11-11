@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,22 +13,24 @@ import { Save } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useDoc, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
 import { doc } from "firebase/firestore";
-import type { User } from "@/lib/types";
+import type { User, UserRole } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const userFormSchema = z.object({
   firstName: z.string().min(1, "First name is required."),
   lastName: z.string().min(1, "Last name is required."),
   email: z.string().email("Invalid email address."),
+  roles: z.array(z.string()).min(1, "User must have at least one role."),
 });
 
 type UserFormValues = z.infer<typeof userFormSchema>;
 
 export default function EditUserPage() {
-  const params = useParams<{ userId: string }>();
-  const userId = params.userId;
+  const params = useParams();
+  const userId = params.userId as string;
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
@@ -45,6 +48,7 @@ export default function EditUserPage() {
       firstName: "",
       lastName: "",
       email: "",
+      roles: ['user'],
     }
   });
 
@@ -54,6 +58,7 @@ export default function EditUserPage() {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
+        roles: user.roles || ['user'],
       });
     }
   }, [user, form]);
@@ -67,6 +72,26 @@ export default function EditUserPage() {
     
     updateDocumentNonBlocking(userRef, data);
     
+    // Also update/create vendor doc if vendor role is assigned
+    if (data.roles.includes('vendor')) {
+      const vendorRef = doc(firestore, 'vendors', userId);
+      const vendorData = {
+        id: userId,
+        userId: userId,
+        companyName: `${data.firstName} ${data.lastName}'s Business`, // Placeholder
+        contactEmail: data.email,
+        status: 'approved',
+      };
+      updateDocumentNonBlocking(vendorRef, vendorData);
+    }
+    
+    // Manage admin role
+    const adminRef = doc(firestore, 'roles_admin', userId);
+    if (data.roles.includes('admin')) {
+      updateDocumentNonBlocking(adminRef, { uid: userId }); // ensure doc exists
+    } // Note: We don't handle admin role removal here to prevent accidental lock-out. This should be a separate, more explicit action.
+
+
     toast({
       title: "User Updated",
       description: `Profile for ${data.firstName} ${data.lastName} has been successfully updated.`,
@@ -99,6 +124,8 @@ export default function EditUserPage() {
         </div>
     )
   }
+
+  const allRoles: UserRole[] = ['user', 'vendor', 'admin'];
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -164,6 +191,54 @@ export default function EditUserPage() {
                   </FormItem>
                 )}
               />
+
+                <FormField
+                    control={form.control}
+                    name="roles"
+                    render={() => (
+                        <FormItem>
+                        <div className="mb-4">
+                            <FormLabel className="text-base">User Roles</FormLabel>
+                            <FormMessage />
+                        </div>
+                        <div className="flex flex-col space-y-2">
+                        {allRoles.map((role) => (
+                            <FormField
+                            key={role}
+                            control={form.control}
+                            name="roles"
+                            render={({ field }) => {
+                                return (
+                                <FormItem
+                                    key={role}
+                                    className="flex flex-row items-center space-x-3"
+                                >
+                                    <FormControl>
+                                    <Checkbox
+                                        checked={field.value?.includes(role)}
+                                        onCheckedChange={(checked) => {
+                                        const currentRoles = field.value || [];
+                                        const newRoles = checked
+                                            ? [...currentRoles, role]
+                                            : currentRoles.filter(
+                                                (value) => value !== role
+                                            );
+                                        return field.onChange(newRoles);
+                                        }}
+                                    />
+                                    </FormControl>
+                                    <FormLabel className="font-normal capitalize">
+                                    {role}
+                                    </FormLabel>
+                                </FormItem>
+                                );
+                            }}
+                            />
+                        ))}
+                        </div>
+                        </FormItem>
+                    )}
+                />
               
               <div className="flex justify-end">
                 <Button type="submit">
