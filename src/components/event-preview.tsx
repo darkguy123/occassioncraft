@@ -9,19 +9,19 @@ import { format } from 'date-fns';
 
 interface EventPreviewProps {
   eventData: Partial<EventFormValues>;
-  bannerUrl: string | null;
+  bannerUrl: string | null | undefined;
 }
 
 export function EventPreview({ eventData, bannerUrl }: EventPreviewProps) {
-  const { name, date, time, location, ticketPrice = 0, description } = eventData;
+  const { name, date, startTime, location, ticketPrice = 0, description } = eventData;
 
   const formattedDate = date ? format(date, 'EEEE, MMMM d') : 'Select a date';
-  const formattedTime = time || 'Select a time';
+  const formattedTime = startTime || 'Select a time';
   const displayPrice = ticketPrice > 0 ? `$${ticketPrice.toFixed(2)}` : 'Free';
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <Card className="rounded-2xl overflow-hidden shadow-2xl relative transition-all duration-300">
+      <Card className="rounded-2xl overflow-hidden shadow-xl relative transition-all duration-300">
         {/* Banner Image */}
         <div className="h-48 bg-secondary flex items-center justify-center relative">
           {bannerUrl ? (
@@ -76,7 +76,7 @@ export function EventPreview({ eventData, bannerUrl }: EventPreviewProps) {
         </div>
 
       </Card>
-        <div className="mt-6 bg-card rounded-2xl p-6 shadow-2xl">
+        <div className="mt-6 bg-card rounded-2xl p-6 shadow-xl">
             <h3 className="font-headline text-xl font-bold">About this event</h3>
             <p className="text-muted-foreground mt-2 text-sm whitespace-pre-wrap h-24 overflow-hidden">{description || 'Your event description will appear here...'}</p>
         </div>
