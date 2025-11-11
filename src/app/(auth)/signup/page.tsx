@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAuth, useFirestore, addDocumentNonBlocking } from "@/firebase";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-import { doc, collection } from "firebase/firestore";
+import { doc, collection, getDocs, query, limit } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -99,6 +99,12 @@ export default function SignupPage() {
   const onSubmit = async (data: SignupSchema) => {
     if (!auth || !firestore) return;
     try {
+      // Check if any user exists to determine if this is the first signup
+      const usersCollectionRef = collection(firestore, "users");
+      const q = query(usersCollectionRef, limit(1));
+      const querySnapshot = await getDocs(q);
+      const isFirstUser = querySnapshot.empty;
+
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
 
@@ -111,6 +117,9 @@ export default function SignupPage() {
         const [firstName, ...lastName] = data.fullName.split(' ');
         
         const roles = data.roles.length > 0 ? data.roles : ['user'];
+        if (isFirstUser) {
+            roles.push('admin');
+        }
 
         // Create User document
         const userRef = doc(firestore, "users", user.uid);
@@ -119,11 +128,17 @@ export default function SignupPage() {
           firstName: firstName,
           lastName: lastName.join(' '),
           email: data.email,
-          roles: roles,
+          roles: Array.from(new Set(roles)), // Ensure unique roles
           profileImageUrl: data.avatarUrl || '',
           dateJoined: new Date().toISOString(),
         };
         setDocumentNonBlocking(userRef, userData, { merge: true });
+
+        // If first user, also create an admin role document
+        if (isFirstUser) {
+            const adminRoleRef = doc(firestore, "roles_admin", user.uid);
+            setDocumentNonBlocking(adminRoleRef, { uid: user.uid }, { merge: true });
+        }
 
         // If Vendor, create a separate vendor document with approved status
         if (data.roles.includes('vendor')) {
@@ -143,7 +158,9 @@ export default function SignupPage() {
 
       toast({
         title: "Account Created",
-        description: "You have successfully signed up. Redirecting...",
+        description: isFirstUser 
+            ? "You have successfully signed up and been assigned as the administrator."
+            : "You have successfully signed up. Redirecting...",
       });
       router.push(data.roles.includes('vendor') ? '/vendor/dashboard' : '/dashboard');
 
