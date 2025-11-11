@@ -10,9 +10,10 @@ import { useState, useEffect } from 'react';
 export function Header() {
   const isLoggedIn = true; // Placeholder for authentication state
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // This code runs only on the client, after hydration
+    setIsClient(true);
     const savedLogo = localStorage.getItem('websiteLogo');
     if (savedLogo) {
       setLogoUrl(savedLogo);
@@ -24,7 +25,7 @@ export function Header() {
       <div className="container flex h-16 items-center">
         <div className="mr-4 flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            {logoUrl ? (
+            {isClient && logoUrl ? (
                 <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" />
             ) : (
                 <Ticket className="h-6 w-6 text-primary" />
