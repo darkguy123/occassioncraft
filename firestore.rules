@@ -23,6 +23,11 @@ service cloud.firestore {
     match /users/{userId}/notifications/{notificationId} {
       allow read, write: if isOwner(userId) || isAdmin();
     }
+
+    // Users can read/write their own tickets.
+    match /users/{userId}/tickets/{ticketId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
     
     // Publicly readable collections
     match /events/{eventId} {
