@@ -29,3 +29,22 @@ export type UserTicket = {
   eventId: string;
   purchaseDate: string; // ISO 8601 string
 };
+
+export type Vendor = {
+  id: string;
+  userId: string;
+  companyName: string;
+  description?: string;
+  contactEmail: string;
+  status: 'pending' | 'approved' | 'rejected';
+}
+
+export type Notification = {
+  id: string;
+  userId: string;
+  title: string;
+  description: string;
+  createdAt: string; // ISO 8601 string
+  read: boolean;
+  link?: string;
+}

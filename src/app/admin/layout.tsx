@@ -1,10 +1,61 @@
+'use client';
+
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
+import { useUser, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { User } from "@/lib/types";
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+  const router = useRouter();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userData, isLoading: isUserDataLoading } = useDoc<User>(userDocRef);
+
+  const isLoading = isUserLoading || isUserDataLoading;
+  const isAdmin = (userData?.roles || []).includes('admin');
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    if (!isAdmin) {
+      router.push('/dashboard');
+    }
+  }, [isLoading, user, isAdmin, router]);
+
+  if (isLoading || !isAdmin) {
+    return (
+      <div className="flex min-h-screen">
+        <aside className="w-64 flex-shrink-0 border-r bg-background p-4">
+            <Skeleton className="h-8 w-3/4 mb-8" />
+            <div className="space-y-2">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+            </div>
+        </aside>
+        <main className="flex-1 bg-muted/30 p-8">
+            <Skeleton className="h-96 w-full" />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen">
       <AdminSidebar />

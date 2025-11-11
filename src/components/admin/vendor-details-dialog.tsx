@@ -32,6 +32,8 @@ export function VendorDetailsDialog({
   onDelete,
   getBadgeVariant,
 }: VendorDetailsDialogProps) {
+  if (!vendor) return null;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg">
@@ -75,7 +77,7 @@ export function VendorDetailsDialog({
             <div className="flex justify-end gap-2">
             {vendor.status === 'pending' && (
                 <>
-                    <Button variant="outline" size="sm" className="text-red-600 border-red-500 hover:bg-red-50" onClick={() => onUpdateStatus(vendor.id, vendor.companyName, 'rejected')}>
+                    <Button variant="outline" size="sm" className="text-red-500 border-red-500 hover:bg-red-50 hover:text-red-600" onClick={() => onUpdateStatus(vendor.id, vendor.companyName, 'rejected')}>
                         <XCircle className="mr-2 h-4 w-4" /> Reject
                     </Button>
                     <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => onUpdateStatus(vendor.id, vendor.companyName, 'approved')}>
