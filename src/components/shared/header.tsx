@@ -25,10 +25,14 @@ export function Header() {
       <div className="container flex h-16 items-center">
         <div className="mr-4 flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            {isClient && logoUrl ? (
+            {isClient ? (
+              logoUrl ? (
                 <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" />
-            ) : (
+              ) : (
                 <Ticket className="h-6 w-6 text-primary" />
+              )
+            ) : (
+              <Ticket className="h-6 w-6 text-primary" />
             )}
           </Link>
           <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
