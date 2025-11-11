@@ -19,10 +19,23 @@ import { doc } from 'firebase/firestore';
 import type { Vendor } from '@/lib/types';
 import Image from 'next/image';
 
+// Extended user data type that could come from Firestore
+interface UserProfileData {
+  profileImageUrl?: string;
+  // other fields from your user document in Firestore
+}
+
 export function UserNav() {
   const auth = useAuth();
   const { user } = useUser();
   const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userProfileData } = useDoc<UserProfileData>(userDocRef);
 
   const adminRoleRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -45,20 +58,16 @@ export function UserNav() {
     }
   }
   
-  const avatarImage = {
-      imageUrl: '/assets/user-avatar-1.jpg',
-      imageHint: 'person portrait'
-  };
+  const avatarImageSrc = userProfileData?.profileImageUrl || user?.photoURL;
+  const avatarFallback = user?.displayName?.split(' ').map(n => n[0]).join('') || user?.email?.[0].toUpperCase() || 'U';
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-9 w-9">
-             {user?.photoURL ? <AvatarImage src={user.photoURL} alt="User Avatar" /> : (
-                <Image src={avatarImage.imageUrl} alt="User Avatar" data-ai-hint={avatarImage.imageHint} width={36} height={36} className="rounded-full" />
-             )}
-            <AvatarFallback>{user?.email?.[0].toUpperCase() || 'U'}</AvatarFallback>
+             {avatarImageSrc ? <AvatarImage src={avatarImageSrc} alt="User Avatar" /> : null }
+            <AvatarFallback>{avatarFallback}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>

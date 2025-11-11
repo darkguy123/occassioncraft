@@ -56,6 +56,9 @@ export default function ProfileSettingsPage() {
         lastName: userData.lastName,
         email: userData.email,
       });
+      if (userData.profileImageUrl) {
+        setCroppedAvatarUrl(userData.profileImageUrl);
+      }
     }
   }, [userData, form]);
 
@@ -79,32 +82,35 @@ export default function ProfileSettingsPage() {
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user || !userRef) return;
     
-    let photoURL = userData?.profileImageUrl || user.photoURL;
-
     try {
-      if (croppedAvatarUrl) {
-        photoURL = croppedAvatarUrl; // Use the local data URL
-      }
-      
       const auth = getAuth();
-      if (auth.currentUser) {
-          await updateProfile(auth.currentUser, { 
+      const currentUser = auth.currentUser;
+
+      if (currentUser) {
+          // Update display name in Firebase Auth
+          await updateProfile(currentUser, { 
               displayName: `${data.firstName} ${data.lastName}`,
-              photoURL: photoURL
           });
 
-          if (data.email !== auth.currentUser.email) {
-            // Re-authentication might be needed for this
-            await updateEmail(auth.currentUser, data.email);
+          // Update email in Firebase Auth (requires re-authentication for security)
+          if (data.email !== currentUser.email) {
+            await updateEmail(currentUser, data.email);
           }
       }
 
-      updateDocumentNonBlocking(userRef, {
+      // Prepare data for Firestore update
+      const firestoreUpdateData: any = {
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
-        profileImageUrl: photoURL
-      });
+      };
+
+      if (croppedAvatarUrl) {
+        firestoreUpdateData.profileImageUrl = croppedAvatarUrl;
+      }
+      
+      // Update the user document in Firestore
+      updateDocumentNonBlocking(userRef, firestoreUpdateData);
 
       toast({
         title: 'Profile Updated',
@@ -113,10 +119,14 @@ export default function ProfileSettingsPage() {
 
     } catch (error: any) {
       console.error(error);
+      let description = error.message;
+      if (error.code === 'auth/requires-recent-login') {
+        description = 'Changing your email requires a recent login. Please log out and log back in to update your email.'
+      }
       toast({
         variant: 'destructive',
         title: 'Update Failed',
-        description: error.message,
+        description: description,
       });
     }
   };
