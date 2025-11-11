@@ -62,6 +62,7 @@ export default function CreateEventPage() {
       name: "",
       date: new Date(),
       startTime: format(new Date(), "HH:mm"),
+      endTime: "",
       isOnline: false,
       location: "",
       description: "",
@@ -87,8 +88,11 @@ export default function CreateEventPage() {
       setAuthStatus('unauthorized');
       return;
     }
-
-    const isAuthorized = userData && ((userData.roles || []).includes('admin') || (userData.roles || []).includes('vendor'));
+    
+    // Now that loading is complete, we can safely check the data
+    const isAdminByRole = (userData?.roles || []).includes('admin');
+    const isVendor = (userData?.roles || []).includes('vendor');
+    const isAuthorized = isAdminByRole || isVendor;
 
     if (isAuthorized) {
         setAuthStatus('authorized');
@@ -413,5 +417,3 @@ export default function CreateEventPage() {
     </div>
   );
 }
-
-    
