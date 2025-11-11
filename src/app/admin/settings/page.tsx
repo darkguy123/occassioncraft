@@ -10,12 +10,22 @@ import { useToast } from '@/hooks/use-toast';
 import { Upload, BookText, FileText, Info, Image as ImageIcon, Palette } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
+import { useUser } from '@/firebase';
+
+// Type to hold file data and preview
+type FileUploadState = {
+  file: File | null;
+  preview: string | null;
+};
 
 export default function AdminSettingsPage() {
   const { toast } = useToast();
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
-  const [heroBannerPreview, setHeroBannerPreview] = useState<string | null>(null);
+  const { user } = useUser();
+
+  const [logo, setLogo] = useState<FileUploadState>({ file: null, preview: null });
+  const [favicon, setFavicon] = useState<FileUploadState>({ file: null, preview: null });
+  const [heroBanner, setHeroBanner] = useState<FileUploadState>({ file: null, preview: null });
 
   const [primaryColor, setPrimaryColor] = useState('#74c0fc');
   const [backgroundColor, setBackgroundColor] = useState('#f7faff');
@@ -26,24 +36,23 @@ export default function AdminSettingsPage() {
   const [aboutUs, setAboutUs] = useState('');
 
   useEffect(() => {
-    // This function will run on the client side
     const loadSettings = () => {
       const savedLogo = localStorage.getItem('websiteLogo');
-      if (savedLogo) setLogoPreview(savedLogo);
+      if (savedLogo) setLogo(prev => ({ ...prev, preview: savedLogo }));
 
       const savedFavicon = localStorage.getItem('websiteFavicon');
-      if (savedFavicon) setFaviconPreview(savedFavicon);
+      if (savedFavicon) setFavicon(prev => ({ ...prev, preview: savedFavicon }));
       
       const savedHeroBanner = localStorage.getItem('heroBannerImage');
-      if (savedHeroBanner) setHeroBannerPreview(savedHeroBanner);
+      if (savedHeroBanner) setHeroBanner(prev => ({...prev, preview: savedHeroBanner }));
 
-      const savedPrimary = localStorage.getItem('theme-primary');
+      const savedPrimary = localStorage.getItem('theme-primary-hex');
       if (savedPrimary) setPrimaryColor(savedPrimary);
 
-      const savedBackground = localStorage.getItem('theme-background');
+      const savedBackground = localStorage.getItem('theme-background-hex');
       if (savedBackground) setBackgroundColor(savedBackground);
       
-      const savedAccent = localStorage.getItem('theme-accent');
+      const savedAccent = localStorage.getItem('theme-accent-hex');
       if (savedAccent) setAccentColor(savedAccent);
     };
     
@@ -64,45 +73,73 @@ export default function AdminSettingsPage() {
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
-        if (type === 'logo') {
-          setLogoPreview(result);
-        } else if (type === 'favicon') {
-          setFaviconPreview(result);
-        } else if (type === 'hero') {
-            setHeroBannerPreview(result);
-        }
+        const fileState = { file, preview: result };
+        if (type === 'logo') setLogo(fileState);
+        else if (type === 'favicon') setFavicon(fileState);
+        else if (type === 'hero') setHeroBanner(fileState);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSaveBranding = () => {
-    let changesMade = false;
-    if (logoPreview) {
-      localStorage.setItem('websiteLogo', logoPreview);
-      changesMade = true;
-    }
-    if (faviconPreview) {
-      localStorage.setItem('websiteFavicon', faviconPreview);
-      changesMade = true;
-    }
+  const uploadAsset = async (fileState: FileUploadState): Promise<string | null> => {
+    if (!fileState.file || !fileState.preview || !user) return null;
+    
+    const storage = getStorage();
+    // Use the original filename to create a unique path
+    const storageRef = ref(storage, `public/assets/${fileState.file.name}`);
+    
+    await uploadString(storageRef, fileState.preview, 'data_url');
+    return getDownloadURL(storageRef);
+  };
 
-    if (changesMade) {
-      toast({
-        title: 'Branding Updated',
-        description: 'Your new branding has been saved. Changes may require a refresh to appear.',
-      });
-    } else {
-       toast({
-        variant: 'destructive',
-        title: 'No Image Selected',
-        description: 'Please select a logo or favicon to upload.',
-      });
+  const handleSaveBranding = async () => {
+    if (!user) {
+      toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to save changes.' });
+      return;
+    }
+    
+    let changesMade = false;
+    try {
+      if (logo.file) {
+        const logoUrl = await uploadAsset(logo);
+        if (logoUrl) {
+          localStorage.setItem('websiteLogo', logoUrl);
+          changesMade = true;
+        }
+      }
+      if (favicon.file) {
+        const faviconUrl = await uploadAsset(favicon);
+        if (faviconUrl) {
+          localStorage.setItem('websiteFavicon', faviconUrl);
+          changesMade = true;
+        }
+      }
+
+      if (changesMade) {
+        toast({
+          title: 'Branding Updated',
+          description: 'Your new branding has been saved. Refresh to see changes.',
+        });
+        window.dispatchEvent(new Event('storage'));
+      } else {
+         toast({
+          variant: 'destructive',
+          title: 'No New Image Selected',
+          description: 'Please select a new logo or favicon to upload.',
+        });
+      }
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
     }
   };
 
-  const handleSaveAppearance = () => {
-     // Function to convert hex to HSL string "H S% L%"
+  const handleSaveAppearance = async () => {
+     if (!user) {
+      toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to save changes.' });
+      return;
+    }
+    // Function to convert hex to HSL string "H S% L%"
     const hexToHslString = (hex: string): string => {
         let r = 0, g = 0, b = 0;
         if (hex.length === 4) {
@@ -141,16 +178,22 @@ export default function AdminSettingsPage() {
     localStorage.setItem('theme-background', hexToHslString(backgroundColor));
     localStorage.setItem('theme-accent', hexToHslString(accentColor));
     
-    if (heroBannerPreview) {
-      localStorage.setItem('heroBannerImage', heroBannerPreview);
+    try {
+      if (heroBanner.file) {
+        const bannerUrl = await uploadAsset(heroBanner);
+        if (bannerUrl) {
+          localStorage.setItem('heroBannerImage', bannerUrl);
+        }
+      }
+      
+      toast({
+          title: 'Appearance Saved',
+          description: 'Your new theme settings have been saved. The theme will update dynamically.',
+      });
+      window.dispatchEvent(new Event('storage'));
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Banner Upload Failed', description: error.message });
     }
-    
-    toast({
-        title: 'Appearance Saved',
-        description: 'Your new theme settings have been saved. The theme will update dynamically.',
-    });
-     // Optional: force a reload to see changes immediately if CSS variables are not updating reactively everywhere.
-    window.dispatchEvent(new Event('storage'));
   };
   
   const handleSaveContent = () => {
@@ -188,8 +231,8 @@ export default function AdminSettingsPage() {
                       <Label htmlFor="logo-upload">Logo Image</Label>
                       <div className="flex items-center justify-center w-full">
                           <label htmlFor="logo-upload" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
-                              {logoPreview ? (
-                                  <img src={logoPreview} alt="Logo preview" className="h-full w-full object-contain p-4" />
+                              {logo.preview ? (
+                                  <img src={logo.preview} alt="Logo preview" className="h-full w-full object-contain p-4" />
                               ) : (
                                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                       <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
@@ -206,8 +249,8 @@ export default function AdminSettingsPage() {
                       <Label htmlFor="favicon-upload">Favicon Image</Label>
                        <div className="flex items-center gap-4">
                             <label htmlFor="favicon-upload" className="flex items-center justify-center w-24 h-24 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
-                                {faviconPreview ? (
-                                    <img src={faviconPreview} alt="Favicon preview" className="h-full w-full object-contain p-2" />
+                                {favicon.preview ? (
+                                    <img src={favicon.preview} alt="Favicon preview" className="h-full w-full object-contain p-2" />
                                 ) : (
                                     <div className="flex flex-col items-center justify-center">
                                         <ImageIcon className="w-8 h-8 text-muted-foreground" />
@@ -257,8 +300,8 @@ export default function AdminSettingsPage() {
                 <Label htmlFor="hero-banner-upload">Homepage Banner Image</Label>
                 <div className="flex items-center justify-center w-full">
                   <label htmlFor="hero-banner-upload" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
-                    {heroBannerPreview ? (
-                      <img src={heroBannerPreview} alt="Hero banner preview" className="h-full w-full object-cover" />
+                    {heroBanner.preview ? (
+                      <img src={heroBanner.preview} alt="Hero banner preview" className="h-full w-full object-cover" />
                     ) : (
                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
                         <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
@@ -306,3 +349,5 @@ export default function AdminSettingsPage() {
     </div>
   );
 }
+
+    

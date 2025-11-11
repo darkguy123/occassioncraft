@@ -19,5 +19,14 @@ service firebase.storage {
       allow read: if true;
       allow write: if isOwner(userId);
     }
+
+    // Rules for public assets uploaded by admin
+    // Anyone can read these assets, but only authenticated users (admins) can write them.
+    match /public/assets/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
   }
 }
+
+    
