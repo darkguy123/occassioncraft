@@ -24,8 +24,8 @@ const categories = ['All', 'Music', 'Arts', 'Tech', 'Food', 'Sports'] as const;
 
 export default function Home() {
   const defaultHeroImage = {
-      imageUrl: '/assets/hero.jpg',
-      imageHint: 'festival crowd'
+      imageUrl: 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2F67e206b7d52d22580e4ec0d8_890.jpg?alt=media&token=c0a35579-2cdf-4d20-9aa9-6163ff95eddf',
+      imageHint: 'concert stage lights'
   };
   const [heroBannerUrl, setHeroBannerUrl] = useState(defaultHeroImage?.imageUrl);
   const [heroBannerHint, setHeroBannerHint] = useState(defaultHeroImage?.imageHint);
