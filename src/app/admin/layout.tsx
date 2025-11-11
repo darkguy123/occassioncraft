@@ -31,31 +31,34 @@ export default function AdminLayout({
   const { data: userData, isLoading: isUserDataLoading } = useDoc<User>(userDocRef);
   const { data: adminRoleData, isLoading: isAdminRoleLoading } = useDoc(adminRoleDocRef);
   
-  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
 
   const isLoading = isUserLoading || isUserDataLoading || isAdminRoleLoading;
 
   useEffect(() => {
-    // Only run the authorization logic after all data has finished loading.
-    if (!isLoading) {
-      if (!user) {
-        router.push('/login');
-        return;
-      }
-      
-      const isAdminByRole = (userData?.roles || []).includes('admin');
-      const isAdminByCollection = !!adminRoleData;
-      const isAdmin = isAdminByRole || isAdminByCollection;
+    if (isLoading) {
+      setAuthStatus('loading');
+      return;
+    }
 
-      if (!isAdmin) {
-        router.push('/dashboard');
-      } else {
-        setIsAuthorized(true);
-      }
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+      
+    const isAdminByRole = (userData?.roles || []).includes('admin');
+    const isAdminByCollection = !!adminRoleData;
+    const isAdmin = isAdminByRole || isAdminByCollection;
+
+    if (isAdmin) {
+      setAuthStatus('authorized');
+    } else {
+      setAuthStatus('unauthorized');
+      router.push('/dashboard');
     }
   }, [isLoading, user, userData, adminRoleData, router]);
 
-  if (isLoading || !isAuthorized) {
+  if (authStatus !== 'authorized') {
     return (
       <div className="flex min-h-screen">
         <aside className="w-64 flex-shrink-0 border-r bg-background p-4">
