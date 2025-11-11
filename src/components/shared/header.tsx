@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -51,11 +52,11 @@ export function Header() {
             )}
           </Link>
           <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
-            <Link href="/" className="transition-colors hover:text-foreground/80 text-foreground/60">
+            <Link href="/events" className="transition-colors hover:text-foreground/80 text-foreground/60">
               Discover Events
             </Link>
-            <Link href="/create-event" className="transition-colors hover:text-foreground/80 text-foreground/60">
-              Create an Event
+            <Link href="/vendor" className="transition-colors hover:text-foreground/80 text-foreground/60">
+              Host Your Event
             </Link>
           </nav>
         </div>
