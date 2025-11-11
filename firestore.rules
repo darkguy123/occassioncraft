@@ -6,12 +6,12 @@ service cloud.firestore {
   
     // Helper function to check for admin role
     function isAdmin() {
-      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      return request.auth != null && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
   
   	// Helper function to check if a user owns a document
     function isOwner(userId) {
-    	return request.auth.uid == userId;
+    	return request.auth != null && request.auth.uid == userId;
     }
 
     match /users/{userId} {
@@ -37,7 +37,7 @@ service cloud.firestore {
        // Events are publicly readable.
        allow read: if true;
        // Events can be written by their vendor owner or an admin.
-       allow write: if isAdmin() || request.resource.data.vendorId == request.auth.uid;
+       allow write: if isAdmin() || (request.resource.data.vendorId == request.auth.uid);
     }
     
     match /categories/{categoryId} {
