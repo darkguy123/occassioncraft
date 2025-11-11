@@ -14,12 +14,21 @@ export function Header() {
   const [logoUrl, setLogoUrl] = useState<string | null>('https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/Untitled-1.png?alt=media&token=8371eb7f-ae3c-4453-a5bb-4bb581dca4d6');
 
   useEffect(() => {
-    // This effect runs only on the client, after the initial render,
-    // which prevents the hydration mismatch.
-    const savedLogo = localStorage.getItem('websiteLogo');
-    if (savedLogo) {
-      setLogoUrl(savedLogo);
-    }
+    const updateLogo = () => {
+      const savedLogo = localStorage.getItem('websiteLogo');
+      if (savedLogo) {
+        setLogoUrl(savedLogo);
+      }
+    };
+
+    updateLogo(); // Initial check
+
+    // Listen for changes from other tabs/windows
+    window.addEventListener('storage', updateLogo);
+
+    return () => {
+      window.removeEventListener('storage', updateLogo);
+    };
   }, []);
 
   return (
@@ -62,3 +71,5 @@ export function Header() {
     </header>
   );
 }
+
+    

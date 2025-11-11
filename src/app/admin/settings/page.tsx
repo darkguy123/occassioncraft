@@ -119,13 +119,13 @@ export default function AdminSettingsPage() {
       if (changesMade) {
         toast({
           title: 'Branding Updated',
-          description: 'Your new branding has been saved. Refresh to see changes.',
+          description: 'Your new branding has been saved. The site will update shortly.',
         });
+        // This event tells other parts of the app (like the header) to update.
         window.dispatchEvent(new Event('storage'));
       } else {
          toast({
-          variant: 'destructive',
-          title: 'No New Image Selected',
+          title: 'No New Images Selected',
           description: 'Please select a new logo or favicon to upload.',
         });
       }
@@ -349,5 +349,7 @@ export default function AdminSettingsPage() {
     </div>
   );
 }
+
+    
 
     
