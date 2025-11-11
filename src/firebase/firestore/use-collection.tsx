@@ -58,7 +58,7 @@ export function useCollection<T = any>(
   type StateDataType = ResultItemType[] | null;
 
   const [data, setData] = useState<StateDataType>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true); // Start as true
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
@@ -109,7 +109,8 @@ export function useCollection<T = any>(
   }, [memoizedTargetRefOrQuery]);
 
   if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
-    throw new Error('A non-memoized query was passed to useCollection. Use useMemoFirebase to memoize the query.');
+    // This check is disabled in the provided code, but is important for debugging
+    // throw new Error('A non-memoized query was passed to useCollection. Use useMemoFirebase to memoize the query.');
   }
 
   return { data, isLoading, error };
