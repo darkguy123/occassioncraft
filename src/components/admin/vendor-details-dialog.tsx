@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import type { Vendor } from '@/lib/types';
 import { CheckCircle, XCircle, Trash2, Edit, Mail, Info } from 'lucide-react';
+import Link from 'next/link';
 
 interface VendorDetailsDialogProps {
   vendor: Vendor;
@@ -65,8 +66,10 @@ export function VendorDetailsDialog({
         
         <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between w-full">
             <div>
-                 <Button variant="outline" size="sm" disabled>
-                    <Edit className="mr-2 h-4 w-4" /> Edit
+                 <Button variant="outline" size="sm" asChild>
+                    <Link href={`/admin/vendors/${vendor.id}/edit`}>
+                        <Edit className="mr-2 h-4 w-4" /> Edit
+                    </Link>
                 </Button>
             </div>
             <div className="flex justify-end gap-2">

@@ -32,6 +32,7 @@ import type { Vendor } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { VendorDetailsDialog } from '@/components/admin/vendor-details-dialog';
+import Link from 'next/link';
 
 export default function AdminVendorsPage() {
   const firestore = useFirestore();
@@ -152,6 +153,9 @@ export default function AdminVendorsPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => setSelectedVendor(vendor)}>
                             View Details
+                          </DropdownMenuItem>
+                           <DropdownMenuItem asChild>
+                            <Link href={`/admin/vendors/${vendor.id}/edit`}>Edit Vendor</Link>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteVendor(vendor.id, vendor.companyName)}>
