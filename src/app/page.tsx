@@ -8,7 +8,6 @@ import { Search, Globe, Music, Palette, Code, Utensils, Award } from 'lucide-rea
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { sampleEvents } from '@/lib/placeholder-data';
 import EventCard from '@/components/event-card';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useEffect, useState } from 'react';
 
 const categoryIcons = {
@@ -24,7 +23,10 @@ const categories = ['All', 'Music', 'Arts', 'Tech', 'Food', 'Sports'] as const;
 
 
 export default function Home() {
-  const defaultHeroImage = PlaceHolderImages.find(img => img.id === 'hero');
+  const defaultHeroImage = {
+      imageUrl: '/assets/hero.jpg',
+      imageHint: 'festival crowd'
+  };
   const [heroBannerUrl, setHeroBannerUrl] = useState(defaultHeroImage?.imageUrl);
   const [heroBannerHint, setHeroBannerHint] = useState(defaultHeroImage?.imageHint);
 

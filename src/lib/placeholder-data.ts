@@ -1,11 +1,4 @@
 import type { Event, Ticket, VendorEvent } from '@/lib/types';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
-
-const findImage = (id: string) => {
-  const img = PlaceHolderImages.find(p => p.id === id);
-  if (!img) return { imageUrl: '', imageHint: '' };
-  return { imageUrl: img.imageUrl, imageHint: img.imageHint };
-};
 
 export const sampleEvents: Event[] = [
   {
@@ -18,7 +11,8 @@ export const sampleEvents: Event[] = [
     category: 'Music',
     price: 75.00,
     organizer: 'MusicMakers Inc.',
-    ...findImage('event-1'),
+    imageUrl: '/assets/event-1.jpg',
+    imageHint: 'concert music',
   },
   {
     id: '2',
@@ -30,7 +24,8 @@ export const sampleEvents: Event[] = [
     category: 'Arts',
     price: 25.00,
     organizer: 'ArtVisionaries',
-    ...findImage('event-2'),
+    imageUrl: '/assets/event-2.jpg',
+    imageHint: 'art gallery',
   },
   {
     id: '3',
@@ -42,7 +37,8 @@ export const sampleEvents: Event[] = [
     category: 'Tech',
     price: 199.00,
     organizer: 'TechForward',
-    ...findImage('event-3'),
+    imageUrl: '/assets/event-3.jpg',
+    imageHint: 'tech conference',
   },
   {
     id: '4',
@@ -54,7 +50,8 @@ export const sampleEvents: Event[] = [
     category: 'Food',
     price: 40.00,
     organizer: 'TasteMasters',
-    ...findImage('event-4'),
+    imageUrl: '/assets/event-4.jpg',
+    imageHint: 'food festival',
   },
   {
     id: '5',
@@ -66,7 +63,8 @@ export const sampleEvents: Event[] = [
     category: 'Sports',
     price: 30.00,
     organizer: 'ZenLife',
-    ...findImage('event-5'),
+    imageUrl: '/assets/event-5.jpg',
+    imageHint: 'yoga class',
   },
   {
     id: '6',
@@ -78,7 +76,8 @@ export const sampleEvents: Event[] = [
     category: 'Music',
     price: 20.00,
     organizer: 'LiveLoud',
-    ...findImage('event-6'),
+    imageUrl: '/assets/event-6.jpg',
+    imageHint: 'rock band',
   },
   {
     id: '7',
@@ -90,7 +89,8 @@ export const sampleEvents: Event[] = [
     category: 'Arts',
     price: 15.00,
     organizer: 'ArtVisionaries',
-    ...findImage('event-7'),
+    imageUrl: '/assets/event-7.jpg',
+    imageHint: 'painting exhibition',
   },
   {
     id: '8',
@@ -102,7 +102,8 @@ export const sampleEvents: Event[] = [
     category: 'Tech',
     price: 50.00,
     organizer: 'TechForward',
-    ...findImage('event-8'),
+    imageUrl: '/assets/event-8.jpg',
+    imageHint: 'startup pitch',
   },
 ];
 

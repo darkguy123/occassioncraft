@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -11,14 +13,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { LayoutDashboard, Users, User, LogOut, Ticket, Shield, Settings } from 'lucide-react';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { Vendor } from '@/lib/types';
 
 
 export function UserNav() {
-  const avatarImage = PlaceHolderImages.find(img => img.id === 'user-avatar-1');
   const auth = useAuth();
   const { user } = useUser();
   const firestore = useFirestore();
@@ -41,6 +41,11 @@ export function UserNav() {
   const handleLogout = () => {
     auth.signOut();
   }
+  
+  const avatarImage = {
+      imageUrl: '/assets/user-avatar-1.jpg',
+      imageHint: 'person portrait'
+  };
 
   return (
     <DropdownMenu>
@@ -48,7 +53,7 @@ export function UserNav() {
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-9 w-9">
              {user?.photoURL ? <AvatarImage src={user.photoURL} alt="User Avatar" /> : (
-               avatarImage && <AvatarImage src={avatarImage.imageUrl} alt="User Avatar" data-ai-hint={avatarImage.imageHint} />
+               <AvatarImage src={avatarImage.imageUrl} alt="User Avatar" data-ai-hint={avatarImage.imageHint} />
              )}
             <AvatarFallback>{user?.email?.[0].toUpperCase() || 'U'}</AvatarFallback>
           </Avatar>

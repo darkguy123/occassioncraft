@@ -1,12 +1,16 @@
+'use client';
+
 import Image from "next/image"
 import { userTickets } from "@/lib/placeholder-data"
-import { PlaceHolderImages } from "@/lib/placeholder-images"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Calendar, MapPin, Clock, Ticket } from "lucide-react"
 
 export default function UserDashboardPage() {
-  const qrCodeImage = PlaceHolderImages.find(img => img.id === 'qr-code');
+  const qrCodeImage = {
+      imageUrl: '/assets/qr-code.png',
+      imageHint: 'qr code'
+  };
 
   return (
     <div className="container mx-auto max-w-5xl py-12 px-4">
@@ -47,16 +51,14 @@ export default function UserDashboardPage() {
                   </CardContent>
                 </div>
                 <div className="bg-secondary/50 p-6 flex flex-col items-center justify-center border-t md:border-t-0 md:border-l">
-                    {qrCodeImage && (
-                        <Image
-                            src={qrCodeImage.imageUrl}
-                            alt="QR Code"
-                            width={150}
-                            height={150}
-                            className="rounded-lg"
-                            data-ai-hint={qrCodeImage.imageHint}
-                        />
-                    )}
+                    <Image
+                        src={qrCodeImage.imageUrl}
+                        alt="QR Code"
+                        width={150}
+                        height={150}
+                        className="rounded-lg"
+                        data-ai-hint={qrCodeImage.imageHint}
+                    />
                     <p className="text-muted-foreground text-sm mt-4 text-center">Scan this at the event entrance</p>
                 </div>
               </div>

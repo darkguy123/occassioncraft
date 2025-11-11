@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -10,7 +11,7 @@ import { useUser } from '@/firebase';
 
 export function Header() {
   const { user, isUserLoading } = useUser();
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>('/assets/logo.svg');
 
   useEffect(() => {
     // This effect runs only on the client, after the initial render,
@@ -27,7 +28,7 @@ export function Header() {
         <div className="mr-4 flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             {logoUrl ? (
-                <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" />
+                <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" priority />
               ) : (
                 <Ticket className="h-6 w-6 text-primary" />
             )}
@@ -61,5 +62,3 @@ export function Header() {
     </header>
   );
 }
-
-    

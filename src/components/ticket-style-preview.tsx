@@ -2,7 +2,6 @@
 
 import type { EventFormValues } from '@/app/create-event/page';
 import { Card } from '@/components/ui/card';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Ticket, Sparkles, MapPin, Calendar, Clock } from 'lucide-react';
 import Image from 'next/image';
 import { format } from 'date-fns';
@@ -13,7 +12,10 @@ interface TicketStylePreviewProps {
 
 export function TicketStylePreview({ eventData }: TicketStylePreviewProps) {
     const { name, date, startTime, location } = eventData;
-    const qrCodeImage = PlaceHolderImages.find(img => img.id === 'qr-code');
+    const qrCodeImage = {
+        imageUrl: '/assets/qr-code.png',
+        imageHint: 'qr code'
+    };
 
     const formattedDate = date ? format(date, "MMM d, yyyy") : 'Your Date';
     const formattedTime = startTime || 'Your Time';
@@ -45,17 +47,15 @@ export function TicketStylePreview({ eventData }: TicketStylePreviewProps) {
                         <p className="text-xs opacity-80">Jane Doe</p>
                         <p className="font-semibold">General Admission</p>
                     </div>
-                    {qrCodeImage && (
-                        <div className="bg-white p-1 rounded-md shadow-lg">
-                             <Image
-                                src={qrCodeImage.imageUrl}
-                                alt="QR Code"
-                                width={64}
-                                height={64}
-                                data-ai-hint={qrCodeImage.imageHint}
-                            />
-                        </div>
-                    )}
+                    <div className="bg-white p-1 rounded-md shadow-lg">
+                         <Image
+                            src={qrCodeImage.imageUrl}
+                            alt="QR Code"
+                            width={64}
+                            height={64}
+                            data-ai-hint={qrCodeImage.imageHint}
+                        />
+                    </div>
                 </div>
             </div>
              {/* Decorative circles */}

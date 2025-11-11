@@ -23,7 +23,7 @@ function Favicon() {
       return <link rel="icon" href={faviconUrl} />;
     }
   }
-  return null;
+  return <link rel="icon" href="/favicon.ico" />;
 }
 
 export default function RootLayout({
@@ -34,7 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="light" suppressHydrationWarning>
       <head>
-        <Suspense fallback={null}>
+        <Suspense fallback={<link rel="icon" href="/favicon.ico" />}>
           <Favicon />
         </Suspense>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
