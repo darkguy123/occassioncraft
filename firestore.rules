@@ -77,14 +77,14 @@ service cloud.firestore {
       // Public can read approved events. Owners and Admins can read any event.
       allow get: if resource.data.status == 'approved' || isOwner(vendorId) || isAdmin();
       
-      // Only admins can list all events across all vendors using a collection group query.
-      allow list: if isAdmin();
-      
       // An event can be created if the user is the vendor OR is an admin.
       allow create: if isOwner(vendorId) || isAdmin();
 
       // An event can be updated/deleted if the user is the vendor OR is an admin.
       allow update, delete: if isOwner(vendorId) || isAdmin();
+
+      // Admins can list all events across all vendors using a collection group query.
+      allow list: if isAdmin();
     }
 
     /**
@@ -94,6 +94,9 @@ service cloud.firestore {
      */
     match /users/{userId}/tickets/{ticketId} {
       allow read, write: if isOwner(userId) || isAdmin();
+      
+      // Admins can list all tickets across all users using a collection group query.
+      allow list: if isAdmin();
     }
 
     /**
