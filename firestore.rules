@@ -88,9 +88,11 @@ service cloud.firestore {
       allow update, delete: if isOwner(vendorId) || isAdmin();
     }
     
-    // Allow admins to perform collection group queries on events
+    // Collection Group Queries for Events
     match /{path=**}/events/{eventId} {
-       allow list: if isAdmin();
+       // Allows public to query for approved events (e.g., for the homepage).
+       // Allows admins to query all events (e.g., for the admin dashboard).
+       allow list: if request.query.get('status') == 'approved' || isAdmin();
     }
 
     /**
@@ -102,8 +104,9 @@ service cloud.firestore {
       allow read, write: if isOwner(userId) || isAdmin();
     }
     
-    // Allow admins to perform collection group queries on tickets
+    // Collection Group Queries for Tickets
     match /{path=**}/tickets/{ticketId} {
+       // Only admins can perform collection group queries on tickets.
        allow list: if isAdmin();
     }
 
