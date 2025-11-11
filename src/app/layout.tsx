@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Header } from '@/components/shared/header';
@@ -7,12 +8,22 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { LoaderProvider } from '@/context/loader-context';
 import { PageLoader } from '@/components/shared/page-loader';
 import { NavigationEvents } from '@/components/shared/navigation-events';
-import { Suspense } from 'react';
+import { Suspense, use } from 'react';
 
 export const metadata: Metadata = {
   title: 'OccasionCraft',
   description: 'Create, discover, and celebrate events with OccasionCraft.',
 };
+
+function Favicon() {
+  if (typeof window !== 'undefined') {
+    const faviconUrl = window.localStorage.getItem('websiteFavicon');
+    if (faviconUrl) {
+      return <link rel="icon" href={faviconUrl} />;
+    }
+  }
+  return null;
+}
 
 export default function RootLayout({
   children,
@@ -22,6 +33,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="light">
       <head>
+        <Suspense fallback={null}>
+          <Favicon />
+        </Suspense>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" />
