@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -75,11 +74,6 @@ export default function CreateEventPage() {
     mode: "onChange",
   });
   
-  const { fields, append, remove } = require("react-hook-form").useFieldArray({
-      control: form.control,
-      name: "tickets",
-  });
-
   const isOnline = form.watch('isOnline');
   const watchedEventData = form.watch();
 
@@ -110,7 +104,7 @@ export default function CreateEventPage() {
   };
 
   const isLoading = isUserLoading || isUserDataLoading;
-  const isAuthorized = (userData?.roles || []).includes('admin') || (userData?.roles || []).includes('vendor');
+  const isAuthorized = userData && ((userData.roles || []).includes('admin') || (userData.roles || []).includes('vendor'));
 
   useEffect(() => {
     if (isLoading) return;
