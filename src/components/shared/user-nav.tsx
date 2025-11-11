@@ -12,13 +12,23 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { LayoutDashboard, Users, User, LogOut, Ticket, Shield, Settings } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 
 export function UserNav() {
   const avatarImage = PlaceHolderImages.find(img => img.id === 'user-avatar-1');
   const auth = useAuth();
   const { user } = useUser();
+  const firestore = useFirestore();
+
+  const adminRoleRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'roles_admin', user.uid);
+  }, [firestore, user]);
+
+  const { data: adminRole, isLoading: isAdminLoading } = useDoc(adminRoleRef);
+
 
   const handleLogout = () => {
     auth.signOut();
@@ -63,12 +73,14 @@ export function UserNav() {
               <span>Vendor Dashboard</span>
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/admin">
-               <Shield className="mr-2 h-4 w-4" />
-              <span>Admin Panel</span>
-            </Link>
-          </DropdownMenuItem>
+          {!isAdminLoading && adminRole && (
+            <DropdownMenuItem asChild>
+                <Link href="/admin">
+                <Shield className="mr-2 h-4 w-4" />
+                <span>Admin Panel</span>
+                </Link>
+            </DropdownMenuItem>
+          )}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
