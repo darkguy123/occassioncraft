@@ -21,6 +21,7 @@ import { Step3VendorInfo } from "@/components/signup/step-3-vendor-info";
 import { Step4Avatar } from "@/components/signup/step-4-avatar";
 import { Step5Terms } from "@/components/signup/step-5-terms";
 import Link from "next/link";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 
 const signupSchema = z.object({
   fullName: z.string().min(3, { message: "Full name must be at least 3 characters." }),
@@ -90,13 +91,13 @@ export default function SignupPage() {
   const handlePrev = () => {
     if (currentStep > 0) {
       setDirection(-1);
-      setCurrentStep(prev => prev - 1);
+      setCurrentStep(prev => prev + 1);
     }
   };
 
   const onSubmit = async (data: SignupSchema) => {
     try {
-      const userCredential = await auth.createUserWithEmailAndPassword(data.email, data.password);
+      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
 
       if (user) {
