@@ -1,0 +1,12 @@
+<svg width="140" height="32" viewBox="0 0 140 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_1001_2)">
+<path d="M12.9739 23.9999C18.4967 23.9999 22.9477 19.5488 22.9477 14.026C22.9477 8.50317 18.4967 4.05212 12.9739 4.05212C7.45105 4.05212 3 8.50317 3 14.026C3 19.5488 7.45105 23.9999 12.9739 23.9999Z" stroke="#3b82f6" stroke-width="5"/>
+<path d="M22.1889 28C27.7117 28 32.1628 23.5489 32.1628 18.0261C32.1628 12.5033 27.7117 8.05225 22.1889 8.05225C16.6661 8.05225 12.215 12.5033 12.215 18.0261C12.215 23.5489 16.6661 28 22.1889 28Z" stroke="#3b82f6" stroke-width="5"/>
+</g>
+<text x="40" y="22" font-family="Poppins, sans-serif" font-size="16" font-weight="600" fill="hsl(var(--foreground))">OccasionCraft</text>
+<defs>
+<clipPath id="clip0_1001_2">
+<rect width="32" height="32" fill="white"/>
+</clipPath>
+</defs>
+</svg>

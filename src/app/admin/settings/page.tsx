@@ -20,7 +20,7 @@ type FileUploadState = {
 export default function AdminSettingsPage() {
   const { toast } = useToast();
 
-  const [logo, setLogo] = useState<FileUploadState>({ file: null, preview: null });
+  const [logo, setLogo] = useState<FileUploadState>({ file: null, preview: '/assets/logo.svg' });
   const [favicon, setFavicon] = useState<FileUploadState>({ file: null, preview: null });
   const [heroBanner, setHeroBanner] = useState<FileUploadState>({ file: null, preview: null });
 
@@ -81,11 +81,11 @@ export default function AdminSettingsPage() {
 
   const handleSaveBranding = () => {
     let changesMade = false;
-    if (logo.preview) {
+    if (logo.preview && logo.file) { // Only save if a new file was selected
       localStorage.setItem('websiteLogo', logo.preview);
       changesMade = true;
     }
-    if (favicon.preview) {
+    if (favicon.preview && favicon.file) { // Only save if a new file was selected
       localStorage.setItem('websiteFavicon', favicon.preview);
       changesMade = true;
     }
