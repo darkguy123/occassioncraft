@@ -16,7 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useCollection, useFirestore, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { useCollection, useFirestore, updateDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import type { Vendor } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -32,7 +32,8 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function AdminVendorsPage() {
   const firestore = useFirestore();
-  const { data: vendors, isLoading } = useCollection<Vendor>(collection(firestore, 'vendors'));
+  const vendorsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'vendors') : null, [firestore]);
+  const { data: vendors, isLoading } = useCollection<Vendor>(vendorsCollection);
   const { toast } = useToast();
 
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
@@ -72,7 +73,7 @@ export default function AdminVendorsPage() {
   }
   
   const confirmAction = () => {
-    if (!dialogState.vendorId || !dialogState.action) return;
+    if (!dialogState.vendorId || !dialogState.action || !firestore) return;
 
     const vendorRef = doc(firestore, 'vendors', dialogState.vendorId);
     let actionPromise;

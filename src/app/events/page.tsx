@@ -7,7 +7,7 @@ import Link from 'next/link';
 import EventCard from '@/components/event-card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import { useFirestore, useCollection } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import type { Event } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -19,9 +19,12 @@ function EventsDisplay() {
   const firestore = useFirestore();
 
   // A more robust query would be needed for full text search on location
-  const eventsQuery = location
-    ? query(collection(firestore, 'events'), where('location', '>=', location), where('location', '<=', location + '\uf8ff'))
-    : collection(firestore, 'events');
+  const eventsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return location
+      ? query(collection(firestore, 'events'), where('location', '>=', location), where('location', '<=', location + '\uf8ff'))
+      : collection(firestore, 'events');
+  }, [firestore, location]);
     
   const { data: filteredEvents, isLoading } = useCollection<Event>(eventsQuery);
 

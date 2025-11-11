@@ -27,7 +27,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from '@/components/ui/badge';
-import { useFirestore, useCollection, deleteDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useCollection, deleteDocumentNonBlocking, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import type { Event } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,7 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function AdminEventsPage() {
   const firestore = useFirestore();
-  const eventsCollection = collection(firestore, 'events');
+  const eventsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'events') : null, [firestore]);
   const { data: events, isLoading } = useCollection<Event>(eventsCollection);
   const { toast } = useToast();
 

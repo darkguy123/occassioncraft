@@ -16,7 +16,7 @@ export default function UserDashboardPage() {
     const firestore = useFirestore();
 
     const ticketsQuery = useMemoFirebase(() => {
-        if (!user) return null;
+        if (!user || !firestore) return null;
         return query(collection(firestore, `users/${user.uid}/tickets`));
     }, [user, firestore]);
 

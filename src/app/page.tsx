@@ -9,7 +9,7 @@ import { Search, Globe, Music, Palette, Code, Utensils, Award } from 'lucide-rea
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { useFirestore, useCollection } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { Event } from '@/lib/types';
 import EventCard from '@/components/event-card';
@@ -31,7 +31,7 @@ const categories = ['All', 'Music', 'Arts', 'Tech', 'Food', 'Sports'] as const;
 export default function Home() {
   const router = useRouter();
   const firestore = useFirestore();
-  const eventsCollection = collection(firestore, 'events');
+  const eventsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'events') : null, [firestore]);
   const { data: events, isLoading } = useCollection<Event>(eventsCollection);
 
 

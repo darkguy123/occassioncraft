@@ -55,7 +55,7 @@ export default function AdminUsersPage() {
     defaultValues: { uid: "" },
   });
 
-  const getInitials = (firstName: string, lastName: string) => {
+  const getInitials = (firstName?: string, lastName?: string) => {
     return `${firstName?.[0] ?? ''}${lastName?.[0] ?? ''}`.toUpperCase();
   };
   
@@ -198,7 +198,7 @@ export default function AdminUsersPage() {
                       </div>
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
-                    <TableCell className="capitalize">{user.roles.join(', ')}</TableCell>
+                    <TableCell className="capitalize">{user.roles?.join(', ') || 'N/A'}</TableCell>
                     <TableCell>{user.dateJoined ? format(new Date(user.dateJoined), 'PPP') : 'N/A'}</TableCell>
                     <TableCell className="text-right">
                        <DropdownMenu>

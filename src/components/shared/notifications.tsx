@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -107,9 +108,9 @@ export function Notifications() {
                       {notification.description}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(notification.createdAt), {
+                      {notification.createdAt ? formatDistanceToNow(new Date(notification.createdAt), {
                         addSuffix: true,
-                      })}
+                      }) : ''}
                     </p>
                   </Link>
                 </div>
