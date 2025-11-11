@@ -45,6 +45,7 @@ export default function LoginPage() {
   });
 
   const onSubmit: SubmitHandler<LoginSchema> = async (data) => {
+    if (!auth) return;
     try {
       const persistence = data.rememberMe ? browserLocalPersistence : browserSessionPersistence;
       await setPersistence(auth, persistence);
