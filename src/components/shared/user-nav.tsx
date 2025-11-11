@@ -14,6 +14,7 @@ import { LayoutDashboard, Users, User, LogOut, Ticket, Shield, Settings } from '
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import type { Vendor } from '@/lib/types';
 
 
 export function UserNav() {
@@ -28,6 +29,13 @@ export function UserNav() {
   }, [firestore, user]);
 
   const { data: adminRole, isLoading: isAdminLoading } = useDoc(adminRoleRef);
+  
+  const vendorRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'vendors', user.uid);
+  }, [firestore, user]);
+
+  const { data: vendorData, isLoading: isVendorLoading } = useDoc<Vendor>(vendorRef);
 
 
   const handleLogout = () => {
@@ -67,12 +75,14 @@ export function UserNav() {
               <span>My Tickets</span>
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/vendor/dashboard">
-              <LayoutDashboard className="mr-2 h-4 w-4" />
-              <span>Vendor Dashboard</span>
-            </Link>
-          </DropdownMenuItem>
+          {!isVendorLoading && vendorData?.status === 'approved' && (
+            <DropdownMenuItem asChild>
+              <Link href="/vendor/dashboard">
+                <LayoutDashboard className="mr-2 h-4 w-4" />
+                <span>Vendor Dashboard</span>
+              </Link>
+            </DropdownMenuItem>
+          )}
           {!isAdminLoading && adminRole && (
             <DropdownMenuItem asChild>
                 <Link href="/admin">
