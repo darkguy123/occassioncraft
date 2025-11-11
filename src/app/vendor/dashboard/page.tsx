@@ -1,16 +1,89 @@
+'use client';
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { vendorEvents } from "@/lib/placeholder-data";
-import { BarChart2, Ticket, DollarSign, PlusCircle, QrCode, MoreHorizontal } from "lucide-react";
+import { BarChart2, Ticket, DollarSign, PlusCircle, QrCode, MoreHorizontal, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
+import type { Vendor } from "@/lib/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function VendorDashboardPage() {
+    const { user, isUserLoading } = useUser();
+    const firestore = useFirestore();
+
+    const vendorRef = useMemoFirebase(() => {
+        if (!user) return null;
+        return doc(firestore, 'vendors', user.uid);
+    }, [firestore, user]);
+
+    const { data: vendorData, isLoading: isVendorLoading } = useDoc<Vendor>(vendorRef);
+
     const totalRevenue = vendorEvents.reduce((acc, event) => acc + event.revenue, 0);
     const totalTicketsSold = vendorEvents.reduce((acc, event) => acc + event.ticketsSold, 0);
 
+    const isLoading = isUserLoading || isVendorLoading;
+
+    if (isLoading) {
+        return (
+             <div className="container mx-auto py-12 px-4 space-y-8">
+                <Skeleton className="h-12 w-1/2" />
+                <div className="grid gap-4 md:grid-cols-3">
+                    <Skeleton className="h-28" />
+                    <Skeleton className="h-28" />
+                    <Skeleton className="h-28" />
+                </div>
+                <Skeleton className="h-96" />
+            </div>
+        )
+    }
+
+    if (!vendorData) {
+         return (
+             <div className="container mx-auto py-12 px-4 text-center">
+                 <Card className="max-w-lg mx-auto">
+                     <CardHeader>
+                        <AlertTriangle className="mx-auto h-12 w-12 text-amber-500" />
+                         <CardTitle className="text-2xl">Become a Vendor</CardTitle>
+                         <CardDescription>
+                            It looks like you haven't registered as a vendor yet.
+                         </CardDescription>
+                     </CardHeader>
+                     <CardContent>
+                         <p className="mb-4">To create and manage events, you need to sign up as a vendor.</p>
+                         <Button asChild>
+                             <Link href="/signup">Sign Up as a Vendor</Link>
+                         </Button>
+                     </CardContent>
+                 </Card>
+            </div>
+         );
+    }
+    
+    if (vendorData.status === 'pending') {
+         return (
+             <div className="container mx-auto py-12 px-4 text-center">
+                 <Card className="max-w-lg mx-auto">
+                     <CardHeader>
+                        <AlertTriangle className="mx-auto h-12 w-12 text-amber-500" />
+                         <CardTitle className="text-2xl">Application Pending</CardTitle>
+                         <CardDescription>
+                            Your vendor application is currently under review.
+                         </CardDescription>
+                     </CardHeader>
+                     <CardContent>
+                         <p>You will be notified once your application has been approved. You can then start creating events and selling tickets. Thank you for your patience.</p>
+                     </CardContent>
+                 </Card>
+            </div>
+         );
+    }
+    
   return (
     <div className="container mx-auto py-12 px-4">
       <div className="flex items-center justify-between mb-8">

@@ -22,3 +22,11 @@ export type VendorEvent = Event & {
   ticketsSold: number;
   revenue: number;
 };
+
+export type Vendor = {
+  userId: string;
+  companyName: string;
+  description?: string;
+  contactEmail: string;
+  status: 'pending' | 'approved' | 'rejected';
+}
