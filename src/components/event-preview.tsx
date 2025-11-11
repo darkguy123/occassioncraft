@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -13,11 +14,11 @@ interface EventPreviewProps {
 }
 
 export function EventPreview({ eventData, bannerUrl }: EventPreviewProps) {
-  const { name, date, startTime, location, ticketPrice = 0, description } = eventData;
+  const { name, date, startTime, location, tickets } = eventData;
 
   const formattedDate = date ? format(date, 'EEEE, MMMM d') : 'Select a date';
   const formattedTime = startTime || 'Select a time';
-  const displayPrice = ticketPrice > 0 ? `$${ticketPrice.toFixed(2)}` : 'Free';
+  const displayPrice = tickets && tickets.length > 0 && tickets[0].price > 0 ? `$${tickets[0].price.toFixed(2)}` : 'Free';
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -78,8 +79,10 @@ export function EventPreview({ eventData, bannerUrl }: EventPreviewProps) {
       </Card>
         <div className="mt-6 bg-card rounded-2xl p-6 shadow-xl">
             <h3 className="font-headline text-xl font-bold">About this event</h3>
-            <p className="text-muted-foreground mt-2 text-sm whitespace-pre-wrap h-24 overflow-hidden">{description || 'Your event description will appear here...'}</p>
+            <p className="text-muted-foreground mt-2 text-sm whitespace-pre-wrap h-24 overflow-hidden">{eventData.description || 'Your event description will appear here...'}</p>
         </div>
     </div>
   );
 }
+
+    
