@@ -12,6 +12,8 @@ export function Header() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    // This effect runs only on the client, after the initial render,
+    // which prevents the hydration mismatch.
     const savedLogo = localStorage.getItem('websiteLogo');
     if (savedLogo) {
       setLogoUrl(savedLogo);
