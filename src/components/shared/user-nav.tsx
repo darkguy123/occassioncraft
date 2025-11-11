@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LayoutDashboard, Users, User, LogOut, Ticket, Shield } from 'lucide-react';
+import { LayoutDashboard, Users, User, LogOut, Ticket, Shield, Settings } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useAuth, useUser } from '@/firebase';
 
@@ -45,6 +45,12 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
+           <DropdownMenuItem asChild>
+            <Link href="/profile/settings">
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Profile Settings</span>
+            </Link>
+          </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/dashboard">
               <Ticket className="mr-2 h-4 w-4" />
@@ -73,5 +79,3 @@ export function UserNav() {
     </DropdownMenu>
   );
 }
-
-    
