@@ -17,15 +17,27 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, query, doc } from 'firebase/firestore';
+import { collection, query, doc, getDoc } from 'firebase/firestore';
 import type { User } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+
+const adminSeederSchema = z.object({
+  uid: z.string().min(1, "User ID is required."),
+});
+
+type AdminSeederValues = z.infer<typeof adminSeederSchema>;
+
 
 export default function AdminUsersPage() {
   const firestore = useFirestore();
@@ -37,6 +49,11 @@ export default function AdminUsersPage() {
   }, [firestore]);
 
   const { data: users, isLoading } = useCollection<User>(usersQuery);
+
+  const seederForm = useForm<AdminSeederValues>({
+    resolver: zodResolver(adminSeederSchema),
+    defaultValues: { uid: "" },
+  });
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName?.[0] ?? ''}${lastName?.[0] ?? ''}`.toUpperCase();
@@ -72,12 +89,74 @@ export default function AdminUsersPage() {
     });
   }
 
+  const onSeederSubmit = async (data: AdminSeederValues) => {
+    if (!firestore) return;
+
+    const userRef = doc(firestore, 'users', data.uid);
+    const adminRoleRef = doc(firestore, 'roles_admin', data.uid);
+
+    try {
+        const userDoc = await getDoc(userRef);
+        if (!userDoc.exists()) {
+            toast({ variant: 'destructive', title: 'Error', description: 'User with that UID does not exist.' });
+            return;
+        }
+
+        const userData = userDoc.data() as User;
+        const updatedRoles = [...new Set([...(userData.roles || []), 'admin'])];
+
+        updateDocumentNonBlocking(userRef, { roles: updatedRoles });
+        setDocumentNonBlocking(adminRoleRef, { isAdmin: true }, { merge: true });
+
+        toast({
+            title: 'Admin Role Granted',
+            description: `User ${userData.firstName || data.uid} has been made an admin.`,
+        });
+        seederForm.reset();
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: `Failed to grant admin role: ${error.message}`,
+        });
+    }
+  };
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">Users</h1>
           <p className="text-muted-foreground">Manage all registered users on the platform.</p>
       </div>
+
+       <Card>
+        <CardHeader>
+          <CardTitle>Admin Seeder</CardTitle>
+          <CardDescription>Manually grant admin privileges to a user by their UID.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...seederForm}>
+            <form onSubmit={seederForm.handleSubmit(onSeederSubmit)} className="flex items-end gap-4">
+              <FormField
+                control={seederForm.control}
+                name="uid"
+                render={({ field }) => (
+                  <FormItem className="flex-grow">
+                    <FormLabel>User ID (UID)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter user's Firebase UID" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit">
+                <UserPlus className="mr-2 h-4 w-4" /> Make Admin
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
