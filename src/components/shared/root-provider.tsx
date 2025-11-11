@@ -10,6 +10,8 @@ import { PageLoader } from '@/components/shared/page-loader';
 import { NavigationEvents } from '@/components/shared/navigation-events';
 import { Suspense, useState, useEffect } from 'react';
 import { ThemeProvider } from '@/context/theme-provider';
+import { AnimatePresence, motion } from 'framer-motion';
+import { usePathname } from 'next/navigation';
 
 function Favicon() {
     const [faviconUrl, setFaviconUrl] = useState("/favicon.png");
@@ -50,6 +52,8 @@ function Favicon() {
 }
 
 export function RootProvider({ children }: { children: React.ReactNode }) {
+    const pathname = usePathname();
+
     return (
         <ThemeProvider>
           <Suspense fallback={<link rel="icon" href="/favicon.png" />}>
@@ -58,7 +62,18 @@ export function RootProvider({ children }: { children: React.ReactNode }) {
           <FirebaseClientProvider>
             <LoaderProvider>
               <Header />
-              <main className="flex-grow">{children}</main>
+              <AnimatePresence mode="wait">
+                <motion.main
+                  key={pathname}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex-grow"
+                >
+                  {children}
+                </motion.main>
+              </AnimatePresence>
               <Footer />
               <Toaster />
               <PageLoader />

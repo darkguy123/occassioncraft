@@ -12,6 +12,7 @@ import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collectionGroup, query, where } from 'firebase/firestore';
 import type { Event } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { motion } from 'framer-motion';
 
 
 const categoryIcons = {
@@ -24,6 +25,27 @@ const categoryIcons = {
 };
 
 const categories = ['All', 'Music', 'Arts', 'Tech', 'Food', 'Sports'] as const;
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      duration: 0.5,
+    },
+  },
+};
 
 
 export default function Home() {
@@ -82,7 +104,9 @@ export default function Home() {
     }
 
     return filteredEvents.map((event) => (
-        <EventCard key={event.id} event={event} />
+       <motion.div key={event.id} variants={itemVariants}>
+          <EventCard event={event} />
+        </motion.div>
     ));
   };
 
@@ -102,9 +126,28 @@ export default function Home() {
         )}
         <div className="absolute inset-0 bg-black/70" />
         <div className="relative z-10 flex flex-col items-center justify-center h-full text-center px-4">
-          <h1 className="text-4xl md:text-6xl font-headline font-bold">Discover Your Next Experience</h1>
-          <p className="mt-4 text-lg md:text-xl max-w-2xl">From concerts to conferences, find live events for all the things you love.</p>
-          <div className="mt-8 w-full max-w-3xl bg-white/90 backdrop-blur-sm p-4 rounded-lg shadow-2xl">
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-4xl md:text-6xl font-headline font-bold"
+          >
+            Discover Your Next Experience
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="mt-4 text-lg md:text-xl max-w-2xl"
+          >
+            From concerts to conferences, find live events for all the things you love.
+          </motion.p>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="mt-8 w-full max-w-3xl bg-white/90 backdrop-blur-sm p-4 rounded-lg shadow-2xl"
+          >
             <div className="flex flex-col md:flex-row gap-2">
               <div className="relative flex-grow">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -115,7 +158,7 @@ export default function Home() {
                 Find Events
               </Button>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -134,34 +177,64 @@ export default function Home() {
           </TabsList>
           
           <TabsContent value="all">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            <motion.div 
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
               {renderEventList(events || [])}
-            </div>
+            </motion.div>
           </TabsContent>
           <TabsContent value="music">
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+             <motion.div 
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+             >
               {renderEventList(events?.filter(e => e.category === 'Music'))}
-            </div>
+            </motion.div>
           </TabsContent>
            <TabsContent value="arts">
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+             <motion.div 
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+             >
                {renderEventList(events?.filter(e => e.category === 'Arts'))}
-            </div>
+            </motion.div>
           </TabsContent>
            <TabsContent value="tech">
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+             <motion.div 
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+             >
                {renderEventList(events?.filter(e => e.category === 'Tech'))}
-            </div>
+            </motion.div>
           </TabsContent>
            <TabsContent value="food">
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+             <motion.div 
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+             >
               {renderEventList(events?.filter(e => e.category === 'Food'))}
-            </div>
+            </motion.div>
           </TabsContent>
            <TabsContent value="sports">
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+             <motion.div 
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+             >
                 {renderEventList(events?.filter(e => e.category === 'Sports'))}
-             </div>
+             </motion.div>
            </TabsContent>
         </Tabs>
 
@@ -171,5 +244,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
