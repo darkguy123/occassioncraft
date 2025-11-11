@@ -111,21 +111,22 @@ export default function SignupPage() {
           firstName: firstName,
           lastName: lastName.join(' '),
           email: data.email,
-          userType: 'User', // All users are 'User' type initially for security
+          userType: data.userType,
           profileImageUrl: data.avatarUrl || '',
           dateJoined: new Date().toISOString(),
         };
         setDocumentNonBlocking(userRef, userData, { merge: true });
 
-        // If Vendor, create a separate vendor document with pending status
+        // If Vendor, create a separate vendor document with approved status
         if (data.userType === 'Vendor') {
           const vendorRef = doc(firestore, "vendors", user.uid);
           const vendorData = {
+            id: user.uid,
             userId: user.uid,
             companyName: data.companyName,
             description: data.companyDescription,
             contactEmail: data.email,
-            status: 'pending', // Key for approval flow
+            status: 'approved', // Auto-approved
           };
           setDocumentNonBlocking(vendorRef, vendorData, { merge: true });
         }
@@ -135,7 +136,7 @@ export default function SignupPage() {
         title: "Account Created",
         description: "You have successfully signed up. Redirecting...",
       });
-      router.push('/dashboard');
+      router.push(data.userType === 'Vendor' ? '/vendor/dashboard' : '/dashboard');
 
     } catch (error: any) {
       toast({
