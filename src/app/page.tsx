@@ -4,7 +4,7 @@
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Globe, Music, Palette, Code, Utensils, Award } from 'lucide-react';
+import { Search, Globe, Music, Palette, Code, Utensils, Award, MapPin } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion } from 'framer-motion';
 
@@ -64,6 +64,10 @@ export default function Home() {
               <div className="relative flex-grow">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input placeholder="Search events..." className="pl-10 text-base" />
+              </div>
+               <div className="relative flex-grow">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input placeholder="Search by location..." className="pl-10 text-base" />
               </div>
               <Button size="lg" className="font-bold">
                 <Search className="mr-2 h-5 w-5" />
