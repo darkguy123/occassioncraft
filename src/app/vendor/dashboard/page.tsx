@@ -39,8 +39,7 @@ export default function VendorDashboardPage() {
 
     const isLoading = isUserLoading || isVendorLoading || isUserDataLoading;
     const isVendor = (userData?.roles || []).includes('vendor');
-    const isAdmin = (userData?.roles || []).includes('admin');
-    const isAuthorized = isAdmin || (isVendor && vendorData?.status === 'approved');
+    const isAuthorized = isVendor && vendorData?.status === 'approved';
 
 
     useEffect(() => {
@@ -53,11 +52,11 @@ export default function VendorDashboardPage() {
             return;
         }
 
-        if (!isVendor && !isAdmin) {
+        if (!isVendor) {
             router.push('/vendor');
         }
 
-    }, [isLoading, user, isVendor, isAdmin, router]);
+    }, [isLoading, user, isVendor, router]);
 
     if (isLoading) {
         return (
