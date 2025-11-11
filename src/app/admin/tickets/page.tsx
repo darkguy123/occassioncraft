@@ -95,7 +95,9 @@ export default function AdminTicketsPage() {
       setIsLoading(false);
     };
 
-    fetchTicketsAndDetails();
+    if(firestore) {
+      fetchTicketsAndDetails();
+    }
   }, [firestore]);
   
   const filteredTickets = tickets.filter(ticket => {

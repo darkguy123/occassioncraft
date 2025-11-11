@@ -41,7 +41,7 @@ export default function AdminUsersPage() {
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'users'));
-  }, []);
+  }, [firestore]);
 
   const { data: users, isLoading } = useCollection<User>(usersQuery);
 

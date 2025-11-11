@@ -54,7 +54,7 @@ export default function WalletPage() {
     const walletRef = useMemoFirebase(() => {
         if (!user) return null;
         return doc(firestore, 'wallets', user.uid);
-    }, [user]);
+    }, [firestore, user]);
 
     const transactionsQuery = useMemoFirebase(() => {
         if (!user) return null;
@@ -63,7 +63,7 @@ export default function WalletPage() {
             orderBy('date', 'desc'),
             limit(10)
         );
-    }, [user]);
+    }, [firestore, user]);
 
     const { data: wallet, isLoading: isWalletLoading } = useDoc<Wallet>(walletRef);
     const { data: transactions, isLoading: isTransactionsLoading } = useCollection<Transaction>(transactionsQuery);

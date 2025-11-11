@@ -43,7 +43,7 @@ export default function AdminVendorsPage() {
   const vendorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'vendors'));
-  }, []);
+  }, [firestore]);
 
   const { data: vendors, isLoading } = useCollection<Vendor>(vendorsQuery);
 
