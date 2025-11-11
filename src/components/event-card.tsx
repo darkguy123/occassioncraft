@@ -1,0 +1,52 @@
+import Image from 'next/image';
+import Link from 'next/link';
+import type { Event } from '@/lib/types';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Calendar, MapPin, Ticket } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+
+type EventCardProps = {
+  event: Event;
+};
+
+export default function EventCard({ event }: EventCardProps) {
+  return (
+    <Link href="#" className="group">
+      <Card className="overflow-hidden h-full flex flex-col transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+        <CardHeader className="p-0 relative">
+          <Image
+            src={event.imageUrl}
+            alt={event.name}
+            width={600}
+            height={400}
+            className="w-full h-48 object-cover"
+            data-ai-hint={event.imageHint}
+          />
+           <Badge className="absolute top-2 right-2">{event.category}</Badge>
+        </CardHeader>
+        <CardContent className="p-4 flex-grow">
+          <h3 className="font-headline font-semibold text-lg leading-tight truncate group-hover:text-primary">{event.name}</h3>
+          <p className="text-muted-foreground text-sm mt-1">{event.organizer}</p>
+          <div className="flex items-center text-sm text-muted-foreground mt-2">
+            <Calendar className="h-4 w-4 mr-2" />
+            <span>{new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          </div>
+          <div className="flex items-center text-sm text-muted-foreground mt-1">
+            <MapPin className="h-4 w-4 mr-2" />
+            <span className="truncate">{event.location}</span>
+          </div>
+        </CardContent>
+        <CardFooter className="p-4 flex justify-between items-center bg-secondary/50">
+          <div className="flex items-center">
+            <Ticket className="h-5 w-5 mr-2 text-primary" />
+            <span className="font-bold text-lg">${event.price.toFixed(2)}</span>
+          </div>
+          <Button variant="outline" size="sm">
+            Details
+          </Button>
+        </CardFooter>
+      </Card>
+    </Link>
+  );
+}
