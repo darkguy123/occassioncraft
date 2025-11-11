@@ -51,25 +51,13 @@ function Favicon() {
     return <link rel="icon" href={faviconUrl} />;
 }
 
-// Client-side only wrapper for animations
-function ClientOnly({ children }: { children: React.ReactNode }) {
-  const [hasMounted, setHasMounted] = useState(false);
-
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
-  if (!hasMounted) {
-    // On the server or during initial client render, render children directly without animation wrappers
-    return <main className="flex-grow">{children}</main>;
-  }
-
-  return <>{children}</>;
-}
-
-
 export function RootProvider({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const [hasMounted, setHasMounted] = useState(false);
+
+    useEffect(() => {
+        setHasMounted(true);
+    }, []);
 
     return (
         <ThemeProvider>
@@ -79,20 +67,24 @@ export function RootProvider({ children }: { children: React.ReactNode }) {
           <FirebaseClientProvider>
             <LoaderProvider>
               <Header />
-                <ClientOnly>
-                  <AnimatePresence mode="wait">
-                    <motion.main
-                      key={pathname}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.3 }}
-                      className="flex-grow"
-                    >
-                      {children}
-                    </motion.main>
-                  </AnimatePresence>
-                </ClientOnly>
+              <main className="flex-grow">
+                {hasMounted ? (
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                          key={pathname}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          {children}
+                        </motion.div>
+                    </AnimatePresence>
+                ) : (
+                    // Render children directly on the server and initial client render
+                    children
+                )}
+              </main>
               <Footer />
               <Toaster />
               <PageLoader />
