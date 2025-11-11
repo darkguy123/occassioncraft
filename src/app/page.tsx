@@ -60,7 +60,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="mt-8 w-full max-w-3xl bg-white/90 backdrop-blur-sm p-4 rounded-lg shadow-2xl"
+            className="mt-8 w-full max-w-3xl bg-white/10 backdrop-blur-lg p-4 rounded-xl shadow-lg border border-white/20"
           >
             <div className="flex flex-col md:flex-row items-center gap-2">
               <div className="relative flex-grow w-full">
