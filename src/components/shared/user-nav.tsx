@@ -17,6 +17,7 @@ import { LayoutDashboard, Users, User, LogOut, Ticket, Shield, Settings } from '
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { Vendor } from '@/lib/types';
+import Image from 'next/image';
 
 export function UserNav() {
   const auth = useAuth();
@@ -45,7 +46,7 @@ export function UserNav() {
   }
   
   const avatarImage = {
-      imageUrl: `/assets/user-avatar-1.jpg`,
+      imageUrl: `https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Fuser-avatar-1.jpg?alt=media`,
       imageHint: 'person portrait'
   };
 
@@ -55,7 +56,7 @@ export function UserNav() {
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-9 w-9">
              {user?.photoURL ? <AvatarImage src={user.photoURL} alt="User Avatar" /> : (
-               <AvatarImage src={avatarImage.imageUrl} alt="User Avatar" data-ai-hint={avatarImage.imageHint} />
+                <Image src={avatarImage.imageUrl} alt="User Avatar" data-ai-hint={avatarImage.imageHint} width={36} height={36} className="rounded-full" />
              )}
             <AvatarFallback>{user?.email?.[0].toUpperCase() || 'U'}</AvatarFallback>
           </Avatar>

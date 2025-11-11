@@ -1,6 +1,9 @@
 
 import type { Event, Ticket, VendorEvent } from '@/lib/types';
 
+const storageBaseUrl = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2F';
+const storageToken = 'alt=media';
+
 export const sampleEvents: Event[] = [
   {
     id: '1',
@@ -12,7 +15,7 @@ export const sampleEvents: Event[] = [
     category: 'Music',
     price: 75.00,
     organizer: 'MusicMakers Inc.',
-    imageUrl: `/assets/event-1.jpg`,
+    imageUrl: `${storageBaseUrl}event-1.jpg?${storageToken}`,
     imageHint: 'concert music',
   },
   {
@@ -25,7 +28,7 @@ export const sampleEvents: Event[] = [
     category: 'Arts',
     price: 25.00,
     organizer: 'ArtVisionaries',
-    imageUrl: `/assets/event-2.jpg`,
+    imageUrl: `${storageBaseUrl}event-2.jpg?${storageToken}`,
     imageHint: 'art gallery',
   },
   {
@@ -38,7 +41,7 @@ export const sampleEvents: Event[] = [
     category: 'Tech',
     price: 199.00,
     organizer: 'TechForward',
-    imageUrl: `/assets/event-3.jpg`,
+    imageUrl: `${storageBaseUrl}event-3.jpg?${storageToken}`,
     imageHint: 'tech conference',
   },
   {
@@ -51,7 +54,7 @@ export const sampleEvents: Event[] = [
     category: 'Food',
     price: 40.00,
     organizer: 'TasteMasters',
-    imageUrl: `/assets/event-4.jpg`,
+    imageUrl: `${storageBaseUrl}event-4.jpg?${storageToken}`,
     imageHint: 'food festival',
   },
   {
@@ -64,7 +67,7 @@ export const sampleEvents: Event[] = [
     category: 'Sports',
     price: 30.00,
     organizer: 'ZenLife',
-    imageUrl: `/assets/event-5.jpg`,
+    imageUrl: `${storageBaseUrl}event-5.jpg?${storageToken}`,
     imageHint: 'yoga class',
   },
   {
@@ -77,7 +80,7 @@ export const sampleEvents: Event[] = [
     category: 'Music',
     price: 20.00,
     organizer: 'LiveLoud',
-    imageUrl: `/assets/event-6.jpg`,
+    imageUrl: `${storageBaseUrl}event-6.jpg?${storageToken}`,
     imageHint: 'rock band',
   },
   {
@@ -90,7 +93,7 @@ export const sampleEvents: Event[] = [
     category: 'Arts',
     price: 15.00,
     organizer: 'ArtVisionaries',
-    imageUrl: `/assets/event-7.jpg`,
+    imageUrl: `${storageBaseUrl}event-7.jpg?${storageToken}`,
     imageHint: 'painting exhibition',
   },
   {
@@ -103,7 +106,7 @@ export const sampleEvents: Event[] = [
     category: 'Tech',
     price: 50.00,
     organizer: 'TechForward',
-    imageUrl: `/assets/event-8.jpg`,
+    imageUrl: `${storageBaseUrl}event-8.jpg?${storageToken}`,
     imageHint: 'startup pitch',
   },
 ];
