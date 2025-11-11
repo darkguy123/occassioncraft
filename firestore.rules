@@ -84,9 +84,6 @@ service cloud.firestore {
 
       // An event can be updated/deleted if the user is the vendor OR is an admin.
       allow update, delete: if isOwner(vendorId) || isAdmin();
-
-      // Admins can list all events across all vendors using a collection group query.
-      allow list: if isAdmin();
     }
     
     // Allow admins to perform collection group queries on events
