@@ -145,10 +145,9 @@ service cloud.firestore {
      * @principle Restricts admin role management to existing admins.
      */
     match /roles_admin/{userId} {
-      allow get, list, update, delete: if isAdmin();
+      allow get: if isOwner(userId);
+      allow list, update, delete: if isAdmin();
       allow create: if isOwner(userId);
     }
   }
 }
-
-    
