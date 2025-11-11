@@ -116,7 +116,11 @@ export default function CreateEventPage() {
     if (!firestore || !user) return;
 
     const eventId = uuidv4();
-    const eventCollectionRef = collection(firestore, 'vendors', user.uid, 'events');
+    // If user is admin, they don't have a vendor-specific collection. 
+    // We'll create the event under their own user ID in the vendors collection for consistency,
+    // or you could have a dedicated 'admin_events' collection. For now, this works.
+    const vendorIdForPath = user.uid;
+    const eventCollectionRef = collection(firestore, 'vendors', vendorIdForPath, 'events');
 
     const newEventData = {
         id: eventId,
@@ -129,31 +133,37 @@ export default function CreateEventPage() {
         category: data.category,
         price: data.ticketPrice,
         imageUrl: data.bannerUrl || '',
-        organizer: vendorData?.companyName || user.displayName || 'N/A',
-        status: 'pending' as const, // Set initial status to pending
+        organizer: vendorData?.companyName || user.displayName || 'Admin',
+        status: adminRole ? 'approved' : 'pending' as const, // Admins auto-approve
         createdAt: serverTimestamp()
     };
     
     addDocumentNonBlocking(eventCollectionRef, newEventData);
 
     toast({
-        title: "Event Submitted for Approval",
-        description: `"${data.name}" has been sent to the admins for review.`,
+        title: adminRole ? "Event Created" : "Event Submitted for Approval",
+        description: `"${data.name}" has been ${adminRole ? 'published' : 'sent for review'}.`,
     });
 
-    router.push('/vendor/dashboard');
+    router.push(adminRole ? '/admin/events' : '/vendor/dashboard');
   };
 
   const isLoading = isUserLoading || isVendorLoading || isAdminLoading;
-  const isAuthorized = (vendorData && vendorData.status === 'approved') || adminRole;
+  const isAuthorized = (vendorData && vendorData.status === 'approved') || !!adminRole;
 
   useEffect(() => {
     if (!isLoading && !isAuthorized) {
+      // User is not loading and is not an approved vendor or an admin
+      toast({
+        variant: "destructive",
+        title: "Unauthorized",
+        description: "You need to be an approved vendor to create an event.",
+      });
       router.push('/vendor');
     }
-  }, [isLoading, isAuthorized, router]);
+  }, [isLoading, isAuthorized, router, toast]);
 
-  if (isLoading || !isAuthorized) {
+  if (isLoading) {
     return (
         <div className="flex items-center justify-center min-h-screen">
           <div className="space-y-4 w-full max-w-md p-8">
@@ -162,6 +172,15 @@ export default function CreateEventPage() {
             <Skeleton className="h-10 w-full" />
           </div>
         </div>
+    );
+  }
+  
+  if (!isAuthorized) {
+    // This will show briefly before the redirect happens
+    return (
+       <div className="flex items-center justify-center min-h-screen">
+          <p>Redirecting...</p>
+       </div>
     );
   }
 
@@ -237,5 +256,3 @@ export default function CreateEventPage() {
     </div>
   );
 }
-
-    
