@@ -12,6 +12,7 @@ export type Event = {
   imageHint: string;
   organizer: string;
   vendorId?: string;
+  status: 'pending' | 'approved' | 'rejected';
 };
 
 export type Ticket = {
@@ -55,3 +56,5 @@ export type User = {
     profileImageUrl?: string;
     dateJoined?: string;
 };
+
+    

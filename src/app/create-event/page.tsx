@@ -16,11 +16,14 @@ import { Step4Details } from "@/components/create-event/step-4-details";
 import { Step5Publish } from "@/components/create-event/step-5-publish";
 import { Progress } from "@/components/ui/progress"
 import { ArrowLeft } from "lucide-react"
-import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
 import type { Vendor } from "@/lib/types";
-import { doc } from "firebase/firestore";
+import { doc, collection, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { v4 as uuidv4 } from 'uuid';
+
 
 const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters.").max(100, "Event name must be less than 100 characters."),
@@ -50,6 +53,7 @@ export default function CreateEventPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
 
   const vendorRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -109,8 +113,35 @@ export default function CreateEventPage() {
   };
   
   const onSubmit = (data: EventFormValues) => {
-    console.log("Form Submitted", data);
-    // Final submission logic
+    if (!firestore || !user) return;
+
+    const eventId = uuidv4();
+    const eventCollectionRef = collection(firestore, 'vendors', user.uid, 'events');
+
+    const newEventData = {
+        id: eventId,
+        vendorId: user.uid,
+        name: data.name,
+        description: data.description,
+        date: data.date.toISOString(),
+        time: data.startTime,
+        location: data.location,
+        category: data.category,
+        price: data.ticketPrice,
+        imageUrl: data.bannerUrl || '',
+        organizer: vendorData?.companyName || user.displayName || 'N/A',
+        status: 'pending' as const, // Set initial status to pending
+        createdAt: serverTimestamp()
+    };
+    
+    addDocumentNonBlocking(eventCollectionRef, newEventData);
+
+    toast({
+        title: "Event Submitted for Approval",
+        description: `"${data.name}" has been sent to the admins for review.`,
+    });
+
+    router.push('/vendor/dashboard');
   };
 
   const isLoading = isUserLoading || isVendorLoading || isAdminLoading;
@@ -206,3 +237,5 @@ export default function CreateEventPage() {
     </div>
   );
 }
+
+    

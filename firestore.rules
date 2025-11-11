@@ -130,8 +130,8 @@ service cloud.firestore {
      * @allow (delete) Vendor with matching vendorId can delete their events. Admin can delete any event.
      * @principle Enforces document ownership for writes, restricts access to a vendor's own events.
      */
-    match /vendors/{vendorId}/events/{eventId} {
-      allow get: if true;
+     match /vendors/{vendorId}/events/{eventId} {
+      allow get: if resource.data.status == 'approved' || isVendorOwner(vendorId) || isAdmin();
       allow list: if isVendorOwner(vendorId) || isAdmin();
       allow create: if (isVendorOwner(vendorId) || isAdmin()) && request.resource.data.vendorId == vendorId;
       allow update: if (isVendorOwner(vendorId) || isAdmin());
@@ -233,3 +233,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

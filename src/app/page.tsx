@@ -6,9 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Globe, Music, Palette, Code, Utensils, Award } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { sampleEvents } from '@/lib/placeholder-data';
 import EventCard from '@/components/event-card';
 import { useEffect, useState } from 'react';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collectionGroup, query, where } from 'firebase/firestore';
+import type { Event } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
+
 
 const categoryIcons = {
   All: Globe,
@@ -29,6 +33,16 @@ export default function Home() {
   };
   const [heroBannerUrl, setHeroBannerUrl] = useState(defaultHeroImage?.imageUrl);
   const [heroBannerHint, setHeroBannerHint] = useState(defaultHeroImage?.imageHint);
+
+  const firestore = useFirestore();
+  const eventsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    // Only fetch approved events for the public homepage
+    return query(collectionGroup(firestore, 'events'), where('status', '==', 'approved'));
+  }, [firestore]);
+
+  const { data: events, isLoading } = useCollection<Event>(eventsQuery);
+
 
   useEffect(() => {
     const savedBanner = localStorage.getItem('heroBannerImage');
@@ -51,6 +65,27 @@ export default function Home() {
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+  
+  const renderEventList = (filteredEvents?: Event[]) => {
+    if (isLoading) {
+      return Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="space-y-2">
+            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+        </div>
+      ));
+    }
+
+    if (!filteredEvents || filteredEvents.length === 0) {
+        return <p className="col-span-full text-center text-muted-foreground">No events found in this category.</p>;
+    }
+
+    return filteredEvents.map((event) => (
+        <EventCard key={event.id} event={event} />
+    ));
+  };
+
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -100,44 +135,32 @@ export default function Home() {
           
           <TabsContent value="all">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {sampleEvents.map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))}
+              {renderEventList(events || [])}
             </div>
           </TabsContent>
           <TabsContent value="music">
              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {sampleEvents.filter(e => e.category === 'Music').map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))}
+              {renderEventList(events?.filter(e => e.category === 'Music'))}
             </div>
           </TabsContent>
            <TabsContent value="arts">
              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {sampleEvents.filter(e => e.category === 'Arts').map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))}
+               {renderEventList(events?.filter(e => e.category === 'Arts'))}
             </div>
           </TabsContent>
            <TabsContent value="tech">
              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {sampleEvents.filter(e => e.category === 'Tech').map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))}
+               {renderEventList(events?.filter(e => e.category === 'Tech'))}
             </div>
           </TabsContent>
            <TabsContent value="food">
              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {sampleEvents.filter(e => e.category === 'Food').map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))}
+              {renderEventList(events?.filter(e => e.category === 'Food'))}
             </div>
           </TabsContent>
            <TabsContent value="sports">
              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                {sampleEvents.filter(e => e.category === 'Sports').map((event) => (
-                    <EventCard key={event.id} event={event} />
-                ))}
+                {renderEventList(events?.filter(e => e.category === 'Sports'))}
              </div>
            </TabsContent>
         </Tabs>
@@ -148,3 +171,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

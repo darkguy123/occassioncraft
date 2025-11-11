@@ -38,6 +38,15 @@
         "ticketTemplateId": {
           "type": "string",
           "description": "Reference to TicketTemplate. (Relationship: TicketTemplate 1:N Event)"
+        },
+        "status": {
+          "type": "string",
+          "description": "The approval status of the event.",
+          "enum": [
+            "pending",
+            "approved",
+            "rejected"
+          ]
         }
       },
       "required": [
@@ -48,7 +57,8 @@
         "date",
         "location",
         "categoryId",
-        "ticketTemplateId"
+        "ticketTemplateId",
+        "status"
       ]
     },
     "Vendor": {
@@ -422,3 +432,4 @@
     "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, adhering to the core design principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). Authorization Independence is achieved through denormalization of authorization-related data, eliminating the need for `get()` calls in security rules. Structural Segregation is applied to ensure homogeneous security postures within collections.  Access Modeling follows consistent patterns for private and collaborative data.\n\nSpecifically:\n\n*   User data is stored under `/users/{userId}` allowing path based ownership.\n*   Vendor data is stored under `/vendors/{vendorId}`, enabling vendor-specific data access controls.\n*   Events are stored under `/vendors/{vendorId}/events/{eventId}` to support the 1:N relationship and enable simple ownership checks.\n*   Tickets are stored under `/users/{userId}/tickets/{ticketId}`, providing strong ownership and simplifies access control.\n*   Admin users are managed via the `/roles_admin/{uid}` collection. The existence of a document at this path grants admin privileges.\n*   User notifications are stored under `/users/{userId}/notifications/{notificationId}` to ensure privacy and ownership.\n\nThe structure facilitates secure list operations (QAPs) by ensuring that collections contain data with similar access control requirements. For example, only the vendor can list the events under `/vendors/{vendorId}/events/{eventId}`. The admin role can list all vendors and all events."
   }
 }
+    

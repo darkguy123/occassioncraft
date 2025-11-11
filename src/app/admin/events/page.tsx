@@ -41,6 +41,19 @@ export default function AdminEventsPage() {
 
   const { data: events, isLoading } = useCollection<Event>(eventsQuery);
 
+  const getBadgeVariant = (status?: 'approved' | 'pending' | 'rejected') => {
+    switch (status) {
+      case 'approved':
+        return 'default';
+      case 'pending':
+        return 'secondary';
+      case 'rejected':
+        return 'destructive';
+      default:
+        return 'outline';
+    }
+  };
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between">
@@ -94,22 +107,9 @@ export default function AdminEventsPage() {
                   </TableCell>
                   <TableCell>{event.organizer}</TableCell>
                   <TableCell>
-                    <Badge
-                      variant={
-                        new Date(event.date) > new Date()
-                          ? 'default'
-                          : 'secondary'
-                      }
-                      className={
-                        new Date(event.date) > new Date()
-                          ? 'bg-green-100 text-green-800'
-                          : ''
-                      }
-                    >
-                      {new Date(event.date) > new Date()
-                        ? 'Upcoming'
-                        : 'Completed'}
-                    </Badge>
+                     <Badge variant={getBadgeVariant(event.status)}>
+                        {event.status ? event.status.charAt(0).toUpperCase() + event.status.slice(1) : 'N/A'}
+                      </Badge>
                   </TableCell>
                   <TableCell>${event.price.toFixed(2)}</TableCell>
                   <TableCell className="text-right">
@@ -150,3 +150,5 @@ export default function AdminEventsPage() {
     </div>
   );
 }
+
+    
