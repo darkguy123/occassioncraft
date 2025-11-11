@@ -7,9 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Separator } from "@/components/ui/separator"
 import { Calendar, MapPin, Clock, Ticket } from "lucide-react"
 
+const BUCKET_URL = "https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.appspot.com/o";
+
 export default function UserDashboardPage() {
   const qrCodeImage = {
-      imageUrl: '/assets/qr-code.png',
+      imageUrl: `${BUCKET_URL}/assets%2Fqr-code.png?alt=media`,
       imageHint: 'qr code'
   };
 

@@ -7,6 +7,8 @@ import { Ticket, Sparkles, MapPin, Calendar, Clock } from 'lucide-react';
 import Image from 'next/image';
 import { format } from 'date-fns';
 
+const BUCKET_URL = "https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.appspot.com/o";
+
 interface TicketStylePreviewProps {
     eventData: Partial<EventFormValues>;
 }
@@ -14,7 +16,7 @@ interface TicketStylePreviewProps {
 export function TicketStylePreview({ eventData }: TicketStylePreviewProps) {
     const { name, date, startTime, location } = eventData;
     const qrCodeImage = {
-        imageUrl: '/assets/qr-code.png',
+        imageUrl: `${BUCKET_URL}/assets%2Fqr-code.png?alt=media`,
         imageHint: 'qr code'
     };
 

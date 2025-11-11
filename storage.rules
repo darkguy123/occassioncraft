@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service firebase.storage {
@@ -10,6 +11,11 @@ service firebase.storage {
 
     function isOwner(userId) {
       return request.auth.uid == userId;
+    }
+
+    // Public assets like logos and event images are readable by anyone
+    match /assets/{allPaths=**} {
+      allow read: if true;
     }
 
     // Rules for user profile images
@@ -33,5 +39,3 @@ service firebase.storage {
     }
   }
 }
-
-    
