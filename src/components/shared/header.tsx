@@ -30,9 +30,8 @@ export function Header() {
       }
     };
 
-    updateLogo(); // Initial check
+    updateLogo();
 
-    // Listen for changes from other tabs/windows
     window.addEventListener('storage', updateLogo);
 
     return () => {
@@ -40,15 +39,13 @@ export function Header() {
     };
   }, [isClient]);
 
-  const currentLogo = isClient ? logoUrl : '/assets/logo.png';
-
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
         <div className="mr-4 flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            {currentLogo ? (
-                <Image src={currentLogo} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" priority unoptimized />
+            {isClient && logoUrl ? (
+                <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" />
               ) : (
                 <Ticket className="h-6 w-6 text-primary" />
             )}
