@@ -1,53 +1,5 @@
 {
   "entities": {
-    "User": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "User",
-      "type": "object",
-      "description": "Represents a user within the OccasionCraft application.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the user."
-        },
-        "userType": {
-          "type": "string",
-          "description": "Type of user (Admin, Vendor, User).",
-          "format": "string"
-        },
-        "firstName": {
-          "type": "string",
-          "description": "User's first name."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "User's last name."
-        },
-        "email": {
-          "type": "string",
-          "description": "User's email address.",
-          "format": "email"
-        },
-        "profileImageUrl": {
-          "type": "string",
-          "description": "URL of the user's profile image.",
-          "format": "uri"
-        },
-        "dateJoined": {
-          "type": "string",
-          "description": "Date and time the user joined the platform.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "userType",
-        "firstName",
-        "lastName",
-        "email",
-        "dateJoined"
-      ]
-    },
     "Event": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Event",
@@ -79,14 +31,13 @@
           "type": "string",
           "description": "Location of the event."
         },
-        "category": {
+        "categoryId": {
           "type": "string",
-          "description": "Category of the event."
+          "description": "Reference to Category. (Relationship: Category 1:N Event)"
         },
-        "imageUrl": {
+        "ticketTemplateId": {
           "type": "string",
-          "description": "URL of the event's image.",
-          "format": "uri"
+          "description": "Reference to TicketTemplate. (Relationship: TicketTemplate 1:N Event)"
         }
       },
       "required": [
@@ -96,14 +47,77 @@
         "description",
         "date",
         "location",
-        "category"
+        "categoryId",
+        "ticketTemplateId"
+      ]
+    },
+    "Vendor": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Vendor",
+      "type": "object",
+      "description": "Represents a vendor who creates events.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the vendor."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the vendor."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the vendor.",
+          "format": "email"
+        },
+        "paystackRecipientId": {
+          "type": "string",
+          "description": "Paystack Recipient ID for vendor payouts."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email",
+        "paystackRecipientId"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user who can purchase tickets and attend events.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "First name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Last name of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "email"
       ]
     },
     "Ticket": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Ticket",
       "type": "object",
-      "description": "Represents a ticket for an event.",
+      "description": "Represents a ticket purchased by a user for an event.",
       "properties": {
         "id": {
           "type": "string",
@@ -117,90 +131,98 @@
           "type": "string",
           "description": "Reference to User. (Relationship: User 1:N Ticket)"
         },
+        "purchaseDate": {
+          "type": "string",
+          "description": "Date the ticket was purchased.",
+          "format": "date-time"
+        },
         "price": {
           "type": "number",
           "description": "Price of the ticket."
         },
-        "quantity": {
-          "type": "number",
-          "description": "Number of tickets."
-        },
-        "design": {
-          "type": "string",
-          "description": "Design details of the ticket (e.g., JSON representing design elements)."
+        "isUsed": {
+          "type": "boolean",
+          "description": "Indicates if the ticket has been used."
         }
       },
       "required": [
         "id",
         "eventId",
         "userId",
+        "purchaseDate",
         "price",
-        "quantity"
+        "isUsed"
       ]
     },
-    "Vendor": {
+    "Category": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Vendor",
+      "title": "Category",
       "type": "object",
-      "description": "Represents an event vendor.",
+      "description": "Represents a category for events.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the vendor."
+          "description": "Unique identifier for the category."
         },
-        "userId": {
+        "name": {
           "type": "string",
-          "description": "Reference to User. (Relationship: User 1:1 Vendor)"
-        },
-        "companyName": {
-          "type": "string",
-          "description": "Name of the vendor's company."
-        },
-        "description": {
-          "type": "string",
-          "description": "Description of the vendor."
-        },
-        "contactEmail": {
-          "type": "string",
-          "description": "Vendor's contact email address.",
-          "format": "email"
-        },
-        "contactPhone": {
-          "type": "string",
-          "description": "Vendor's contact phone number."
-        },
-        "logoUrl": {
-          "type": "string",
-          "description": "URL of the vendor's logo.",
-          "format": "uri"
+          "description": "Name of the category."
         }
       },
       "required": [
         "id",
-        "userId",
-        "companyName",
-        "description",
-        "contactEmail"
+        "name"
       ]
     },
     "Admin": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Admin",
       "type": "object",
-      "description": "Represents an administrator user.",
+      "description": "Represents an administrator user with management privileges.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the admin."
+          "description": "Unique identifier for the admin user."
         },
-        "userId": {
+        "username": {
           "type": "string",
-          "description": "Reference to User. (Relationship: User 1:1 Admin)"
+          "description": "Username of the admin user."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email of the admin user.",
+          "format": "email"
         }
       },
       "required": [
         "id",
-        "userId"
+        "username",
+        "email"
+      ]
+    },
+    "TicketTemplate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TicketTemplate",
+      "type": "object",
+      "description": "Represents a template for designing event tickets.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ticket template."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the ticket template."
+        },
+        "design": {
+          "type": "string",
+          "description": "JSON representing the design elements of the ticket template."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "design"
       ]
     }
   },
@@ -219,11 +241,11 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profiles. The `userType` field is used for role-based authorization.",
+          "description": "Stores user profiles. Only the user themselves (or an admin) should be able to read/write their own profile.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier of the user."
+              "description": "The unique ID of the user."
             }
           ]
         }
@@ -235,11 +257,11 @@
           "schema": {
             "$ref": "#/backend/entities/Vendor"
           },
-          "description": "Stores vendor profiles. Includes the `userId` to link to the user account.",
+          "description": "Stores vendor profiles. Only the vendor themselves (or an admin) should be able to read/write their own profile.",
           "params": [
             {
               "name": "vendorId",
-              "description": "The unique identifier of the vendor."
+              "description": "The unique ID of the vendor."
             }
           ]
         }
@@ -251,15 +273,15 @@
           "schema": {
             "$ref": "#/backend/entities/Event"
           },
-          "description": "Stores events created by vendors.  Scoped to the vendor using `vendorId`.",
+          "description": "Stores events created by vendors. Events are nested under the vendor's profile for easy management and access control.  Includes denormalized `vendorId` for authorization independence.",
           "params": [
             {
               "name": "vendorId",
-              "description": "The unique identifier of the vendor who created the event."
+              "description": "The unique ID of the vendor who created the event."
             },
             {
               "name": "eventId",
-              "description": "The unique identifier of the event."
+              "description": "The unique ID of the event."
             }
           ]
         }
@@ -271,15 +293,47 @@
           "schema": {
             "$ref": "#/backend/entities/Ticket"
           },
-          "description": "Stores tickets purchased by users.  Scoped to the user using `userId`.",
+          "description": "Stores tickets purchased by users. Tickets are nested under the user's profile to indicate ownership.  Includes denormalized `userId` and `eventId` for authorization independence.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier of the user who purchased the ticket."
+              "description": "The unique ID of the user who purchased the ticket."
             },
             {
               "name": "ticketId",
-              "description": "The unique identifier of the ticket."
+              "description": "The unique ID of the ticket."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/categories/{categoryId}",
+        "definition": {
+          "entityName": "Category",
+          "schema": {
+            "$ref": "#/backend/entities/Category"
+          },
+          "description": "Stores event categories.  Accessible by all users for reading, but only admins can create/update/delete.",
+          "params": [
+            {
+              "name": "categoryId",
+              "description": "The unique ID of the event category."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/ticket_templates/{ticketTemplateId}",
+        "definition": {
+          "entityName": "TicketTemplate",
+          "schema": {
+            "$ref": "#/backend/entities/TicketTemplate"
+          },
+          "description": "Stores ticket templates. Accessible by all users for reading, but only admins can create/update/delete.",
+          "params": [
+            {
+              "name": "ticketTemplateId",
+              "description": "The unique ID of the ticket template."
             }
           ]
         }
@@ -291,17 +345,16 @@
           "schema": {
             "$ref": "#/backend/entities/Admin"
           },
-          "description": "Indicates admin privileges based on document existence. If a document exists for a `userId`, that user is an admin.",
+          "description": "Indicates admin privileges. The existence of a document at this path grants admin rights to the user. No data within the document is necessary; existence is sufficient.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier of the admin user."
+              "description": "The unique ID of the user with admin privileges."
             }
           ]
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support OccasionCraft's user roles (Admin, Vendor, User), event management, ticket sales, and vendor management features, while adhering to the principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Queries are not Filters). Authorization independence is achieved through denormalization, particularly with the `members` map in collaborative data scenarios. \n\n1.  **Users:** User data is stored in `/users/{userId}`.  Since user roles are crucial, the `userType` field is directly present in the `User` document. This ensures simple rules can immediately determine the user's permissions.\n\n2.  **Vendors:** Vendor profiles are located at `/vendors/{vendorId}`. The vendor document includes a `userId` field to link it to the corresponding user. Admin access is managed via the `/roles_admin/{userId}` collection.\n\n3.  **Events:** Events created by vendors are stored in `/vendors/{vendorId}/events/{eventId}`. The `vendorId` in the path ensures that events are scoped to their respective vendors, enabling simple ownership-based rules.\n\n4.  **Tickets:** Tickets are stored in `/users/{userId}/tickets/{ticketId}`. This allows users to manage the tickets they've purchased and also ensures that event details can be accessed by the user. The `eventId` of a ticket can be used to look up event information in the appropriate location.\n\n5. **Admin Roles:** Admin user roles are modeled using document existence in `/roles_admin/{userId}`. This is a simple and efficient way to manage admin privileges.\n\n6.  **Storage:** Images will be stored using Firebase Storage. Profile images will be stored under `/users/{userId}/profile.jpg`. Event images will be stored under `/vendors/{vendorId}/events/{eventId}/event_image.jpg`. Vendor logos will be stored under `/vendors/{vendorId}/logo.jpg`.\n\n**Authorization Independence:** The structure avoids `get()` calls in security rules by denormalizing authorization context. User roles are stored directly in the `/users/{userId}` document enabling authorization without additional reads. The nested structure for Events and Tickets ensures clear ownership without needing to retrieve parent document data.\n\n**QAPs (Rules are not Filters):** This structure supports secure list operations. Listing events is scoped to vendors (`/vendors/{vendorId}/events`). Listing tickets is scoped to users (`/users/{userId}/tickets`). Admins are authorized via the `/roles_admin/{userId}` collection. This segregation ensures that users can only list resources they are authorized to access."
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, adhering to the core design principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). Authorization Independence is achieved through denormalization of authorization-related data, eliminating the need for `get()` calls in security rules. Structural Segregation is applied to ensure homogeneous security postures within collections.  Access Modeling follows consistent patterns for private and collaborative data.\n\nSpecifically:\n\n*   User data is stored under `/users/{userId}` allowing path based ownership.\n*   Vendor data is stored under `/vendors/{vendorId}`, enabling vendor-specific data access controls.\n*   Events are stored under `/vendors/{vendorId}/events/{eventId}` to support the 1:N relationship and enable simple ownership checks.\n*   Tickets are stored under `/users/{userId}/tickets/{ticketId}`, providing strong ownership and simplifies access control.\n*   Admin users are managed via the `/roles_admin/{uid}` collection. The existence of a document at this path grants admin privileges.\n\nThe structure facilitates secure list operations (QAPs) by ensuring that collections contain data with similar access control requirements. For example, only the vendor can list the events under `/vendors/{vendorId}/events/{eventId}`. The admin role can list all vendors and all events."
   }
 }
-    

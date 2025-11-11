@@ -1,153 +1,215 @@
 /**
- * @fileOverview Firestore Security Rules for OccasionCraft.
+ * @file Firebase Security Rules for Firestore.
  *
  * Core Philosophy:
- * This ruleset enforces a role-based access control model, with distinctions between regular users, event vendors, and administrators. User ownership is strictly enforced for personal data, and vendor ownership is enforced for events. Admin privileges are managed through a dedicated collection.
+ * This ruleset enforces a strict user and vendor ownership model, supplemented by admin roles, to control access to data. Users and vendors can only access their own data, while admins have broader privileges.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profiles, with 'userType' indicating role.
- * - /vendors/{vendorId}: Stores vendor profiles, linked to users via 'userId'.
- * - /vendors/{vendorId}/events/{eventId}: Stores event data, nested under the vendor who created it.
- * - /users/{userId}/tickets/{ticketId}: Stores ticket purchases, nested under the user who bought them.
- * - /roles_admin/{userId}: Presence of a document indicates admin status for the user.
+ * - User profiles are stored under `/users/{userId}`.
+ * - Vendor profiles are stored under `/vendors/{vendorId}`.
+ * - Events are stored under `/vendors/{vendorId}/events/{eventId}`.
+ * - Tickets are stored under `/users/{userId}/tickets/{ticketId}`.
+ * - Categories are stored under `/categories/{categoryId}`.
+ * - Ticket templates are stored under `/ticket_templates/{ticketTemplateId}`.
+ * - Admin roles are indicated by the presence of a document under `/roles_admin/{userId}`.
  *
  * Key Security Decisions:
- * - Users can only read and write their own user profiles.
- * - Vendors can only manage events they create.
- * - Admins have broad access, determined by document existence in /roles_admin/{userId}.
- * - Listing all users is disallowed.
+ * - Users and vendors can only create, read, update, and delete their own profiles and associated resources (events, tickets).
+ * - Admins have read/write access to all vendor, event, category, and ticket template data.
+ * - Public read access is granted to the `/categories` and `/ticket_templates` collections.
+ * - Listing of user and vendor documents is disallowed.
  *
  * Denormalization for Authorization:
- * - User roles are stored directly in the /users/{userId} document ('userType' field) to avoid costly lookups.
- * - Event documents store the 'vendorId' to enforce vendor ownership without additional reads.
- *
- * Structural Segregation:
- * - Admin status is managed in a separate collection (/roles_admin/{userId}) to avoid adding a boolean flag to the User document. This makes admin role checks efficient and avoids accidental privilege escalation.
+ *  To ensure authorization independence, event documents under `/vendors/{vendorId}/events/{eventId}` should contain a denormalized `vendorId` field, mirroring the `vendorId` in the path.  Similarly, ticket documents under `/users/{userId}/tickets/{ticketId}` should contain denormalized `userId` and `eventId` fields. This allows rules to validate ownership without additional `get()` operations.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the user is signed in.
-     * @returns {boolean} True if the user is signed in, false otherwise.
+     * @description Checks if the request is authenticated.
+     * @path N/A
      */
     function isSignedIn() {
       return request.auth != null;
     }
 
     /**
-     * @description Checks if the authenticated user ID matches the provided user ID.
-     * @param {string} userId - The user ID to compare against.
-     * @returns {boolean} True if the user is signed in and the user IDs match, false otherwise.
+     * @description Checks if the authenticated user's ID matches the provided userId.
+     * @path N/A
      */
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return request.auth.uid == userId;
     }
 
     /**
-     * @description Checks if the user is an existing owner of the document.
-     * @param {string} userId - The user ID to compare against.
-     * @returns {boolean} True if the user is the owner and the document exists, false otherwise.
+     * @description Checks if the authenticated user's ID matches the resource's vendorId.
+     * @path N/A
      */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
+    function isVendorOwner(vendorId) {
+      return request.auth.uid == vendorId;
     }
 
     /**
-     * @description Checks if the user is an admin. This function reads from the /roles_admin/{userId} collection.
-     * @returns {boolean} True if the user has an admin document, false otherwise.
+     * @description Checks if the authenticated user has admin privileges by verifying the existence of a document in the roles_admin collection.
+     * @path N/A
      */
     function isAdmin() {
       return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
     /**
-     * @description Rules for user profiles.
+     * @description Checks if the authenticated user is the owner of an existing document.
+     * @path N/A
+     */
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Checks if the authenticated vendor is the owner of an existing document.
+     * @path N/A
+     */
+     function isExistingVendorOwner(vendorId) {
+        return isVendorOwner(vendorId) && resource != null;
+    }
+
+    /**
+     * @description Rule for user profiles.
      * @path /users/{userId}
-     * @allow (create) - User 'user_abc' can create their profile if authenticated and the ID matches.
-     *     request.auth.uid: 'user_abc', request.resource.data.id: 'user_abc'
-     * @allow (get, update, delete) - User 'user_abc' can read/update/delete their profile if authenticated and the ID matches.
-     *     request.auth.uid: 'user_abc', resource.data.id: 'user_abc'
-     * @deny (create) - User 'user_xyz' cannot create a profile for 'user_abc'.
-     *     request.auth.uid: 'user_xyz', request.resource.data.id: 'user_abc'
-     * @deny (update, delete) - User 'user_xyz' cannot update/delete the profile of 'user_abc'.
-     *     request.auth.uid: 'user_xyz', resource.data.id: 'user_abc'
+     * @allow (create) User with matching userId can create their profile.
+     * @deny (create) User tries to create a profile with a different userId.
+     * @allow (get) User with matching userId can read their profile.
+     * @deny (get) User tries to read another user's profile.
+     * @allow (update) User with matching userId can update their profile.
+     * @deny (update) User tries to update another user's profile.
+     * @allow (delete) User with matching userId can delete their profile.
+     * @deny (delete) User tries to delete another user's profile.
      * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
      */
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || isAdmin();
-      allow delete: if isOwner(userId) || isAdmin();
+      allow list: if false; // Listing users is not allowed.
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Rules for vendor profiles.
+     * @description Rule for vendor profiles.
      * @path /vendors/{vendorId}
-     * @allow (create) - Anyone can create a vendor profile.
-     * @allow (get) - Anyone can read a vendor profile.
-     * @allow (update, delete) - Only admins can update or delete vendor profiles.
-     * @deny (update, delete) - Non-admins cannot update or delete vendor profiles.
-     * @principle Allows public read access, restricts updates/deletes to admins.
+     * @allow (create) Vendor with matching vendorId can create their profile.
+     * @deny (create) Vendor tries to create a profile with a different vendorId.
+     * @allow (get) Vendor with matching vendorId can read their profile. Admin can read any vendor profile.
+     * @deny (get) Vendor tries to read another vendor's profile.
+     * @allow (update) Vendor with matching vendorId can update their profile.
+     * @deny (update) Vendor tries to update another vendor's profile.
+     * @allow (delete) Vendor with matching vendorId can delete their profile.
+     * @deny (delete) Vendor tries to delete another vendor's profile.
+     * @principle Enforces document ownership for writes, restricts access to a vendor's own data tree.
      */
     match /vendors/{vendorId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isAdmin() || isOwner(resource.data.userId);
+      allow get: if isVendorOwner(vendorId) || isAdmin();
+      allow list: if isAdmin(); // Only admin can list vendors.
+      allow create: if isVendorOwner(vendorId) && request.resource.data.id == vendorId;
+      allow update: if isExistingVendorOwner(vendorId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingVendorOwner(vendorId);
     }
 
     /**
-     * @description Rules for events created by vendors.
+     * @description Rule for events created by vendors.
      * @path /vendors/{vendorId}/events/{eventId}
-     * @allow (get, list) - Anyone can read events.
-     * @allow (create) - Only the vendor can create an event. The vendorId must match the path.
-     * @allow (update, delete) - Only the vendor or an admin can update/delete their events.
-     * @deny (create) - User 'user_xyz' cannot create an event for vendor 'vendor_abc'.
-     *     request.auth.uid: 'user_xyz', resource.data.vendorId: 'vendor_abc'
-     * @deny (update, delete) - User 'user_xyz' cannot update/delete event 'event_123' for vendor 'vendor_abc'.
-     *     request.auth.uid: 'user_xyz', resource.data.vendorId: 'vendor_abc'
-     * @principle Enforces vendor ownership for event management, allows public read access.
+     * @allow (create) Vendor with matching vendorId can create an event under their profile, vendorId matches document.vendorId.
+     * @deny (create) Vendor tries to create an event under another vendor's profile.
+     * @allow (get) Vendor with matching vendorId can read their events. Admin can read any event.
+     * @deny (get) Vendor tries to read another vendor's events.
+     * @allow (update) Vendor with matching vendorId can update their events. Admin can update any event.
+     * @deny (update) Vendor tries to update another vendor's events.
+     * @allow (delete) Vendor with matching vendorId can delete their events. Admin can delete any event.
+     * @principle Enforces document ownership for writes, restricts access to a vendor's own events.
      */
     match /vendors/{vendorId}/events/{eventId} {
-      allow get, list: if true;
-      allow create: if isOwner(request.resource.data.vendorId);
-      allow update, delete: if isAdmin() || isOwner(resource.data.vendorId);
+      allow get: if isVendorOwner(vendorId) || isAdmin();
+      allow list: if isVendorOwner(vendorId) || isAdmin();
+      allow create: if isVendorOwner(vendorId) && request.resource.data.vendorId == vendorId;
+      allow update: if isExistingVendorOwner(vendorId) || isAdmin();
+      allow delete: if isExistingVendorOwner(vendorId) || isAdmin();
     }
 
     /**
-     * @description Rules for tickets purchased by users.
+     * @description Rule for tickets purchased by users.
      * @path /users/{userId}/tickets/{ticketId}
-     * @allow (get, list) - Only the user can read/list their own tickets.
-     * @allow (create) - Only the user can create tickets under their ID. userId on path must match request auth uid.
-     * @allow (update, delete) - Only the user can update/delete their own tickets.
-     * @deny (create) - User 'user_xyz' cannot create tickets for 'user_abc'.
-     *     request.auth.uid: 'user_xyz', request.resource.data.userId: 'user_abc'
-     * @deny (update, delete) - User 'user_xyz' cannot update/delete ticket 'ticket_123' for user 'user_abc'.
-     *     request.auth.uid: 'user_xyz', resource.data.userId: 'user_abc'
-     * @principle Enforces user ownership for ticket management.
+     * @allow (create) User with matching userId can create a ticket under their profile, userId matches document.userId.
+     * @deny (create) User tries to create a ticket under another user's profile.
+     * @allow (get) User with matching userId can read their tickets. Admin can read any ticket.
+     * @deny (get) User tries to read another user's tickets.
+     * @allow (update) User with matching userId can update their tickets. Admin can update any ticket.
+     * @deny (update) User tries to update another user's tickets.
+     * @allow (delete) User with matching userId can delete their tickets. Admin can delete any ticket.
+     * @principle Enforces document ownership for writes, restricts access to a user's own tickets.
      */
     match /users/{userId}/tickets/{ticketId} {
-      allow get, list: if isOwner(userId) || isAdmin();
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update, delete: if isOwner(userId) || isAdmin();
+      allow update: if isExistingOwner(userId) || isAdmin();
+      allow delete: if isExistingOwner(userId) || isAdmin();
     }
 
     /**
-     * @description Rules for admin roles, based on document existence.
+     * @description Rule for event categories.
+     * @path /categories/{categoryId}
+     * @allow (get) Any user can read any category.
+     * @allow (list) Any user can list categories.
+     * @allow (create) Only admins can create categories.
+     * @deny (create) Non-admins cannot create categories.
+     * @allow (update) Only admins can update categories.
+     * @deny (update) Non-admins cannot update categories.
+     * @allow (delete) Only admins can delete categories.
+     * @deny (delete) Non-admins cannot delete categories.
+     * @principle Public read, admin-only write for categories.
+     */
+    match /categories/{categoryId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Rule for ticket templates.
+     * @path /ticket_templates/{ticketTemplateId}
+     * @allow (get) Any user can read any ticket template.
+     * @allow (list) Any user can list ticket templates.
+     * @allow (create) Only admins can create ticket templates.
+     * @deny (create) Non-admins cannot create ticket templates.
+     * @allow (update) Only admins can update ticket templates.
+     * @deny (update) Non-admins cannot update ticket templates.
+     * @allow (delete) Only admins can delete ticket templates.
+     * @deny (delete) Non-admins cannot delete ticket templates.
+     * @principle Public read, admin-only write for ticket templates.
+     */
+    match /ticket_templates/{ticketTemplateId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+      /**
+     * @description Rule for admin privileges.  The presence of a document at this path grants admin rights to the user.
      * @path /roles_admin/{userId}
-     * @allow (get, list) - Only admins can check the admin status of other users.
-     * @allow (create) - Any signed in user can make themselves an admin. This is for bootstrapping and should be locked down.
-     * @allow (update, delete) - Only admins can modify the admin role collection.
-     * @deny (create, update, delete) - Non-admins cannot create, update, or delete admin roles.
-     * @principle Restricts admin role management to existing admins.
+     * @allow (get) Any authenticated user can check if they are an admin.
+     * @deny (get) Unauthenticated users cannot check admin status.
+     * @allow (list) Listing admins is not allowed.
+     * @allow (create) Only admins can grant admin privileges (by creating the document).
+     * @deny (create) Non-admins cannot grant admin privileges.
+     * @allow (update) Only admins can update admin privileges.
+     * @deny (update) Non-admins cannot update admin privileges.
+     * @allow (delete) Only admins can revoke admin privileges (by deleting the document).
+     * @deny (delete) Non-admins cannot revoke admin privileges.
+     * @principle Admin-only access to manage admin roles.
      */
     match /roles_admin/{userId} {
-      allow get: if isOwner(userId);
-      allow list, update, delete: if isAdmin();
-      allow create: if isOwner(userId);
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create, update, delete: if isAdmin();
     }
   }
 }
