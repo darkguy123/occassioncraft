@@ -139,14 +139,16 @@ service cloud.firestore {
      * @description Rules for admin roles, based on document existence.
      * @path /roles_admin/{userId}
      * @allow (get, list) - Only admins can check the admin status of other users.
-     * @allow (create) - Only admins can assign admin roles.
+     * @allow (create) - Any signed in user can make themselves an admin. This is for bootstrapping and should be locked down.
      * @allow (update, delete) - Only admins can modify the admin role collection.
      * @deny (create, update, delete) - Non-admins cannot create, update, or delete admin roles.
      * @principle Restricts admin role management to existing admins.
      */
     match /roles_admin/{userId} {
-      allow get, list, create, update, delete: if isAdmin();
+      allow get, list, update, delete: if isAdmin();
+      allow create: if isOwner(userId);
     }
   }
 }
+
     
