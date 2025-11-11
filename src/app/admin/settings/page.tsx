@@ -20,7 +20,7 @@ type FileUploadState = {
 export default function AdminSettingsPage() {
   const { toast } = useToast();
 
-  const [logo, setLogo] = useState<FileUploadState>({ file: null, preview: '/assets/logo.png' });
+  const [logo, setLogo] = useState<FileUploadState>({ file: null, preview: 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2FUntitled-1.png?alt=media&token=1703bbc0-e6e4-4fc5-a019-090af2fa7cd9' });
   const [favicon, setFavicon] = useState<FileUploadState>({ file: null, preview: null });
   const [heroBanner, setHeroBanner] = useState<FileUploadState>({ file: null, preview: null });
 
