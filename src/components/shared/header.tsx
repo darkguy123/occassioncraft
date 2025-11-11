@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 import { useUser } from '@/firebase';
 
 export function Header() {
-  const [logoUrl, setLogoUrl] = useState<string>('/assets/logo.svg');
+  const [logoUrl, setLogoUrl] = useState<string>('/assets/logo.png');
   const [hasMounted, setHasMounted] = useState(false);
   const { user, isUserLoading } = useUser();
 
@@ -24,7 +24,7 @@ export function Header() {
       if (savedLogo) {
         setLogoUrl(savedLogo);
       } else {
-        setLogoUrl('/assets/logo.svg');
+        setLogoUrl('/assets/logo.png');
       }
     };
 
@@ -37,31 +37,18 @@ export function Header() {
     };
   }, [hasMounted]);
 
-  if (!hasMounted) {
-    return (
-        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-             <div className="container flex h-16 items-center">
-                <div className="mr-4 flex">
-                     <Link href="/" className="mr-6 flex items-center space-x-2">
-                         <div style={{ width: 140, height: 32 }} />
-                    </Link>
-                </div>
-            </div>
-        </header>
-    );
-  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
         <div className="mr-4 flex">
-          <Link href="/" className="mr-6 flex items-center space-x-2">
-            {hasMounted ? (
-                <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" />
-            ) : (
-                 <div style={{ width: 140, height: 32 }} />
-            )}
-          </Link>
+           {hasMounted ? (
+            <Link href="/" className="mr-6 flex items-center space-x-2">
+              <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" />
+            </Link>
+          ) : (
+            <div className="mr-6" style={{ width: 140, height: 32 }} />
+          )}
           <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
             <Link href="/" className="transition-colors hover:text-foreground/80 text-foreground/60">
               Discover Events

@@ -20,7 +20,7 @@ type FileUploadState = {
 export default function AdminSettingsPage() {
   const { toast } = useToast();
 
-  const [logo, setLogo] = useState<FileUploadState>({ file: null, preview: '/assets/logo.svg' });
+  const [logo, setLogo] = useState<FileUploadState>({ file: null, preview: '/assets/logo.png' });
   const [favicon, setFavicon] = useState<FileUploadState>({ file: null, preview: null });
   const [heroBanner, setHeroBanner] = useState<FileUploadState>({ file: null, preview: null });
 
