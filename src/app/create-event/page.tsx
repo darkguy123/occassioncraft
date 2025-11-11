@@ -321,27 +321,45 @@ export default function CreateEventPage() {
                                             <FormControl>
                                                 <RadioGroupItem value="simple" className="sr-only" />
                                             </FormControl>
-                                            <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
-                                                <div className="w-full h-16 bg-secondary rounded-sm mb-2"></div>
-                                                Simple
+                                            <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer h-28">
+                                                <div className="w-full h-full bg-gradient-to-br from-slate-50 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-sm p-1">
+                                                    <div className="w-full h-full border-2 border-dashed border-slate-400/50 rounded-sm flex flex-col justify-between p-1">
+                                                        <div className="h-2 w-1/2 bg-slate-300 dark:bg-slate-600 rounded-full"></div>
+                                                        <div className="h-1 w-full bg-slate-300 dark:bg-slate-600 rounded-full"></div>
+                                                        <div className="h-1 w-3/4 bg-slate-300 dark:bg-slate-600 rounded-full"></div>
+                                                    </div>
+                                                </div>
+                                                <span className="mt-2 text-sm font-medium">Simple</span>
                                             </FormLabel>
                                         </FormItem>
                                         <FormItem>
                                             <FormControl>
                                                 <RadioGroupItem value="standard" className="sr-only" />
                                             </FormControl>
-                                             <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
-                                                <div className="w-full h-16 bg-primary/20 rounded-sm mb-2"></div>
-                                                Standard
+                                             <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer h-28">
+                                                 <div className="w-full h-full bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-950 rounded-sm p-1">
+                                                    <div className="w-full h-full border-2 border-dashed border-blue-400/50 rounded-sm flex flex-col justify-between p-1">
+                                                        <div className="h-2 w-1/2 bg-blue-300 dark:bg-blue-700 rounded-full"></div>
+                                                        <div className="h-1 w-full bg-blue-300 dark:bg-blue-700 rounded-full"></div>
+                                                        <div className="h-1 w-3/4 bg-blue-300 dark:bg-blue-700 rounded-full"></div>
+                                                    </div>
+                                                </div>
+                                                <span className="mt-2 text-sm font-medium">Standard</span>
                                             </FormLabel>
                                         </FormItem>
                                         <FormItem>
                                             <FormControl>
                                                 <RadioGroupItem value="minimal" className="sr-only" />
                                             </FormControl>
-                                            <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
-                                                <div className="w-full h-16 bg-accent/20 rounded-sm mb-2"></div>
-                                                Minimal
+                                            <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer h-28">
+                                                 <div className="w-full h-full bg-gradient-to-br from-gray-900 to-black rounded-sm p-1">
+                                                    <div className="w-full h-full border-2 border-dashed border-gray-400/50 rounded-sm flex flex-col justify-between p-1">
+                                                        <div className="h-2 w-1/2 bg-gray-600 rounded-full"></div>
+                                                        <div className="h-1 w-full bg-gray-600 rounded-full"></div>
+                                                        <div className="h-1 w-3/4 bg-gray-600 rounded-full"></div>
+                                                    </div>
+                                                </div>
+                                                <span className="mt-2 text-sm font-medium">Minimal</span>
                                             </FormLabel>
                                         </FormItem>
                                     </RadioGroup>
@@ -395,3 +413,5 @@ export default function CreateEventPage() {
     </div>
   );
 }
+
+    
