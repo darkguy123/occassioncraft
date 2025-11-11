@@ -18,6 +18,8 @@ service cloud.firestore {
      * - Ticket templates are stored under `/ticket_templates/{ticketTemplateId}`.
      * - Admin roles are indicated by the presence of a document under `/roles_admin/{userId}`.
      * - Notifications are stored under `/users/{userId}/notifications/{notificationId}`.
+     * - Wallets are stored at `/wallets/{userId}`.
+     * - Transactions are stored in a subcollection under each wallet.
      *
      * Key Security Decisions:
      * - Admins have full read/write access to all data.
@@ -86,6 +88,11 @@ service cloud.firestore {
       // Admins can list all events across all vendors using a collection group query.
       allow list: if isAdmin();
     }
+    
+    // Allow admins to perform collection group queries on events
+    match /{path=**}/events/{eventId} {
+       allow list: if isAdmin();
+    }
 
     /**
      * ────────────────────────────────────────────────
@@ -94,10 +101,13 @@ service cloud.firestore {
      */
     match /users/{userId}/tickets/{ticketId} {
       allow read, write: if isOwner(userId) || isAdmin();
-      
-      // Admins can list all tickets across all users using a collection group query.
-      allow list: if isAdmin();
     }
+    
+    // Allow admins to perform collection group queries on tickets
+    match /{path=**}/tickets/{ticketId} {
+       allow list: if isAdmin();
+    }
+
 
     /**
      * ────────────────────────────────────────────────
@@ -135,6 +145,26 @@ service cloud.firestore {
      */
     match /users/{userId}/notifications/{notificationId} {
       allow read, write: if isOwner(userId) || isAdmin();
+    }
+    
+    /**
+     * ────────────────────────────────────────────────
+     * 💰 Wallets & Transactions
+     * ────────────────────────────────────────────────
+     */
+    match /wallets/{userId} {
+      // User can read their own wallet. Admins can read any.
+      allow get: if isOwner(userId) || isAdmin();
+      // Only admins can create/update a wallet document to protect the balance.
+      allow create, update: if isAdmin();
+    }
+
+    match /wallets/{userId}/transactions/{transactionId} {
+      // User can read their own transactions. Admins can read any.
+      allow get, list: if isOwner(userId) || isAdmin();
+      // Only admins or a secure backend process should create transactions.
+      // For this app, we'll allow admins to create them.
+      allow create: if isAdmin();
     }
   }
 }

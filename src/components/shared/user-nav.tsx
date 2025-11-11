@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -13,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LayoutDashboard, Users, User, LogOut, Ticket, Shield, Settings } from 'lucide-react';
+import { LayoutDashboard, Users, User, LogOut, Ticket, Shield, Settings, Wallet } from 'lucide-react';
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { Vendor, User as UserType } from '@/lib/types';
@@ -82,6 +83,14 @@ export function UserNav() {
               <span>My Tickets</span>
             </Link>
           </DropdownMenuItem>
+           {isVendor && (
+            <DropdownMenuItem asChild>
+              <Link href="/wallet">
+                <Wallet className="mr-2 h-4 w-4" />
+                <span>Wallet</span>
+              </Link>
+            </DropdownMenuItem>
+          )}
           {isVendor && (vendorData?.status === 'approved' || isAdmin) && (
             <DropdownMenuItem asChild>
               <Link href="/vendor/dashboard">

@@ -5,9 +5,9 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useAuth, useFirestore } from "@/firebase";
+import { useAuth, useFirestore, addDocumentNonBlocking } from "@/firebase";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-import { doc } from "firebase/firestore";
+import { doc, collection } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -22,7 +22,7 @@ import { Step3VendorInfo } from "@/components/signup/step-3-vendor-info";
 import { Step4Avatar } from "@/components/signup/step-4-avatar";
 import { Step5Terms } from "@/components/signup/step-5-terms";
 import Link from "next/link";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 
 const signupSchema = z.object({
   fullName: z.string().min(3, { message: "Full name must be at least 3 characters." }),
@@ -92,7 +92,7 @@ export default function SignupPage() {
   const handlePrev = () => {
     if (currentStep > 0) {
       setDirection(-1);
-      setCurrentStep(prev => prev - 1);
+      setCurrentStep(prev => prev + 1);
     }
   };
 
@@ -103,6 +103,11 @@ export default function SignupPage() {
       const user = userCredential.user;
 
       if (user) {
+        await updateProfile(user, {
+            displayName: data.fullName,
+            photoURL: data.avatarUrl,
+        });
+
         const [firstName, ...lastName] = data.fullName.split(' ');
         
         const roles = data.roles.length > 0 ? data.roles : ['user'];
@@ -132,6 +137,15 @@ export default function SignupPage() {
             status: 'approved', // Auto-approved
           };
           setDocumentNonBlocking(vendorRef, vendorData, { merge: true });
+          
+          // Also create a wallet for the vendor
+           const walletRef = doc(firestore, "wallets", user.uid);
+           const walletData = {
+                id: user.uid,
+                balance: 0,
+                currency: 'USD',
+           };
+           setDocumentNonBlocking(walletRef, walletData, { merge: true });
         }
       }
 

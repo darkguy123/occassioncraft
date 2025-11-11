@@ -1,4 +1,5 @@
 
+
 export type Event = {
   id: string;
   name: string;
@@ -60,4 +61,19 @@ export type User = {
     dateJoined?: string;
 };
 
+export type Wallet = {
+    id: string;
+    balance: number;
+    currency: 'USD';
+};
+
+export type Transaction = {
+    id: string;
+    walletId: string;
+    amount: number;
+    type: 'ticket-sale' | 'payout' | 'refund' | 'adjustment';
+    date: string;
+    description: string;
+    relatedEntityId?: string;
+};
     
