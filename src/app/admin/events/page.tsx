@@ -15,6 +15,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { sampleEvents } from '@/lib/placeholder-data';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
@@ -99,8 +100,16 @@ export default function AdminEventsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                           <Link href={`/events/${event.id}`}>View Details</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                           <Link href={`/admin/events/${event.id}/edit`}>Edit Event</Link>
+                        </DropdownMenuItem>
+                         <DropdownMenuItem asChild>
+                           <Link href={`/admin/events/${event.id}/tickets`}>Manage Tickets</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem>Unpublish</DropdownMenuItem>
                         <DropdownMenuItem className="text-red-600">
                           Delete
