@@ -17,7 +17,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { sampleEvents } from '@/lib/placeholder-data';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -28,8 +27,20 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { format } from 'date-fns';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collectionGroup, query } from 'firebase/firestore';
+import type { Event } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminEventsPage() {
+  const firestore = useFirestore();
+  const eventsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collectionGroup(firestore, 'events'));
+  }, [firestore]);
+
+  const { data: events, isLoading } = useCollection<Event>(eventsQuery);
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between">
@@ -64,7 +75,16 @@ export default function AdminEventsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sampleEvents.map((event) => (
+              {isLoading && (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell colSpan={5}>
+                      <Skeleton className="h-8 w-full" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+              {events && events.map((event) => (
                 <TableRow key={event.id}>
                   <TableCell>
                     <div className="font-medium">{event.name}</div>
@@ -122,6 +142,9 @@ export default function AdminEventsPage() {
               ))}
             </TableBody>
           </Table>
+           {!isLoading && events?.length === 0 && (
+                <p className="text-center text-muted-foreground py-8">No events found.</p>
+            )}
         </CardContent>
       </Card>
     </div>

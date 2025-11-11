@@ -10,13 +10,17 @@ import { Textarea } from "@/components/ui/textarea"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { sampleEvents } from "@/lib/placeholder-data"
-import { notFound } from 'next/navigation'
+import { notFound, useRouter } from 'next/navigation'
 import { useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { CalendarIcon, DollarSign, Save } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
+import { useDoc, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase"
+import { doc, collectionGroup, query, where, getDocs } from "firebase/firestore"
+import type { Event } from "@/lib/types"
+import { useToast } from "@/hooks/use-toast"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters.").max(100, "Event name must be less than 100 characters."),
@@ -31,7 +35,30 @@ const eventFormSchema = z.object({
 type EventFormValues = z.infer<typeof eventFormSchema>;
 
 export default function EditEventPage({ params }: { params: { eventId: string } }) {
-  const event = sampleEvents.find(e => e.id === params.eventId);
+  const firestore = useFirestore();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const [eventRef, setEventRef] = useState<any>(null);
+  const { data: event, isLoading: isEventLoading } = useDoc<Event>(eventRef);
+
+  useEffect(() => {
+    const findEvent = async () => {
+      if (!firestore) return;
+      const eventsQuery = query(
+        collectionGroup(firestore, 'events'),
+        where('id', '==', params.eventId)
+      );
+      const querySnapshot = await getDocs(eventsQuery);
+      if (!querySnapshot.empty) {
+        const eventDoc = querySnapshot.docs[0];
+        setEventRef(eventDoc.ref);
+      } else {
+        notFound();
+      }
+    };
+    findEvent();
+  }, [firestore, params.eventId]);
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
@@ -41,7 +68,7 @@ export default function EditEventPage({ params }: { params: { eventId: string } 
         startTime: "",
         location: "",
         ticketPrice: 0,
-        category: 'other',
+        category: 'Other',
         date: undefined,
     }
   });
@@ -60,20 +87,54 @@ export default function EditEventPage({ params }: { params: { eventId: string } 
     }
   }, [event, form]);
 
-  if (!event) {
-    return notFound();
-  }
-
   const onSubmit = (data: EventFormValues) => {
-    console.log("Updated Event Data:", data);
-    // Here you would typically call an API to update the event
+    if (!eventRef) return;
+    
+    const updatedEventData = {
+        ...event,
+        name: data.name,
+        description: data.description,
+        date: data.date.toISOString(),
+        time: data.startTime,
+        location: data.location,
+        category: data.category,
+        price: data.ticketPrice,
+    };
+
+    updateDocumentNonBlocking(eventRef, updatedEventData);
+    
+    toast({
+        title: "Event Updated",
+        description: `"${data.name}" has been successfully updated.`,
+    });
+    router.push('/admin/events');
   };
+
+  if (isEventLoading || !event) {
+    return (
+        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+            <Skeleton className="h-10 w-1/3" />
+            <Skeleton className="h-6 w-1/2" />
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-8 w-1/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-32 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                </CardContent>
+            </Card>
+        </div>
+    )
+  }
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Edit Event</h1>
-        <p className="text-muted-foreground">Modify the details for &quot;{event.name}&quot;.</p>
+        <p className="text-muted-foreground">Modify the details for &quot;{event?.name}&quot;.</p>
       </div>
       <Card>
         <CardHeader>
@@ -176,12 +237,12 @@ export default function EditEventPage({ params }: { params: { eventId: string } 
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="music">Music</SelectItem>
-                            <SelectItem value="arts">Arts & Culture</SelectItem>
-                            <SelectItem value="tech">Tech</SelectItem>
-                            <SelectItem value="food">Food & Drink</SelectItem>
-                            <SelectItem value="sports">Sports</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
+                            <SelectItem value="Music">Music</SelectItem>
+                            <SelectItem value="Arts">Arts & Culture</SelectItem>
+                            <SelectItem value="Tech">Tech</SelectItem>
+                            <SelectItem value="Food">Food & Drink</SelectItem>
+                            <SelectItem value="Sports">Sports</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />

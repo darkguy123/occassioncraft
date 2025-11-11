@@ -10,26 +10,50 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { sampleEvents, userTickets } from '@/lib/placeholder-data';
 import { notFound } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Check, X, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import type { Ticket } from '@/lib/types'; // Assuming Ticket type is defined
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ManageTicketsPage({ params }: { params: { eventId: string } }) {
-  const event = sampleEvents.find(e => e.id === params.eventId);
-  const ticketsForEvent = userTickets.filter(t => t.event.id === params.eventId);
+  const firestore = useFirestore();
 
-  // In a real app, you would have vendor-submitted tickets as well
-  const pendingTickets = [
-      { id: 'tkt-pending-1', userName: 'Vendor User 1', purchaseDate: '2024-09-20', status: 'pending' },
-      { id: 'tkt-pending-2', userName: 'Vendor User 2', purchaseDate: '2024-09-21', status: 'pending' },
-  ];
+  const ticketsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'tickets'), where('eventId', '==', params.eventId));
+  }, [firestore, params.eventId]);
 
-  if (!event) {
-    return notFound();
+  const { data: tickets, isLoading } = useCollection<Ticket>(ticketsQuery);
+
+  const eventName = tickets?.[0]?.event?.name || 'Event'; // Placeholder until event data is loaded
+
+  // This is just a placeholder as in a real app, this would be a more complex system.
+  const pendingTickets: any[] = [];
+  
+  // In a real app, you would fetch event details separately.
+  // For now, we show a generic loading state if no tickets have loaded yet.
+  if (isLoading && !tickets) {
+    return (
+        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-10 w-1/3" />
+            <Skeleton className="h-6 w-1/2" />
+            <Card>
+                <CardHeader><Skeleton className="h-8 w-1/4" /></CardHeader>
+                <CardContent><Skeleton className="h-24 w-full" /></CardContent>
+            </Card>
+             <Card>
+                <CardHeader><Skeleton className="h-8 w-1/4" /></CardHeader>
+                <CardContent><Skeleton className="h-48 w-full" /></CardContent>
+            </Card>
+        </div>
+    );
   }
-
+  
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
        <div className="space-y-2">
@@ -37,7 +61,7 @@ export default function ManageTicketsPage({ params }: { params: { eventId: strin
             <Link href="/admin/events">&larr; Back to Events</Link>
          </Button>
         <h1 className="text-3xl font-bold tracking-tight">Manage Tickets</h1>
-        <p className="text-muted-foreground">Approve, deny, and view tickets for &quot;{event.name}&quot;.</p>
+        <p className="text-muted-foreground">Approve, deny, and view tickets for &quot;{eventName}&quot;.</p>
       </div>
 
       <Card>
@@ -95,7 +119,12 @@ export default function ManageTicketsPage({ params }: { params: { eventId: strin
               </TableRow>
             </TableHeader>
             <TableBody>
-              {ticketsForEvent.map((ticket) => (
+              {isLoading && (
+                  Array.from({ length: 3 }).map((_, i) => (
+                      <TableRow key={i}><TableCell colSpan={4}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
+                  ))
+              )}
+              {tickets && tickets.map((ticket) => (
                 <TableRow key={ticket.id}>
                   <TableCell className="font-mono">{ticket.id}</TableCell>
                   <TableCell>{ticket.event.name}</TableCell>
@@ -110,7 +139,7 @@ export default function ManageTicketsPage({ params }: { params: { eventId: strin
               ))}
             </TableBody>
           </Table>
-           {ticketsForEvent.length === 0 && (
+           {!isLoading && tickets?.length === 0 && (
                 <p className="text-center text-muted-foreground py-8">No approved tickets for this event yet.</p>
             )}
         </CardContent>
