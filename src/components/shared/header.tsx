@@ -12,29 +12,30 @@ import { useUser } from '@/firebase';
 export function Header() {
   const { user, isUserLoading } = useUser();
   const [logoUrl, setLogoUrl] = useState<string>('/assets/logo.png');
-  const [isClient, setIsClient] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
     // This hook runs only on the client, after the initial render.
-    setIsClient(true);
+    // It marks that the component has mounted.
+    setHasMounted(true);
   }, []);
 
   useEffect(() => {
-    if (!isClient) {
-        // Don't run this on the server or during the first client render.
-        return;
+    if (!hasMounted) {
+      // Don't run this on the server or during the first client render.
+      return;
     }
     
     const updateLogo = () => {
       const savedLogo = localStorage.getItem('websiteLogo');
-      // If a custom logo exists in localStorage, update the state.
-      // Otherwise, it will keep the default '/assets/logo.png'.
       if (savedLogo) {
         setLogoUrl(savedLogo);
+      } else {
+        setLogoUrl('/assets/logo.png');
       }
     };
 
-    updateLogo(); // Check for the logo as soon as the client is ready.
+    updateLogo(); // Check for the logo as soon as the client has mounted.
 
     // Listen for changes from the admin settings page.
     window.addEventListener('storage', updateLogo);
@@ -42,14 +43,20 @@ export function Header() {
     return () => {
       window.removeEventListener('storage', updateLogo);
     };
-  }, [isClient]); // This effect depends on the client being ready.
+  }, [hasMounted]); // This effect depends on the component being mounted.
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
         <div className="mr-4 flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" />
+            {/* Only render the Image component after the component has mounted on the client */}
+            {hasMounted ? (
+                <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" />
+            ) : (
+                // Render a placeholder or nothing on the server and initial client render to prevent mismatch
+                 <div style={{ width: 140, height: 32 }} />
+            )}
           </Link>
           <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
             <Link href="/" className="transition-colors hover:text-foreground/80 text-foreground/60">

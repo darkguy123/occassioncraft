@@ -13,14 +13,14 @@ import { ThemeProvider } from '@/context/theme-provider';
 
 function Favicon() {
     const [faviconUrl, setFaviconUrl] = useState("/favicon.png");
-    const [isClient, setIsClient] = useState(false);
+    const [hasMounted, setHasMounted] = useState(false);
 
     useEffect(() => {
-        setIsClient(true);
+        setHasMounted(true);
     }, []);
 
     useEffect(() => {
-        if (!isClient) return;
+        if (!hasMounted) return;
 
         const loadFavicon = () => {
             const savedFavicon = localStorage.getItem('websiteFavicon');
@@ -39,11 +39,14 @@ function Favicon() {
 
         window.addEventListener('storage', handleStorageChange);
         return () => window.removeEventListener('storage', handleStorageChange);
-    }, [isClient]);
+    }, [hasMounted]);
 
-    const currentFavicon = isClient ? faviconUrl : '/favicon.png';
+    if (!hasMounted) {
+      // Render nothing on the server to prevent hydration mismatch
+      return null;
+    }
 
-    return <link rel="icon" href={currentFavicon} />;
+    return <link rel="icon" href={faviconUrl} />;
 }
 
 export function RootProvider({ children }: { children: React.ReactNode }) {
