@@ -4,30 +4,13 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Helper Functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    // Rules for user profile images
-    // This rule is no longer active as we are not using Firebase Storage for avatars.
-    // Kept for reference.
-    match /users/{userId}/profile.jpg {
+    // Default rule: Allow read access to everyone for all files.
+    // This ensures that any uploaded image (by admins, vendors, or users)
+    // can be displayed on the frontend to any visitor.
+    // Write access is restricted to authenticated users to prevent anonymous uploads.
+    match /{allPaths=**} {
       allow read: if true;
-      allow write: if isOwner(userId);
-    }
-
-    // Rules for public assets 
-    // This rule allows anyone to read files from the /public/assets path,
-    // which is where admin-uploaded assets would be stored if using Storage.
-    // Write access is restricted to authenticated users.
-    match /public/assets/{allPaths=**} {
-      allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if request.auth != null;
     }
   }
 }
