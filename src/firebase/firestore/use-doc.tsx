@@ -49,12 +49,9 @@ export function useDoc<T = any>(
 
   useEffect(() => {
     // If the document reference is not yet available, do nothing and wait.
-    // Set loading to false because we are not actively fetching data.
     if (!memoizedDocRef) {
-      setData(null);
-      setIsLoading(false);
-      setError(null);
-      return;
+        setIsLoading(false);
+        return;
     }
 
     setIsLoading(true);
