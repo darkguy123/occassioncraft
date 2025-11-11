@@ -62,6 +62,10 @@ export function useCollection<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
+    console.log("🔥 Firestore target ref:", memoizedTargetRefOrQuery);
+    if (memoizedTargetRefOrQuery?._query?.path) {
+      console.log("📂 Firestore path:", (memoizedTargetRefOrQuery as InternalQuery)._query.path.canonicalString());
+    }
     // If the query is not yet available, do nothing and wait.
     // Set loading to false because we are not actively fetching data.
     if (!memoizedTargetRefOrQuery) {
