@@ -78,8 +78,7 @@
       "required": [
         "id",
         "name",
-        "email",
-        "paystackRecipientId"
+        "email"
       ]
     },
     "User": {

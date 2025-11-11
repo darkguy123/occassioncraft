@@ -61,6 +61,7 @@ export default function VendorRegistrationPage() {
     }
 
     const newVendorData = {
+      id: user.uid,
       userId: user.uid,
       companyName: data.companyName,
       description: data.companyDescription || '',
