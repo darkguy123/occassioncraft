@@ -11,12 +11,16 @@ export type Event = {
   imageUrl: string;
   imageHint: string;
   organizer: string;
+  vendorId?: string;
 };
 
 export type Ticket = {
   id: string;
-  event: Event;
+  eventId: string;
+  userId: string;
   purchaseDate: string;
+  price: number;
+  isUsed: boolean;
 };
 
 export type VendorEvent = Event & {

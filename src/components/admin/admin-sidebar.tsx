@@ -11,7 +11,7 @@ const navItems = [
     { href: '/admin/events', icon: Calendar, label: 'Events' },
     { href: '/admin/users', icon: Users, label: 'Users' },
     { href: '/admin/vendors', icon: Building, label: 'Vendors' },
-    { href: '/admin/tickets', icon: Ticket, label: 'Tickets' },
+    { href: '/admin/tickets', icon: Ticket, label: 'All Tickets' },
     { href: '/admin/approvals', icon: TicketCheck, label: 'Approvals', badge: 12 },
     { href: '/admin/settings', icon: Settings, label: 'Settings' },
 ];
@@ -30,7 +30,7 @@ export function AdminSidebar() {
                 </div>
                 <nav className="flex-1 p-4 space-y-1">
                     {navItems.map((item) => {
-                        const isActive = pathname === item.href;
+                        const isActive = pathname.startsWith(item.href) && (item.href !== '/admin' || pathname === '/admin');
                         return (
                             <Link
                                 key={item.label}
