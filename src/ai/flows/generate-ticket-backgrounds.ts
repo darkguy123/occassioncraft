@@ -3,6 +3,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { MediaPart } from 'genkit';
 
 const GenerateTicketBackgroundsInputSchema = z.string();
 export type GenerateTicketBackgroundsInput = z.infer<typeof GenerateTicketBackgroundsInputSchema>;
@@ -37,10 +38,12 @@ const generateTicketBackgroundsFlow = ai.defineFlow(
       },
     });
 
-    const imageUrls = media.map(m => m.url);
+    // Ensure media is always an array
+    const mediaArray = Array.isArray(media) ? media : (media ? [media] : []);
+    const imageUrls = mediaArray.map((m: MediaPart) => m.url).filter((url): url is string => !!url);
     
-    if (!imageUrls || imageUrls.length < 3) {
-      throw new Error("AI failed to generate enough images.");
+    if (!imageUrls || imageUrls.length < 1) { // Check for at least one image
+      throw new Error("AI failed to generate any images.");
     }
 
     return { imageUrls };
