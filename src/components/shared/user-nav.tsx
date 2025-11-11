@@ -49,8 +49,8 @@ export function UserNav() {
   const avatarImageSrc = userProfileData?.profileImageUrl || user?.photoURL;
   const avatarFallback = user?.displayName?.split(' ').map(n => n[0]).join('') || user?.email?.[0].toUpperCase() || 'U';
 
-  const isVendor = userProfileData?.roles.includes('vendor');
-  const isAdmin = userProfileData?.roles.includes('admin');
+  const isVendor = (userProfileData?.roles || []).includes('vendor');
+  const isAdmin = (userProfileData?.roles || []).includes('admin');
 
   return (
     <DropdownMenu>

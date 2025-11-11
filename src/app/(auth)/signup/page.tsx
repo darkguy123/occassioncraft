@@ -138,14 +138,6 @@ export default function SignupPage() {
           };
           setDocumentNonBlocking(vendorRef, vendorData, { merge: true });
           
-          // Also create a wallet for the vendor
-           const walletRef = doc(firestore, "wallets", user.uid);
-           const walletData = {
-                id: user.uid,
-                balance: 0,
-                currency: 'USD',
-           };
-           setDocumentNonBlocking(walletRef, walletData, { merge: true });
         }
       }
 

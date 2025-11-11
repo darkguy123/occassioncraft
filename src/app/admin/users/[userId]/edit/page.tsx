@@ -68,7 +68,7 @@ export default function EditUserPage() {
   }
 
   const onSubmit = (data: UserFormValues) => {
-    if (!userRef) return;
+    if (!userRef || !firestore) return;
     
     updateDocumentNonBlocking(userRef, data);
     
