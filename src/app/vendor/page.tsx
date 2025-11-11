@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Check, Star, Zap } from "lucide-react";
 import Link from "next/link";
+import { useUser } from "@/firebase";
 
 const pricingTiers = [
   {
@@ -54,6 +55,8 @@ const pricingTiers = [
 ];
 
 export default function VendorLandingPage() {
+  const { user } = useUser();
+
   return (
     <div className="bg-background text-foreground">
       {/* Hero Section */}
@@ -61,10 +64,15 @@ export default function VendorLandingPage() {
         <div className="container px-4">
           <h1 className="text-4xl md:text-6xl font-headline font-bold">Turn Your Events into Opportunities</h1>
           <p className="mt-4 text-lg md:text-xl max-w-3xl mx-auto text-muted-foreground">The ultimate platform to create, manage, and grow your events. Reach more people and sell more tickets with OccasionCraft.</p>
-          <div className="mt-8">
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button size="lg" asChild>
-                <Link href="/signup">Become a Vendor Today</Link>
+                <Link href={user ? "/vendor/register" : "/signup"}>Become a Vendor Today</Link>
             </Button>
+            {user && (
+                 <Button size="lg" variant="outline" asChild>
+                    <Link href="/vendor/register">Register Your Business</Link>
+                 </Button>
+            )}
           </div>
         </div>
       </section>
@@ -131,7 +139,7 @@ export default function VendorLandingPage() {
                     ))}
                   </ul>
                   <Button asChild className="w-full mt-auto" variant={tier.variant as any} size="lg">
-                    <Link href="/signup">{tier.cta}</Link>
+                    <Link href={user ? "/vendor/register" : "/signup"}>{tier.cta}</Link>
                   </Button>
                 </CardContent>
               </Card>
@@ -147,7 +155,7 @@ export default function VendorLandingPage() {
                 <h2 className="text-3xl font-headline font-bold">Ready to launch your next event?</h2>
                 <p className="mt-2 text-muted-foreground mb-6">Join hundreds of successful creators on our platform.</p>
                 <Button size="lg" asChild>
-                    <Link href="/signup">Sign Up for Free</Link>
+                    <Link href={user ? "/vendor/register" : "/signup"}>Sign Up for Free</Link>
                 </Button>
             </div>
         </section>
