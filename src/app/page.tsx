@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Globe, Music, Palette, Code, Utensils, Award, MapPin } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
 
 const categoryIcons = {
   All: Globe,
@@ -20,6 +21,7 @@ const categoryIcons = {
 const categories = ['All', 'Music', 'Arts', 'Tech', 'Food', 'Sports'] as const;
 
 export default function Home() {
+  const [showLocationSearch, setShowLocationSearch] = useState(false);
   const defaultHeroImage = {
       imageUrl: 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2F67e206b7d52d22580e4ec0d8_890.jpg?alt=media&token=c0a35579-2cdf-4d20-9aa9-6163ff95eddf',
       imageHint: 'concert stage lights'
@@ -60,15 +62,30 @@ export default function Home() {
             transition={{ duration: 0.5, delay: 0.4 }}
             className="mt-8 w-full max-w-3xl bg-white/90 backdrop-blur-sm p-4 rounded-lg shadow-2xl"
           >
-            <div className="flex flex-col md:flex-row gap-2">
-              <div className="relative flex-grow">
+            <div className="flex flex-col md:flex-row items-center gap-2">
+              <div className="relative flex-grow w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input placeholder="Search events..." className="pl-10 text-base" />
               </div>
-               <div className="relative flex-grow">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input placeholder="Search by location..." className="pl-10 text-base" />
-              </div>
+              <AnimatePresence>
+                {showLocationSearch && (
+                   <motion.div
+                      key="location-input"
+                      initial={{ width: 0, opacity: 0 }}
+                      animate={{ width: 'auto', opacity: 1 }}
+                      exit={{ width: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="relative flex-grow w-full overflow-hidden"
+                    >
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Input placeholder="Search by location..." className="pl-10 text-base w-full" autoFocus onBlur={() => setShowLocationSearch(false)} />
+                    </motion.div>
+                )}
+              </AnimatePresence>
+               <Button variant="ghost" size="icon" className="text-muted-foreground hover:bg-transparent" onClick={() => setShowLocationSearch(!showLocationSearch)}>
+                    <MapPin className="h-5 w-5" />
+                    <span className="sr-only">Search by location</span>
+                </Button>
               <Button size="lg" className="font-bold">
                 <Search className="mr-2 h-5 w-5" />
                 Find Events
