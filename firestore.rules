@@ -16,6 +16,7 @@
  * Key Security Decisions:
  * - Users and vendors can only create, read, update, and delete their own profiles and associated resources (events, tickets).
  * - Admins have read/write access to all vendor, event, category, and ticket template data.
+ * - Admins are implicitly considered vendors and can perform all vendor actions.
  * - Public read access is granted to the `/categories` and `/ticket_templates` collections.
  * - Listing of user and vendor documents is disallowed.
  *
@@ -119,7 +120,7 @@ service cloud.firestore {
     /**
      * @description Rule for events created by vendors.
      * @path /vendors/{vendorId}/events/{eventId}
-     * @allow (create) Vendor with matching vendorId can create an event under their profile, vendorId matches document.vendorId.
+     * @allow (create) Vendor with matching vendorId can create an event under their profile, vendorId matches document.vendorId. Admins can also create events.
      * @deny (create) Vendor tries to create an event under another vendor's profile.
      * @allow (get) Vendor with matching vendorId can read their events. Admin can read any event.
      * @deny (get) Vendor tries to read another vendor's events.
@@ -131,7 +132,7 @@ service cloud.firestore {
     match /vendors/{vendorId}/events/{eventId} {
       allow get: if isVendorOwner(vendorId) || isAdmin();
       allow list: if isVendorOwner(vendorId) || isAdmin();
-      allow create: if isVendorOwner(vendorId) && request.resource.data.vendorId == vendorId;
+      allow create: if (isVendorOwner(vendorId) || isAdmin()) && request.resource.data.vendorId == vendorId;
       allow update: if isExistingVendorOwner(vendorId) || isAdmin();
       allow delete: if isExistingVendorOwner(vendorId) || isAdmin();
     }

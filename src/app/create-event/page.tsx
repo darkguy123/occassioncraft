@@ -56,7 +56,13 @@ export default function CreateEventPage() {
     return doc(firestore, 'vendors', user.uid);
   }, [firestore, user]);
 
+  const adminRoleRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'roles_admin', user.uid);
+  }, [firestore, user]);
+
   const { data: vendorData, isLoading: isVendorLoading } = useDoc<Vendor>(vendorRef);
+  const { data: adminRole, isLoading: isAdminLoading } = useDoc(adminRoleRef);
   
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema.pick(
@@ -98,7 +104,7 @@ export default function CreateEventPage() {
   const handlePrev = () => {
     if (currentStep > 0) {
       setDirection(-1);
-      setCurrentStep(prev => prev - 1);
+      setCurrentStep(prev => prev + 1);
     }
   };
   
@@ -107,15 +113,16 @@ export default function CreateEventPage() {
     // Final submission logic
   };
 
-  const isLoading = isUserLoading || isVendorLoading;
+  const isLoading = isUserLoading || isVendorLoading || isAdminLoading;
+  const isAuthorized = (vendorData && vendorData.status === 'approved') || adminRole;
 
   useEffect(() => {
-    if (!isLoading && (!vendorData || vendorData.status !== 'approved')) {
+    if (!isLoading && !isAuthorized) {
       router.push('/vendor');
     }
-  }, [isLoading, vendorData, router]);
+  }, [isLoading, isAuthorized, router]);
 
-  if (isLoading || !vendorData || vendorData.status !== 'approved') {
+  if (isLoading || !isAuthorized) {
     return (
         <div className="flex items-center justify-center min-h-screen">
           <div className="space-y-4 w-full max-w-md p-8">

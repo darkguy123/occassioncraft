@@ -61,6 +61,8 @@ export function UserNav() {
   const avatarImageSrc = userProfileData?.profileImageUrl || user?.photoURL;
   const avatarFallback = user?.displayName?.split(' ').map(n => n[0]).join('') || user?.email?.[0].toUpperCase() || 'U';
 
+  const isVendorOrAdmin = (!isVendorLoading && vendorData?.status === 'approved') || (!isAdminLoading && adminRole);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -92,7 +94,7 @@ export function UserNav() {
               <span>My Tickets</span>
             </Link>
           </DropdownMenuItem>
-          {!isVendorLoading && vendorData?.status === 'approved' && (
+          {isVendorOrAdmin && (
             <DropdownMenuItem asChild>
               <Link href="/vendor/dashboard">
                 <LayoutDashboard className="mr-2 h-4 w-4" />
