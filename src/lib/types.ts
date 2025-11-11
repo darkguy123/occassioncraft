@@ -1,7 +1,5 @@
 
 
-// All custom types have been cleared as part of the project reset.
-
 export type UserRole = 'user' | 'vendor' | 'admin';
 
 export type User = {
@@ -12,4 +10,22 @@ export type User = {
     roles: UserRole[];
     profileImageUrl?: string;
     dateJoined?: string;
+};
+
+export type Event = {
+  id: string;
+  name: string;
+  date: string; // ISO 8601 string
+  location: string;
+  organizer: string;
+  imageUrl: string;
+  imageHint: string;
+  category: string;
+  price: number;
+};
+
+export type UserTicket = {
+  ticketId: string;
+  eventId: string;
+  purchaseDate: string; // ISO 8601 string
 };
