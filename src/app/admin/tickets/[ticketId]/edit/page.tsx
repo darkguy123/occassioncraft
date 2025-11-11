@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useRouter, notFound } from 'next/navigation';
+import { useRouter, notFound, useParams } from 'next/navigation';
 import { useEffect, useState } from "react";
 import { Save } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -24,7 +24,9 @@ const ticketFormSchema = z.object({
 
 type TicketFormValues = z.infer<typeof ticketFormSchema>;
 
-export default function EditTicketPage({ params }: { params: { ticketId: string } }) {
+export default function EditTicketPage() {
+  const params = useParams<{ ticketId: string }>();
+  const ticketId = params.ticketId;
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
@@ -43,7 +45,7 @@ export default function EditTicketPage({ params }: { params: { ticketId: string 
   useEffect(() => {
     const findTicket = async () => {
         if(!firestore) return;
-        const ticketsQuery = query(collectionGroup(firestore, 'tickets'), where('id', '==', params.ticketId));
+        const ticketsQuery = query(collectionGroup(firestore, 'tickets'), where('id', '==', ticketId));
         const querySnapshot = await getDocs(ticketsQuery);
         if(!querySnapshot.empty) {
             const ticketDoc = querySnapshot.docs[0];
@@ -53,7 +55,7 @@ export default function EditTicketPage({ params }: { params: { ticketId: string 
         }
     }
     findTicket();
-  }, [firestore, params.ticketId]);
+  }, [firestore, ticketId]);
 
   const form = useForm<TicketFormValues>({
     resolver: zodResolver(ticketFormSchema),

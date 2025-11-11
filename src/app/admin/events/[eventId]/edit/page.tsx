@@ -10,8 +10,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { notFound, useRouter } from 'next/navigation'
-import { useEffect } from "react"
+import { notFound, useRouter, useParams } from 'next/navigation'
+import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { CalendarIcon, DollarSign, Save } from "lucide-react"
@@ -34,7 +34,9 @@ const eventFormSchema = z.object({
 
 type EventFormValues = z.infer<typeof eventFormSchema>;
 
-export default function EditEventPage({ params }: { params: { eventId: string } }) {
+export default function EditEventPage() {
+  const params = useParams<{ eventId: string }>();
+  const eventId = params.eventId;
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
@@ -47,7 +49,7 @@ export default function EditEventPage({ params }: { params: { eventId: string } 
       if (!firestore) return;
       const eventsQuery = query(
         collectionGroup(firestore, 'events'),
-        where('id', '==', params.eventId)
+        where('id', '==', eventId)
       );
       const querySnapshot = await getDocs(eventsQuery);
       if (!querySnapshot.empty) {
@@ -58,7 +60,7 @@ export default function EditEventPage({ params }: { params: { eventId: string } 
       }
     };
     findEvent();
-  }, [firestore, params.eventId]);
+  }, [firestore, eventId]);
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useRouter, notFound } from 'next/navigation';
+import { useRouter, notFound, useParams } from 'next/navigation';
 import { useEffect } from "react";
 import { Save } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -25,15 +25,17 @@ const vendorFormSchema = z.object({
 
 type VendorFormValues = z.infer<typeof vendorFormSchema>;
 
-export default function EditVendorPage({ params }: { params: { vendorId: string } }) {
+export default function EditVendorPage() {
+  const params = useParams<{ vendorId: string }>();
+  const vendorId = params.vendorId;
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
 
   const vendorRef = useMemoFirebase(() => {
-    if (!firestore || !params.vendorId) return null;
-    return doc(firestore, 'vendors', params.vendorId);
-  }, [firestore, params.vendorId]);
+    if (!firestore || !vendorId) return null;
+    return doc(firestore, 'vendors', vendorId);
+  }, [firestore, vendorId]);
 
   const { data: vendor, isLoading, error } = useDoc<Vendor>(vendorRef);
 

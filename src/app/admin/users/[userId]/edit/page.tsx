@@ -6,7 +6,7 @@ import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useRouter, notFound } from 'next/navigation';
+import { useRouter, notFound, useParams } from 'next/navigation';
 import { useEffect } from "react";
 import { Save } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -25,15 +25,17 @@ const userFormSchema = z.object({
 
 type UserFormValues = z.infer<typeof userFormSchema>;
 
-export default function EditUserPage({ params }: { params: { userId: string } }) {
+export default function EditUserPage() {
+  const params = useParams<{ userId: string }>();
+  const userId = params.userId;
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
 
   const userRef = useMemoFirebase(() => {
-    if (!firestore || !params.userId) return null;
-    return doc(firestore, 'users', params.userId);
-  }, [firestore, params.userId]);
+    if (!firestore || !userId) return null;
+    return doc(firestore, 'users', userId);
+  }, [firestore, userId]);
 
   const { data: user, isLoading, error } = useDoc<User>(userRef);
 
