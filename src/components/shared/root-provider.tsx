@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Header } from '@/components/shared/header';
@@ -11,7 +12,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 
 function Favicon() {
-    const [faviconUrl, setFaviconUrl] = useState("/favicon.png");
+    const [faviconUrl, setFaviconUrl] = useState<string | null>(null);
     const [hasMounted, setHasMounted] = useState(false);
 
     useEffect(() => {
@@ -26,7 +27,7 @@ function Favicon() {
             if (savedFavicon) {
                 setFaviconUrl(savedFavicon);
             } else {
-                setFaviconUrl('/favicon.png');
+                setFaviconUrl('/favicon.png'); 
             }
         };
 
@@ -40,9 +41,9 @@ function Favicon() {
         return () => window.removeEventListener('storage', handleStorageChange);
     }, [hasMounted]);
 
-    if (!hasMounted) {
-      // Render nothing on the server to prevent hydration mismatch
-      return null;
+    if (!hasMounted || !faviconUrl) {
+      // Render fallback on the server and during initial client render
+      return <link rel="icon" href="/favicon.png" />;
     }
 
     return <link rel="icon" href={faviconUrl} />;

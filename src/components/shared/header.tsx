@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -14,7 +15,7 @@ import { PlusCircle } from 'lucide-react';
 export function Header() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const [logoUrl, setLogoUrl] = useState<string>('/assets/logo.png');
+  const [logoUrl, setLogoUrl] = useState<string>('https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2FUntitled-1.png?alt=media&token=1703bbc0-e6e4-4fc5-a019-090af2fa7cd9');
   const [hasMounted, setHasMounted] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
@@ -36,7 +37,7 @@ export function Header() {
       if (savedLogo) {
         setLogoUrl(savedLogo);
       } else {
-        setLogoUrl('/assets/logo.png');
+        setLogoUrl('https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2FUntitled-1.png?alt=media&token=1703bbc0-e6e4-4fc5-a019-090af2fa7cd9');
       }
     };
 
