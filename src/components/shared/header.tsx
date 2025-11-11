@@ -15,40 +15,41 @@ export function Header() {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    // This hook runs only on the client, after the initial render.
     setIsClient(true);
   }, []);
 
   useEffect(() => {
-    if (!isClient) return;
-
+    if (!isClient) {
+        // Don't run this on the server or during the first client render.
+        return;
+    }
+    
     const updateLogo = () => {
       const savedLogo = localStorage.getItem('websiteLogo');
+      // If a custom logo exists in localStorage, update the state.
+      // Otherwise, it will keep the default '/assets/logo.png'.
       if (savedLogo) {
         setLogoUrl(savedLogo);
-      } else {
-        setLogoUrl('/assets/logo.png');
       }
     };
 
-    updateLogo();
+    updateLogo(); // Check for the logo as soon as the client is ready.
 
+    // Listen for changes from the admin settings page.
     window.addEventListener('storage', updateLogo);
 
     return () => {
       window.removeEventListener('storage', updateLogo);
     };
-  }, [isClient]);
+  }, [isClient]); // This effect depends on the client being ready.
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
         <div className="mr-4 flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            {isClient && logoUrl ? (
-                <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" />
-              ) : (
-                <Ticket className="h-6 w-6 text-primary" />
-            )}
+            <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" />
           </Link>
           <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
             <Link href="/" className="transition-colors hover:text-foreground/80 text-foreground/60">
