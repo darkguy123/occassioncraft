@@ -4,8 +4,6 @@ import { Header } from '@/components/shared/header';
 import { Footer } from '@/components/shared/footer';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
-import { LoaderProvider } from '@/context/loader-context';
-import { PageLoader } from '@/components/shared/page-loader';
 import { NavigationEvents } from '@/components/shared/navigation-events';
 import { Suspense, useState, useEffect } from 'react';
 import { ThemeProvider } from '@/context/theme-provider';
@@ -64,7 +62,6 @@ export function RootProvider({ children }: { children: React.ReactNode }) {
              <Favicon />
           </Suspense>
           <FirebaseClientProvider>
-            <LoaderProvider>
               <Header />
               <main className="flex-grow">
                 {hasMounted ? (
@@ -86,11 +83,9 @@ export function RootProvider({ children }: { children: React.ReactNode }) {
               </main>
               <Footer />
               <Toaster />
-              <PageLoader />
               <Suspense fallback={null}>
                 <NavigationEvents />
               </Suspense>
-            </LoaderProvider>
           </FirebaseClientProvider>
         </ThemeProvider>
     );
