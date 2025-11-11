@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
@@ -21,11 +22,19 @@ export default function AdminLayout({
     if (!user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
+  
+  const adminRoleDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'roles_admin', user.uid);
+  }, [firestore, user]);
 
   const { data: userData, isLoading: isUserDataLoading } = useDoc<User>(userDocRef);
+  const { data: adminRoleData, isLoading: isAdminRoleLoading } = useDoc(adminRoleDocRef);
 
-  const isLoading = isUserLoading || isUserDataLoading;
-  const isAdmin = (userData?.roles || []).includes('admin');
+  const isLoading = isUserLoading || isUserDataLoading || isAdminRoleLoading;
+  const isAdminByRole = (userData?.roles || []).includes('admin');
+  const isAdminByCollection = !!adminRoleData;
+  const isAdmin = isAdminByRole || isAdminByCollection;
 
   useEffect(() => {
     if (isLoading) return;
