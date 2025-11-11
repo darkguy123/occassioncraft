@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { updateProfile, getAuth, updateEmail } from 'firebase/auth';
 import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Edit, Upload } from 'lucide-react';
 import { ImageCropperDialog } from '@/components/shared/image-cropper-dialog';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required."),
@@ -76,7 +77,7 @@ export default function ProfileSettingsPage() {
 
   const uploadCroppedImage = async (uid: string, dataUrl: string) => {
     const storage = getStorage();
-    const storageRef = ref(storage, `avatars/${uid}/profile.png`);
+    const storageRef = ref(storage, `users/${uid}/profile.jpg`);
     await uploadString(storageRef, dataUrl, 'data_url');
     return getDownloadURL(storageRef);
   };
@@ -84,7 +85,7 @@ export default function ProfileSettingsPage() {
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user || !userRef) return;
     
-    let photoURL = user.photoURL;
+    let photoURL = userData?.profileImageUrl || user.photoURL;
 
     try {
       if (croppedAvatarUrl) {
@@ -184,7 +185,7 @@ export default function ProfileSettingsPage() {
                 <div className="flex items-center gap-6">
                      <div className="relative group">
                         <Avatar className="h-24 w-24">
-                            <AvatarImage src={croppedAvatarUrl || user?.photoURL || ''} />
+                            <AvatarImage src={croppedAvatarUrl || userData?.profileImageUrl || user?.photoURL || ''} />
                             <AvatarFallback>
                                 {userData?.firstName?.[0]}{userData?.lastName?.[0]}
                             </AvatarFallback>
@@ -254,3 +255,5 @@ export default function ProfileSettingsPage() {
     </>
   );
 }
+
+    
