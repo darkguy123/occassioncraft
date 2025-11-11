@@ -73,14 +73,12 @@ export function UserNav() {
               <span>My Tickets</span>
             </Link>
           </DropdownMenuItem>
-           {isVendor && (
-            <DropdownMenuItem asChild>
+           <DropdownMenuItem asChild>
               <Link href="/wallet">
                 <Wallet className="mr-2 h-4 w-4" />
                 <span>Wallet</span>
               </Link>
             </DropdownMenuItem>
-          )}
           {isVendor && (
             <DropdownMenuItem asChild>
               <Link href="/vendor/dashboard">
