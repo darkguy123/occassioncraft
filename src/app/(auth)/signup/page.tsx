@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Ticket } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 
 export default function SignupPage() {
   return (
@@ -40,6 +41,15 @@ export default function SignupPage() {
             <div className="grid gap-2">
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox id="terms" required />
+              <Label htmlFor="terms" className="text-sm font-normal">
+                I agree to the{" "}
+                <Link href="/privacy" className="underline underline-offset-4 hover:text-primary">
+                  Privacy Policy
+                </Link>
+              </Label>
             </div>
             <Button type="submit" className="w-full">
               Create an account
