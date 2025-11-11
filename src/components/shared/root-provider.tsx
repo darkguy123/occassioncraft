@@ -13,8 +13,15 @@ import { ThemeProvider } from '@/context/theme-provider';
 
 function Favicon() {
     const [faviconUrl, setFaviconUrl] = useState("/favicon.png");
+    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    useEffect(() => {
+        if (!isClient) return;
+
         const loadFavicon = () => {
             const savedFavicon = localStorage.getItem('websiteFavicon');
             if (savedFavicon) {
@@ -32,9 +39,11 @@ function Favicon() {
 
         window.addEventListener('storage', handleStorageChange);
         return () => window.removeEventListener('storage', handleStorageChange);
-    }, []);
+    }, [isClient]);
 
-    return <link rel="icon" href={faviconUrl} />;
+    const currentFavicon = isClient ? faviconUrl : '/favicon.png';
+
+    return <link rel="icon" href={currentFavicon} />;
 }
 
 export function RootProvider({ children }: { children: React.ReactNode }) {
