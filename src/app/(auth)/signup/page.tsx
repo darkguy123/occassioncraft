@@ -156,7 +156,7 @@ export default function SignupPage() {
             companyName: data.companyName,
             description: data.companyDescription,
             contactEmail: data.email,
-            status: 'approved', // Defaulting to approved for simplicity
+            status: 'pending', // Default to pending for vendors
           };
           setDocumentNonBlocking(vendorRef, vendorData, { merge: true });
         }
