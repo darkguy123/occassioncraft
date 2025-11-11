@@ -26,23 +26,38 @@ export default function VendorDashboardPage() {
         return doc(firestore, 'vendors', user.uid);
     }, [firestore, user]);
 
+    const adminRoleRef = useMemoFirebase(() => {
+        if (!user) return null;
+        return doc(firestore, 'roles_admin', user.uid);
+    }, [firestore, user]);
+
     const { data: vendorData, isLoading: isVendorLoading } = useDoc<Vendor>(vendorRef);
+    const { data: adminRole, isLoading: isAdminLoading } = useDoc(adminRoleRef);
 
     const totalRevenue = vendorEvents.reduce((acc, event) => acc + event.revenue, 0);
     const totalTicketsSold = vendorEvents.reduce((acc, event) => acc + event.ticketsSold, 0);
 
-    const isLoading = isUserLoading || isVendorLoading;
+    const isLoading = isUserLoading || isVendorLoading || isAdminLoading;
+    const isAuthorized = (vendorData && vendorData.status === 'approved') || !!adminRole;
+
 
     useEffect(() => {
-        // Redirect non-logged-in users or non-approved-vendors after loading has finished
-        if (!isLoading && (!vendorData || vendorData.status !== 'approved')) {
-            // Special case: if vendor data exists but status is pending, stay on this page
-            if (vendorData && vendorData.status === 'pending') {
-                return;
-            }
+        if (isLoading) {
+            return; // Wait for all data to load
+        }
+        
+        if (!user) {
+            router.push('/login');
+            return;
+        }
+
+        // If data has loaded and user is neither an approved vendor nor an admin,
+        // and also not a pending vendor, then redirect.
+        if (!isAuthorized && vendorData?.status !== 'pending') {
             router.push('/vendor');
         }
-    }, [isLoading, vendorData, router]);
+
+    }, [isLoading, user, isAuthorized, vendorData, router]);
 
     if (isLoading) {
         return (
@@ -78,10 +93,10 @@ export default function VendorDashboardPage() {
     }
 
     // This check handles the case where the redirect hasn't happened yet
-    if (!vendorData || vendorData.status !== 'approved') {
+    if (!isAuthorized) {
         return (
             <div className="container mx-auto py-12 px-4 text-center">
-                <p>Loading or redirecting...</p>
+                <p>Verifying permissions...</p>
            </div>
         );
     }
