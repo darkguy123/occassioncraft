@@ -1,3 +1,4 @@
+
 /**
  * @file Firebase Security Rules for Firestore.
  *
@@ -132,7 +133,7 @@ service cloud.firestore {
      */
      match /vendors/{vendorId}/events/{eventId} {
       allow get: if resource.data.status == 'approved' || isVendorOwner(vendorId) || isAdmin();
-      allow list: if isVendorOwner(vendorId) || isAdmin();
+      allow list: if isAdmin() || isVendorOwner(vendorId);
       allow create: if (isVendorOwner(vendorId) || isAdmin()) && request.resource.data.vendorId == vendorId;
       allow update: if (isVendorOwner(vendorId) || isAdmin());
       allow delete: if (isVendorOwner(vendorId) || isAdmin());
@@ -233,5 +234,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
