@@ -12,10 +12,13 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import type { Vendor } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRouter } from 'next/navigation';
+import { useEffect } from "react";
 
 export default function VendorDashboardPage() {
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
+    const router = useRouter();
 
     const vendorRef = useMemoFirebase(() => {
         if (!user) return null;
@@ -28,6 +31,13 @@ export default function VendorDashboardPage() {
     const totalTicketsSold = vendorEvents.reduce((acc, event) => acc + event.ticketsSold, 0);
 
     const isLoading = isUserLoading || isVendorLoading;
+
+    useEffect(() => {
+        // Redirect non-logged-in users or non-vendors after loading has finished
+        if (!isLoading && !vendorData) {
+            router.push('/vendor');
+        }
+    }, [isLoading, vendorData, router]);
 
     if (isLoading) {
         return (
@@ -44,23 +54,11 @@ export default function VendorDashboardPage() {
     }
 
     if (!vendorData) {
+         // This will be briefly visible before the redirect kicks in.
+         // You could also show a full-page loader here.
          return (
              <div className="container mx-auto py-12 px-4 text-center">
-                 <Card className="max-w-lg mx-auto">
-                     <CardHeader>
-                        <AlertTriangle className="mx-auto h-12 w-12 text-amber-500" />
-                         <CardTitle className="text-2xl">Become a Vendor</CardTitle>
-                         <CardDescription>
-                            It looks like you haven't registered as a vendor yet.
-                         </CardDescription>
-                     </CardHeader>
-                     <CardContent>
-                         <p className="mb-4">To create and manage events, you need to sign up as a vendor.</p>
-                         <Button asChild>
-                             <Link href="/signup">Sign Up as a Vendor</Link>
-                         </Button>
-                     </CardContent>
-                 </Card>
+                 <p>Redirecting...</p>
             </div>
          );
     }
