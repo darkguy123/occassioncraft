@@ -6,13 +6,23 @@ import { Button } from '@/components/ui/button';
 import { UserNav } from './user-nav';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import type { User } from '@/lib/types';
+import { doc } from 'firebase/firestore';
 import { Notifications } from './notifications';
 
 export function Header() {
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const [logoUrl, setLogoUrl] = useState<string>('/assets/logo.png');
   const [hasMounted, setHasMounted] = useState(false);
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userData } = useDoc<User>(userDocRef);
 
   useEffect(() => {
     setHasMounted(true);
@@ -39,6 +49,8 @@ export function Header() {
     };
   }, [hasMounted]);
 
+  const isVendor = (userData?.roles || []).includes('vendor');
+
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
@@ -55,9 +67,15 @@ export function Header() {
             <Link href="/events" className="transition-colors hover:text-foreground/80 text-foreground/60">
               Discover Events
             </Link>
-            <Link href="/vendor" className="transition-colors hover:text-foreground/80 text-foreground/60">
-              Host Your Event
-            </Link>
+            {hasMounted && isVendor ? (
+                <Link href="/vendor/dashboard" className="transition-colors hover:text-foreground/80 text-foreground/60">
+                    My Dashboard
+                </Link>
+            ) : (
+                 <Link href="/vendor" className="transition-colors hover:text-foreground/80 text-foreground/60">
+                    Host Your Event
+                </Link>
+            )}
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-end space-x-2">
@@ -82,3 +100,4 @@ export function Header() {
     </header>
   );
 }
+
