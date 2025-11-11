@@ -5,7 +5,8 @@ import { SignupSchema } from "@/app/(auth)/signup/page";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
 
 interface StepProps {
     form: UseFormReturn<SignupSchema>;
@@ -14,6 +15,7 @@ interface StepProps {
 
 export function Step1AccountDetails({ form, onNext }: StepProps) {
     const { register, formState: { errors }, watch } = form;
+    const [showPassword, setShowPassword] = useState(false);
 
     const isStepValid = watch('fullName') && watch('email') && watch('password') && !errors.fullName && !errors.email && !errors.password;
 
@@ -53,9 +55,18 @@ export function Step1AccountDetails({ form, onNext }: StepProps) {
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Password</FormLabel>
-                            <FormControl>
-                                <Input type="password" {...field} />
-                            </FormControl>
+                             <div className="relative">
+                                <FormControl>
+                                    <Input type={showPassword ? "text" : "password"} {...field} />
+                                </FormControl>
+                                 <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground"
+                                    >
+                                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                </button>
+                            </div>
                              <FormMessage />
                         </FormItem>
                     )}
