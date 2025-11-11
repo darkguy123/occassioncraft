@@ -27,7 +27,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <section className="relative w-full h-[60vh] text-white">
+      <section className="relative w-full h-[80vh] text-white">
         <Image
           src={defaultHeroImage.imageUrl}
           alt="Hero Banner"
