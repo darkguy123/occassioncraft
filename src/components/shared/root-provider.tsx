@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Header } from '@/components/shared/header';
@@ -18,6 +19,8 @@ function Favicon() {
             const savedFavicon = localStorage.getItem('websiteFavicon');
             if (savedFavicon) {
                 setFaviconUrl(savedFavicon);
+            } else {
+                setFaviconUrl('/favicon.ico');
             }
         };
 
