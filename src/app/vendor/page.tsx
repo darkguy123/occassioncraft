@@ -3,12 +3,12 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Check, Star, Zap } from "lucide-react";
+import { Check, Star, Zap, ArrowDown } from "lucide-react";
 import Link from "next/link";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from 'firebase/firestore';
 import type { User } from '@/lib/types';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { VendorApplicationDialog } from "@/components/vendor/application-dialog";
 
 const pricingTiers = [
@@ -63,6 +63,7 @@ export default function VendorLandingPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const [isApplicationOpen, setIsApplicationOpen] = useState(false);
+  const pricingRef = useRef<HTMLElement>(null);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -72,17 +73,23 @@ export default function VendorLandingPage() {
   const { data: userData } = useDoc<User>(userDocRef);
   const isVendor = userData?.roles?.includes('vendor');
 
+  const handleScrollToPricing = () => {
+    pricingRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   const CtaButton = ({tier}: { tier?: typeof pricingTiers[number] }) => {
+    const isFullWidth = !!tier;
+
     if (isUserLoading) {
-      return <Button size="lg" disabled className="w-full">Loading...</Button>
+      return <Button size="lg" disabled className={isFullWidth ? "w-full" : ""}>Loading...</Button>
     }
     if (user && isVendor) {
-      return <Button size="lg" asChild variant={tier?.variant as any} className="w-full"><Link href="/vendor/dashboard">Go to Dashboard</Link></Button>
+      return <Button size="lg" asChild variant={tier?.variant as any} className={isFullWidth ? "w-full" : ""}><Link href="/vendor/dashboard">Go to Dashboard</Link></Button>
     }
     if (user && !isVendor) {
-      return <Button size="lg" variant={tier?.variant as any} className="w-full" onClick={() => setIsApplicationOpen(true)}>{tier ? tier.cta : 'Apply Now'}</Button>
+      return <Button size="lg" variant={tier?.variant as any} className={isFullWidth ? "w-full" : ""} onClick={() => setIsApplicationOpen(true)}>{tier ? tier.cta : 'Apply Now'}</Button>
     }
-    return <Button size="lg" asChild variant={tier?.variant as any} className="w-full"><Link href="/signup">{tier ? tier.cta : 'Become a Vendor Today'}</Link></Button>
+    return <Button size="lg" asChild variant={tier?.variant as any} className={isFullWidth ? "w-full" : ""}><Link href="/signup">{tier ? tier.cta : 'Become a Vendor Today'}</Link></Button>
   }
 
 
@@ -97,6 +104,10 @@ export default function VendorLandingPage() {
             <p className="mt-4 text-lg md:text-xl max-w-3xl mx-auto text-muted-foreground">The ultimate platform to create, manage, and grow your events. Reach more people and sell more tickets with OccasionCraft.</p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
               <CtaButton />
+              <Button size="lg" variant="outline" onClick={handleScrollToPricing}>
+                <ArrowDown className="mr-2 h-4 w-4" />
+                View Pricing
+              </Button>
             </div>
           </div>
         </section>
@@ -129,7 +140,7 @@ export default function VendorLandingPage() {
         </section>
 
         {/* Pricing Section */}
-        <section className="py-20 md:py-32">
+        <section ref={pricingRef} className="py-20 md:py-32">
           <div className="container px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-headline font-bold">Choose Your Plan</h2>
