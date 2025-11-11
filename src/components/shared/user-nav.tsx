@@ -12,26 +12,35 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { LayoutDashboard, Users, User, LogOut, Ticket, Shield } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useAuth, useUser } from '@/firebase';
 
 
 export function UserNav() {
   const avatarImage = PlaceHolderImages.find(img => img.id === 'user-avatar-1');
+  const auth = useAuth();
+  const { user } = useUser();
+
+  const handleLogout = () => {
+    auth.signOut();
+  }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-9 w-9">
-             {avatarImage && <AvatarImage src={avatarImage.imageUrl} alt="User Avatar" data-ai-hint={avatarImage.imageHint} />}
-            <AvatarFallback>U</AvatarFallback>
+             {user?.photoURL ? <AvatarImage src={user.photoURL} alt="User Avatar" /> : (
+               avatarImage && <AvatarImage src={avatarImage.imageUrl} alt="User Avatar" data-ai-hint={avatarImage.imageHint} />
+             )}
+            <AvatarFallback>{user?.email?.[0].toUpperCase() || 'U'}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">User Name</p>
-            <p className="text-xs leading-none text-muted-foreground">user@example.com</p>
+            <p className="text-sm font-medium leading-none">{user?.displayName || 'User Name'}</p>
+            <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -56,7 +65,7 @@ export function UserNav() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>
@@ -64,3 +73,5 @@ export function UserNav() {
     </DropdownMenu>
   );
 }
+
+    

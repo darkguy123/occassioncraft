@@ -6,9 +6,10 @@ import { UserNav } from './user-nav';
 import { Ticket } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
+import { useUser } from '@/firebase';
 
 export function Header() {
-  const isLoggedIn = true; // Placeholder for authentication state
+  const { user, isUserLoading } = useUser();
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -41,20 +42,24 @@ export function Header() {
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-end space-x-4">
-          {isLoggedIn ? (
-            <UserNav />
-          ) : (
-            <>
-              <Button variant="ghost" asChild>
-                <Link href="/login">Log In</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/signup">Sign Up</Link>
-              </Button>
-            </>
+          {!isUserLoading && (
+            user ? (
+              <UserNav />
+            ) : (
+              <>
+                <Button variant="ghost" asChild>
+                  <Link href="/login">Log In</Link>
+                </Button>
+                <Button asChild>
+                  <Link href="/signup">Sign Up</Link>
+                </Button>
+              </>
+            )
           )}
         </div>
       </div>
     </header>
   );
 }
+
+    

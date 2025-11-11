@@ -76,11 +76,11 @@ service cloud.firestore {
      * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false; // Prevent listing all users
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
     }
 
     /**
@@ -96,7 +96,7 @@ service cloud.firestore {
       allow get: if true;
       allow list: if true;
       allow create: if isSignedIn();
-      allow update, delete: if isAdmin();
+      allow update, delete: if isAdmin() || isOwner(resource.data.userId);
     }
 
     /**
@@ -113,8 +113,8 @@ service cloud.firestore {
      */
     match /vendors/{vendorId}/events/{eventId} {
       allow get, list: if true;
-      allow create: if isSignedIn() && request.resource.data.vendorId == vendorId && exists(/databases/$(database)/documents/vendors/$(vendorId));
-      allow update, delete: if (isAdmin() || (isSignedIn() && request.auth.uid == resource.data.vendorId && exists(/databases/$(database)/documents/vendors/$(vendorId))));
+      allow create: if isOwner(request.resource.data.vendorId);
+      allow update, delete: if isAdmin() || isOwner(resource.data.vendorId);
     }
 
     /**
@@ -130,9 +130,9 @@ service cloud.firestore {
      * @principle Enforces user ownership for ticket management.
      */
     match /users/{userId}/tickets/{ticketId} {
-      allow get, list: if isOwner(userId);
+      allow get, list: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update, delete: if isExistingOwner(userId) && request.resource.data.userId == userId;
+      allow update, delete: if isOwner(userId) || isAdmin();
     }
 
     /**
@@ -145,10 +145,8 @@ service cloud.firestore {
      * @principle Restricts admin role management to existing admins.
      */
     match /roles_admin/{userId} {
-      allow get, list: if isAdmin();
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow get, list, create, update, delete: if isAdmin();
     }
   }
 }
+    
