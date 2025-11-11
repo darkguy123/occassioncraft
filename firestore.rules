@@ -39,17 +39,12 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Check if a user owns a document
+    // Check if a user owns a document by matching their UID
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
 
-    // Check if a vendor owns a document
-    function isVendorOwner(vendorId) {
-      return request.auth.uid == vendorId;
-    }
-
-    // Check if the authenticated user is an admin
+    // Check if the authenticated user is an admin by checking for a role document
     function isAdmin() {
       return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
@@ -68,25 +63,28 @@ service cloud.firestore {
      * ────────────────────────────────────────────────
      * 🏢 Vendor Profiles
      * ────────────────────────────────────────────────
-     * Vendors can manage their own profiles.
-     * Admins can read/write any vendor data.
      */
     match /vendors/{vendorId} {
-      allow read, write: if isVendorOwner(vendorId) || isAdmin();
+      allow read, write: if isOwner(vendorId) || isAdmin();
     }
 
     /**
      * ────────────────────────────────────────────────
      * 🎟️ Events (under each vendor)
      * ────────────────────────────────────────────────
-     * - Public can read approved events.
-     * - Vendors manage their own events.
-     * - Admins can manage all events.
      */
     match /vendors/{vendorId}/events/{eventId} {
-      allow get: if resource.data.status == 'approved' || isVendorOwner(vendorId) || isAdmin();
+      // Public can read approved events. Owners and Admins can read any event.
+      allow get: if resource.data.status == 'approved' || isOwner(vendorId) || isAdmin();
+      
+      // Only admins can list all events across all vendors using a collection group query.
       allow list: if isAdmin();
-      allow create, update, delete: if isVendorOwner(vendorId) || isAdmin();
+      
+      // An event can be created if the user is the vendor OR is an admin.
+      allow create: if isOwner(vendorId) || isAdmin();
+
+      // An event can be updated/deleted if the user is the vendor OR is an admin.
+      allow update, delete: if isOwner(vendorId) || isAdmin();
     }
 
     /**
