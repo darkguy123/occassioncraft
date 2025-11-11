@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -49,8 +48,9 @@ export function Header() {
     };
   }, [hasMounted]);
 
-  const isVendor = (userData?.roles || []).includes('vendor');
-
+  const isVendor = userData && (userData.roles || []).includes('vendor');
+  const vendorLinkHref = hasMounted && isVendor ? "/vendor/dashboard" : "/vendor";
+  const vendorLinkText = hasMounted && isVendor ? "My Dashboard" : "Host Your Event";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
@@ -67,15 +67,9 @@ export function Header() {
             <Link href="/events" className="transition-colors hover:text-foreground/80 text-foreground/60">
               Discover Events
             </Link>
-            {hasMounted && isVendor ? (
-                <Link href="/vendor/dashboard" className="transition-colors hover:text-foreground/80 text-foreground/60">
-                    My Dashboard
-                </Link>
-            ) : (
-                 <Link href="/vendor" className="transition-colors hover:text-foreground/80 text-foreground/60">
-                    Host Your Event
-                </Link>
-            )}
+            <Link href={vendorLinkHref} className="transition-colors hover:text-foreground/80 text-foreground/60">
+                {vendorLinkText}
+            </Link>
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-end space-x-2">
@@ -100,4 +94,3 @@ export function Header() {
     </header>
   );
 }
-
