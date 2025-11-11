@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Form } from "@/components/ui/form"
 import { EventPreview } from "@/components/event-preview"
 import { TicketStylePreview } from "@/components/ticket-style-preview"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { Step1Name } from "@/components/create-event/step-1-name";
 import { Step2DateTime } from "@/components/create-event/step-2-datetime";
@@ -16,6 +16,11 @@ import { Step4Details } from "@/components/create-event/step-4-details";
 import { Step5Publish } from "@/components/create-event/step-5-publish";
 import { Progress } from "@/components/ui/progress"
 import { ArrowLeft } from "lucide-react"
+import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import type { Vendor } from "@/lib/types";
+import { doc } from "firebase/firestore";
+import { useRouter } from "next/navigation";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters.").max(100, "Event name must be less than 100 characters."),
@@ -42,6 +47,16 @@ const steps = [
 export default function CreateEventPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(1);
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+  const router = useRouter();
+
+  const vendorRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'vendors', user.uid);
+  }, [firestore, user]);
+
+  const { data: vendorData, isLoading: isVendorLoading } = useDoc<Vendor>(vendorRef);
   
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema.pick(
@@ -91,6 +106,26 @@ export default function CreateEventPage() {
     console.log("Form Submitted", data);
     // Final submission logic
   };
+
+  const isLoading = isUserLoading || isVendorLoading;
+
+  useEffect(() => {
+    if (!isLoading && (!vendorData || vendorData.status !== 'approved')) {
+      router.push('/vendor');
+    }
+  }, [isLoading, vendorData, router]);
+
+  if (isLoading || !vendorData || vendorData.status !== 'approved') {
+    return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="space-y-4 w-full max-w-md p-8">
+            <Skeleton className="h-10 w-3/4" />
+            <Skeleton className="h-14 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        </div>
+    );
+  }
 
   const progress = ((currentStep + 1) / steps.length) * 100;
   const CurrentStepComponent = steps[currentStep].component;
