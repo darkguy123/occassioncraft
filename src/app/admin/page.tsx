@@ -1,8 +1,18 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BarChart, LineChart, PieChart } from 'lucide-react';
-import { Area, AreaChart, Bar, CartesianGrid, Legend, Line, Pie, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { 
+    BarChart, 
+    AreaChart,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    Area,
+    Bar,
+    ResponsiveContainer,
+} from 'recharts';
+
 
 const salesData = [
   { name: 'Jan', revenue: 4000 },
