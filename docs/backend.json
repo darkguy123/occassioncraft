@@ -59,7 +59,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the vendor."
+          "description": "Unique identifier for the vendor, same as the user ID."
         },
         "name": {
           "type": "string",
@@ -223,6 +223,51 @@
         "name",
         "design"
       ]
+    },
+    "Notification": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Notification",
+      "type": "object",
+      "description": "Represents a notification for a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the notification."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user this notification belongs to."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the notification."
+        },
+        "description": {
+          "type": "string",
+          "description": "The main content of the notification."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The timestamp when the notification was created.",
+          "format": "date-time"
+        },
+        "read": {
+          "type": "boolean",
+          "description": "Whether the user has read the notification."
+        },
+        "link": {
+          "type": "string",
+          "description": "An optional link to navigate to when the notification is clicked."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "title",
+        "description",
+        "createdAt",
+        "read"
+      ]
     }
   },
   "auth": {
@@ -352,8 +397,28 @@
             }
           ]
         }
+      },
+      {
+        "path": "/users/{userId}/notifications/{notificationId}",
+        "definition": {
+          "entityName": "Notification",
+          "schema": {
+            "$ref": "#/backend/entities/Notification"
+          },
+          "description": "Stores notifications for a specific user. Notifications are nested under the user's profile for ownership-based access control.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user."
+            },
+            {
+              "name": "notificationId",
+              "description": "The unique ID of the notification."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, adhering to the core design principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). Authorization Independence is achieved through denormalization of authorization-related data, eliminating the need for `get()` calls in security rules. Structural Segregation is applied to ensure homogeneous security postures within collections.  Access Modeling follows consistent patterns for private and collaborative data.\n\nSpecifically:\n\n*   User data is stored under `/users/{userId}` allowing path based ownership.\n*   Vendor data is stored under `/vendors/{vendorId}`, enabling vendor-specific data access controls.\n*   Events are stored under `/vendors/{vendorId}/events/{eventId}` to support the 1:N relationship and enable simple ownership checks.\n*   Tickets are stored under `/users/{userId}/tickets/{ticketId}`, providing strong ownership and simplifies access control.\n*   Admin users are managed via the `/roles_admin/{uid}` collection. The existence of a document at this path grants admin privileges.\n\nThe structure facilitates secure list operations (QAPs) by ensuring that collections contain data with similar access control requirements. For example, only the vendor can list the events under `/vendors/{vendorId}/events/{eventId}`. The admin role can list all vendors and all events."
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, adhering to the core design principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). Authorization Independence is achieved through denormalization of authorization-related data, eliminating the need for `get()` calls in security rules. Structural Segregation is applied to ensure homogeneous security postures within collections.  Access Modeling follows consistent patterns for private and collaborative data.\n\nSpecifically:\n\n*   User data is stored under `/users/{userId}` allowing path based ownership.\n*   Vendor data is stored under `/vendors/{vendorId}`, enabling vendor-specific data access controls.\n*   Events are stored under `/vendors/{vendorId}/events/{eventId}` to support the 1:N relationship and enable simple ownership checks.\n*   Tickets are stored under `/users/{userId}/tickets/{ticketId}`, providing strong ownership and simplifies access control.\n*   Admin users are managed via the `/roles_admin/{uid}` collection. The existence of a document at this path grants admin privileges.\n*   User notifications are stored under `/users/{userId}/notifications/{notificationId}` to ensure privacy and ownership.\n\nThe structure facilitates secure list operations (QAPs) by ensuring that collections contain data with similar access control requirements. For example, only the vendor can list the events under `/vendors/{vendorId}/events/{eventId}`. The admin role can list all vendors and all events."
   }
 }

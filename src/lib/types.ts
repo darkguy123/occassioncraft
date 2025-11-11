@@ -24,9 +24,20 @@ export type VendorEvent = Event & {
 };
 
 export type Vendor = {
+  id: string;
   userId: string;
   companyName: string;
   description?: string;
   contactEmail: string;
   status: 'pending' | 'approved' | 'rejected';
-}
+};
+
+export type Notification = {
+  id: string;
+  userId: string;
+  title: string;
+  description: string;
+  createdAt: string;
+  read: boolean;
+  link?: string;
+};

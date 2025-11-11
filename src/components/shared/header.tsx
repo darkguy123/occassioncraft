@@ -6,10 +6,11 @@ import { UserNav } from './user-nav';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useUser } from '@/firebase';
+import { Notifications } from './notifications';
 
 export function Header() {
   const { user, isUserLoading } = useUser();
-  const [logoUrl, setLogoUrl] = useState<string>('https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2FUntitled-1.png?alt=media&token=1703bbc0-e6e4-4fc5-a019-090af2fa7cd9');
+  const [logoUrl, setLogoUrl] = useState<string>('/assets/logo.png');
   const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
@@ -24,7 +25,7 @@ export function Header() {
       if (savedLogo) {
         setLogoUrl(savedLogo);
       } else {
-        setLogoUrl('https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2FUntitled-1.png?alt=media&token=1703bbc0-e6e4-4fc5-a019-090af2fa7cd9');
+        setLogoUrl('/assets/logo.png');
       }
     };
 
@@ -43,7 +44,7 @@ export function Header() {
       <div className="container flex h-16 items-center">
         <div className="mr-4 flex">
            <Link href="/" className="mr-6 flex items-center space-x-2">
-            {hasMounted ? (
+            {hasMounted && logoUrl ? (
                 <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" />
               ) : (
                 <div style={{ width: 140, height: 32 }} />
@@ -58,10 +59,13 @@ export function Header() {
             </Link>
           </nav>
         </div>
-        <div className="flex flex-1 items-center justify-end space-x-4">
-          {!isUserLoading && (
-            user ? (
-              <UserNav />
+        <div className="flex flex-1 items-center justify-end space-x-2">
+          {!isUserLoading &&
+            (user ? (
+              <>
+                <Notifications />
+                <UserNav />
+              </>
             ) : (
               <>
                 <Button variant="ghost" asChild>
@@ -71,8 +75,7 @@ export function Header() {
                   <Link href="/signup">Sign Up</Link>
                 </Button>
               </>
-            )
-          )}
+            ))}
         </div>
       </div>
     </header>

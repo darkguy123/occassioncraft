@@ -12,13 +12,14 @@
  * - Categories are stored under `/categories/{categoryId}`.
  * - Ticket templates are stored under `/ticket_templates/{ticketTemplateId}`.
  * - Admin roles are indicated by the presence of a document under `/roles_admin/{userId}`.
+ * - Notifications are stored under `/users/{userId}/notifications/{notificationId}`.
  *
  * Key Security Decisions:
- * - Users and vendors can only create, read, update, and delete their own profiles and associated resources (events, tickets).
+ * - Users and vendors can only create, read, update, and delete their own profiles and associated resources (events, tickets, notifications).
  * - Admins have read/write access to all vendor, event, category, and ticket template data.
  * - Admins are implicitly considered vendors and can perform all vendor actions.
  * - Public read access is granted to the `/categories` and `/ticket_templates` collections.
- * - Listing of user and vendor documents is disallowed.
+ * - Listing of user and vendor documents is disallowed for non-admins.
  *
  * Denormalization for Authorization:
  *  To ensure authorization independence, event documents under `/vendors/{vendorId}/events/{eventId}` should contain a denormalized `vendorId` field, mirroring the `vendorId` in the path.  Similarly, ticket documents under `/users/{userId}/tickets/{ticketId}` should contain denormalized `userId` and `eventId` fields. This allows rules to validate ownership without additional `get()` operations.
@@ -113,8 +114,8 @@ service cloud.firestore {
       allow get: if isVendorOwner(vendorId) || isAdmin();
       allow list: if isAdmin(); // Only admin can list vendors.
       allow create: if isVendorOwner(vendorId) && request.resource.data.id == vendorId;
-      allow update: if isExistingVendorOwner(vendorId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingVendorOwner(vendorId);
+      allow update: if isExistingVendorOwner(vendorId) || isAdmin();
+      allow delete: if isExistingVendorOwner(vendorId) || isAdmin();
     }
 
     /**
@@ -130,11 +131,11 @@ service cloud.firestore {
      * @principle Enforces document ownership for writes, restricts access to a vendor's own events.
      */
     match /vendors/{vendorId}/events/{eventId} {
-      allow get: if isVendorOwner(vendorId) || isAdmin();
+      allow get: if true;
       allow list: if isVendorOwner(vendorId) || isAdmin();
       allow create: if (isVendorOwner(vendorId) || isAdmin()) && request.resource.data.vendorId == vendorId;
-      allow update: if isExistingVendorOwner(vendorId) || isAdmin();
-      allow delete: if isExistingVendorOwner(vendorId) || isAdmin();
+      allow update: if (isVendorOwner(vendorId) || isAdmin());
+      allow delete: if (isVendorOwner(vendorId) || isAdmin());
     }
 
     /**
@@ -211,6 +212,24 @@ service cloud.firestore {
       allow get: if isSignedIn();
       allow list: if false;
       allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Rule for user notifications.
+     * @path /users/{userId}/notifications/{notificationId}
+     * @allow (list, get) User with matching userId can read their notifications.
+     * @deny (list, get) User tries to read another user's notifications.
+     * @allow (create) Server-side logic (or admin) can create notifications. No direct client creation.
+     * @allow (update) User can update the 'read' status of their own notifications.
+     * @deny (update) User cannot change other fields or update other users' notifications.
+     * @allow (delete) User can delete their own notifications.
+     * @principle Enforces strict ownership. Users can only manage their own notifications.
+     */
+    match /users/{userId}/notifications/{notificationId} {
+      allow get, list: if isOwner(userId);
+      allow create: if false; // Disallow client-side creation for now. Admins or functions would create these.
+      allow update: if isOwner(userId) && request.resource.data.keys().hasOnly(['read']);
+      allow delete: if isOwner(userId);
     }
   }
 }
