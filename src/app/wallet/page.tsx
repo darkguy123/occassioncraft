@@ -19,15 +19,18 @@ import {
 } from '@/components/ui/table';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { doc } from 'firebase/firestore';
 import type { User } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { TopUpDialog } from '@/components/wallet/top-up-dialog';
 
 export default function WalletPage() {
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
     const router = useRouter();
+    const [isTopUpOpen, setIsTopUpOpen] = useState(false);
+
 
     const userDocRef = useMemoFirebase(() => {
         if (!user) return null;
@@ -67,6 +70,8 @@ export default function WalletPage() {
     }
 
     return (
+        <>
+        <TopUpDialog isOpen={isTopUpOpen} onClose={() => setIsTopUpOpen(false)} />
         <div className="container max-w-4xl py-12 px-4">
             <div className="space-y-2 mb-8">
                 <h1 className="text-4xl font-bold font-headline">Wallet</h1>
@@ -80,7 +85,10 @@ export default function WalletPage() {
                     </CardHeader>
                     <CardContent>
                         <p className="text-4xl font-bold">$0.00</p>
-                        <Button className="w-full mt-6" disabled={!isVendor}>Request Payout</Button>
+                        <div className="flex flex-col sm:flex-row gap-2 mt-6">
+                            <Button className="w-full" onClick={() => setIsTopUpOpen(true)}>Top Up</Button>
+                            <Button className="w-full" variant="outline" disabled={!isVendor}>Request Payout</Button>
+                        </div>
                     </CardContent>
                 </Card>
                 <Card className="md:col-span-2 bg-card/80 backdrop-blur-sm">
@@ -118,5 +126,6 @@ export default function WalletPage() {
                 </CardContent>
             </Card>
         </div>
+        </>
     );
 }
