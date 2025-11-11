@@ -27,6 +27,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { format } from 'date-fns';
 
 export default function AdminEventsPage() {
   return (
@@ -68,7 +69,7 @@ export default function AdminEventsPage() {
                   <TableCell>
                     <div className="font-medium">{event.name}</div>
                     <div className="text-sm text-muted-foreground">
-                      {new Date(event.date).toLocaleDateString()}
+                      {format(new Date(event.date), 'PPP')}
                     </div>
                   </TableCell>
                   <TableCell>{event.organizer}</TableCell>
