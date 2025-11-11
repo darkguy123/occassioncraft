@@ -18,8 +18,6 @@ import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/fireb
 import { doc } from 'firebase/firestore';
 import type { Vendor } from '@/lib/types';
 
-const BUCKET_URL = "https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.appspot.com/o";
-
 export function UserNav() {
   const auth = useAuth();
   const { user } = useUser();
@@ -41,11 +39,13 @@ export function UserNav() {
 
 
   const handleLogout = () => {
-    auth.signOut();
+    if(auth) {
+        auth.signOut();
+    }
   }
   
   const avatarImage = {
-      imageUrl: `${BUCKET_URL}/assets%2Fuser-avatar-1.jpg?alt=media`,
+      imageUrl: `/assets/user-avatar-1.jpg`,
       imageHint: 'person portrait'
   };
 

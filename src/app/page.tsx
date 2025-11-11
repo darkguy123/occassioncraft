@@ -10,8 +10,6 @@ import { sampleEvents } from '@/lib/placeholder-data';
 import EventCard from '@/components/event-card';
 import { useEffect, useState } from 'react';
 
-const BUCKET_URL = "https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.appspot.com/o";
-
 const categoryIcons = {
   All: Globe,
   Music: Music,
@@ -26,7 +24,7 @@ const categories = ['All', 'Music', 'Arts', 'Tech', 'Food', 'Sports'] as const;
 
 export default function Home() {
   const defaultHeroImage = {
-      imageUrl: `${BUCKET_URL}/assets%2Fhero.jpg?alt=media`,
+      imageUrl: `/assets/hero.jpg`,
       imageHint: 'festival crowd'
   };
   const [heroBannerUrl, setHeroBannerUrl] = useState(defaultHeroImage?.imageUrl);
@@ -145,8 +143,7 @@ export default function Home() {
         </Tabs>
 
         <div className="text-center mt-12">
-            <Button variant="outline" size="lg">Load More Events</Button>
-        </div>
+            <Button variant="outline" size="lg">Load More Events</Button>        </div>
       </div>
     </div>
   );

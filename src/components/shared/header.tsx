@@ -9,11 +9,9 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useUser } from '@/firebase';
 
-const BUCKET_URL = "https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.appspot.com/o";
-
 export function Header() {
   const { user, isUserLoading } = useUser();
-  const [logoUrl, setLogoUrl] = useState<string | null>(`${BUCKET_URL}/assets%2Flogo.svg?alt=media`);
+  const [logoUrl, setLogoUrl] = useState<string | null>('/assets/logo.svg');
 
   useEffect(() => {
     // This effect runs only on the client, after the initial render,

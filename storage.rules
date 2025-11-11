@@ -13,29 +13,11 @@ service firebase.storage {
       return request.auth.uid == userId;
     }
 
-    // Public assets like logos and event images are readable by anyone
-    match /assets/{allPaths=**} {
-      allow read: if true;
-    }
-
     // Rules for user profile images
+    // Users can read anyone's profile image, but can only write to their own.
     match /users/{userId}/profile.jpg {
       allow read: if true;
       allow write: if isOwner(userId);
-    }
-
-    // Rules for event images
-    match /vendors/{vendorId}/events/{eventId}/event_image.jpg {
-      allow read: if true;
-      allow write: if exists(/databases/$(database)/documents/vendors/$(vendorId)) &&
-                   /databases/$(database)/documents/vendors/$(vendorId).data.userId == request.auth.uid;
-    }
-
-    // Rules for vendor logos
-    match /vendors/{vendorId}/logo.jpg {
-      allow read: if true;
-      allow write: if exists(/databases/$(database)/documents/vendors/$(vendorId)) &&
-                   /databases/$(database)/documents/vendors/$(vendorId).data.userId == request.auth.uid;
     }
   }
 }
