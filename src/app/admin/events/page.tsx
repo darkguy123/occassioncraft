@@ -7,6 +7,7 @@ import {
   TableCell,
   TableHeader,
   TableRow,
+  TableHead,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
@@ -26,10 +27,28 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from '@/components/ui/badge';
-import { sampleEvents } from '@/lib/placeholder-data';
+import { useFirestore, useCollection, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
+import type { Event } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function AdminEventsPage() {
+  const firestore = useFirestore();
+  const eventsCollection = collection(firestore, 'events');
+  const { data: events, isLoading } = useCollection<Event>(eventsCollection);
+  const { toast } = useToast();
+
+  const handleDelete = (eventId: string, eventName: string) => {
+    if (!firestore) return;
+    const eventRef = doc(firestore, 'events', eventId);
+    deleteDocumentNonBlocking(eventRef);
+    toast({
+      title: "Event Deleted",
+      description: `The event "${eventName}" has been successfully deleted.`,
+    });
+  }
   
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -57,20 +76,29 @@ export default function AdminEventsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableCell>Event</TableCell>
-                <TableCell>Organizer</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Price</TableCell>
-                <TableCell className="text-right">Actions</TableCell>
+                <TableHead>Event</TableHead>
+                <TableHead>Organizer</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Price</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sampleEvents.length > 0 ? (
-                sampleEvents.map(event => (
+              {isLoading && Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                    <TableCell><Skeleton className="h-5 w-32"/></TableCell>
+                    <TableCell><Skeleton className="h-5 w-40"/></TableCell>
+                    <TableCell><Skeleton className="h-5 w-20"/></TableCell>
+                    <TableCell><Skeleton className="h-5 w-16"/></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto"/></TableCell>
+                </TableRow>
+              ))}
+              {!isLoading && events && events.length > 0 ? (
+                events.map(event => (
                   <TableRow key={event.id}>
                     <TableCell className="font-medium">{event.name}</TableCell>
                     <TableCell>{event.organizer}</TableCell>
-                    <TableCell><Badge variant="secondary">Published</Badge></TableCell>
+                    <TableCell><Badge variant="secondary">{event.status || 'Published'}</Badge></TableCell>
                     <TableCell>${event.price.toFixed(2)}</TableCell>
                     <TableCell className="text-right">
                        <DropdownMenu>
@@ -87,7 +115,7 @@ export default function AdminEventsPage() {
                                         <Edit className="mr-2 h-4 w-4" /> Edit
                                     </Link>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="text-red-600">
+                                <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(event.id, event.name)}>
                                     <Trash2 className="mr-2 h-4 w-4" /> Delete
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -96,11 +124,13 @@ export default function AdminEventsPage() {
                   </TableRow>
                 ))
               ) : (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-12">
-                    No events found.
-                  </TableCell>
-                </TableRow>
+                !isLoading && (
+                    <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-12">
+                        No events found.
+                    </TableCell>
+                    </TableRow>
+                )
               )}
             </TableBody>
           </Table>

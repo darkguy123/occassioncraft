@@ -16,18 +16,25 @@ export type Event = {
   id: string;
   name: string;
   date: string; // ISO 8601 string
+  startTime: string;
+  endTime?: string;
+  isOnline: boolean;
   location: string;
-  organizer: string;
-  imageUrl: string;
-  imageHint: string;
-  category: string;
-  price: number;
+  description?: string;
+  bannerUrl?: string;
+  ticketStyle: 'simple' | 'standard' | 'minimal';
+  vendorId: string;
+  organizer?: string; // Can be denormalized
+  category?: string; // Can be denormalized
+  price: number; // Simplified price
 };
 
 export type UserTicket = {
   ticketId: string;
   eventId: string;
   purchaseDate: string; // ISO 8601 string
+  userId: string;
+  event?: Event; // Denormalized event data
 };
 
 export type Vendor = {

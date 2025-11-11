@@ -5,19 +5,25 @@ import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import EventCard from '@/components/event-card';
-import { sampleEvents } from '@/lib/placeholder-data';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { useFirestore, useCollection } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import type { Event } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
 
 function EventsDisplay() {
   const searchParams = useSearchParams();
   const location = searchParams.get('location');
+  const firestore = useFirestore();
 
-  const filteredEvents = location
-    ? sampleEvents.filter(event =>
-        event.location.toLowerCase().includes(location.toLowerCase())
-      )
-    : sampleEvents;
+  // A more robust query would be needed for full text search on location
+  const eventsQuery = location
+    ? query(collection(firestore, 'events'), where('location', '>=', location), where('location', '<=', location + '\uf8ff'))
+    : collection(firestore, 'events');
+    
+  const { data: filteredEvents, isLoading } = useCollection<Event>(eventsQuery);
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -34,7 +40,7 @@ function EventsDisplay() {
               <h1 className="text-3xl font-bold font-headline mt-2">
                 Events in "{location}"
               </h1>
-               <p className="text-muted-foreground">{filteredEvents.length} result(s) found.</p>
+               <p className="text-muted-foreground">{filteredEvents?.length || 0} result(s) found.</p>
             </>
           ) : (
             <h1 className="text-3xl font-bold font-headline mt-2">
@@ -44,7 +50,13 @@ function EventsDisplay() {
         </div>
       </div>
 
-      {filteredEvents.length > 0 ? (
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {Array.from({ length: 8 }).map((_, i) => (
+                <Card key={i}><CardContent className="p-4"><Skeleton className="h-64 w-full" /></CardContent></Card>
+            ))}
+        </div>
+      ) : filteredEvents && filteredEvents.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredEvents.map(event => (
             <EventCard key={event.id} event={event} />
@@ -52,7 +64,7 @@ function EventsDisplay() {
         </div>
       ) : (
         <div className="text-center text-muted-foreground py-20 border-2 border-dashed rounded-lg">
-          <p className="text-xl">No available events in this location</p>
+          <p className="text-xl">No available events</p>
           <p className="mt-2">Try searching for a different city or check back later.</p>
         </div>
       )}

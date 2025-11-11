@@ -18,11 +18,11 @@ export function UpcomingEventCard({ event }: UpcomingEventCardProps) {
     <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-card/60 backdrop-blur-sm rounded-xl flex flex-col">
         <div className="relative h-48 w-full">
             <Image
-                src={event.imageUrl}
+                src={event.bannerUrl || 'https://picsum.photos/seed/default/600/400'}
                 alt={event.name}
                 fill
                 className="object-cover"
-                data-ai-hint={event.imageHint}
+                data-ai-hint={event.name}
             />
              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
              <div className="absolute bottom-4 left-4">

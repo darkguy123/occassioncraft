@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -11,26 +12,19 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon, Clock, DollarSign, Globe, Image as ImageIcon, MapPin, Plus, Video, Sparkles, Trash2, Ticket } from "lucide-react"
+import { CalendarIcon, Image as ImageIcon, MapPin, Plus, Video, Sparkles, Ticket } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
-import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
 import type { User as UserType } from "@/lib/types";
-import { doc } from "firebase/firestore";
+import { doc, collection } from "firebase/firestore";
 import { useEffect, useState }from "react";
 import { Skeleton } from "@/components/ui/skeleton"
 import Image from "next/image"
 import { EventPreview } from "@/components/event-preview"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { TicketStylePreview } from "@/components/ticket-style-preview"
-
-
-const ticketSchema = z.object({
-  name: z.string().min(1, "Ticket name is required."),
-  price: z.coerce.number().min(0, "Price must be non-negative."),
-  quantity: z.coerce.number().min(1, "Quantity must be at least 1."),
-});
 
 const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters.").default(""),
@@ -42,6 +36,7 @@ const eventFormSchema = z.object({
   description: z.string().optional().default(""),
   bannerUrl: z.string().optional(),
   ticketStyle: z.enum(['simple', 'standard', 'minimal']).default('simple'),
+  price: z.coerce.number().min(0, "Price must be non-negative.").default(0),
 });
 
 export type EventFormValues = z.infer<typeof eventFormSchema>;
@@ -70,6 +65,7 @@ export default function CreateEventPage() {
       description: "",
       bannerUrl: "",
       ticketStyle: 'simple',
+      price: 0,
     },
     mode: "onChange",
   });
@@ -78,11 +74,27 @@ export default function CreateEventPage() {
   const watchedEventData = form.watch();
 
   const onSubmit = (data: EventFormValues) => {
-    console.log(data);
+    if (!user || !firestore) {
+        toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to create an event.' });
+        return;
+    }
+
+    const eventCollectionRef = collection(firestore, 'events');
+    const eventData = {
+        ...data,
+        date: data.date.toISOString(),
+        vendorId: user.uid,
+        organizer: user.displayName, // Denormalizing for easier display
+        status: 'approved', // Defaulting to approved for simplicity
+    };
+    
+    addDocumentNonBlocking(eventCollectionRef, eventData);
+
     toast({
-        title: "Event Created (Simulated)",
-        description: "Your event has been successfully created. In a real app, it would be saved to the database.",
+        title: "Event Created",
+        description: `Your event "${data.name}" has been successfully created and is now live.`,
     });
+    
     const isAdmin = (userData?.roles || []).includes('admin');
     router.push(isAdmin ? '/admin/events' : '/vendor/dashboard');
   };
@@ -324,6 +336,24 @@ export default function CreateEventPage() {
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
+                        )}
+                    />
+                </div>
+            </div>
+            
+            {/* Price Section */}
+            <div className="flex items-start gap-4">
+                <Ticket className="h-6 w-6 text-muted-foreground mt-2"/>
+                <div className="grid gap-4 flex-grow">
+                     <FormField
+                        control={form.control}
+                        name="price"
+                        render={({ field }) => (
+                        <FormItem>
+                             <FormLabel>Price</FormLabel>
+                            <FormControl><Input type="number" {...field} className="h-12" /></FormControl>
+                            <FormMessage />
+                        </FormItem>
                         )}
                     />
                 </div>

@@ -12,17 +12,16 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon, Clock, DollarSign, Globe, Image as ImageIcon, MapPin, Plus, Video, Sparkles, Trash2, Ticket, ArrowLeft } from "lucide-react"
-import { Switch } from "@/components/ui/switch"
+import { CalendarIcon, ArrowLeft, Plus } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
 import Image from "next/image"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { sampleEvents } from "@/lib/placeholder-data";
 import type { Event } from "@/lib/types";
 import Link from "next/link";
+import { useFirestore, useDoc, updateDocumentNonBlocking, useMemoFirebase } from "@/firebase";
+import { doc } from 'firebase/firestore';
 
 
 const eventFormSchema = z.object({
@@ -34,7 +33,7 @@ const eventFormSchema = z.object({
   location: z.string().optional().default(""),
   description: z.string().optional().default(""),
   bannerUrl: z.string().optional(),
-  ticketStyle: z.enum(['simple', 'standard', 'minimal']).default('simple'),
+  price: z.coerce.number().min(0, "Price must be non-negative.").default(0),
 });
 
 export type EventFormValues = z.infer<typeof eventFormSchema>;
@@ -42,48 +41,46 @@ export type EventFormValues = z.infer<typeof eventFormSchema>;
 export default function AdminEditEventPage({ params }: { params: { eventId: string } }) {
   const { toast } = useToast();
   const router = useRouter();
-  const [eventData, setEventData] = useState<Event | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const firestore = useFirestore();
+  
+  const eventDocRef = useMemoFirebase(() => {
+    if (!firestore || !params.eventId) return null;
+    return doc(firestore, 'events', params.eventId);
+  }, [firestore, params.eventId]);
+
+  const { data: eventData, isLoading } = useDoc<Event>(eventDocRef);
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
-    defaultValues: {
-      name: "",
-      date: new Date(),
-      startTime: format(new Date(), "HH:mm"),
-      isOnline: false,
-      location: "",
-      description: "",
-      bannerUrl: "",
-      ticketStyle: 'simple',
-    },
     mode: "onChange",
   });
   
   useEffect(() => {
-    // Simulate fetching event data
-    const event = sampleEvents.find(e => e.id === params.eventId);
-    if (event) {
-      setEventData(event);
+    if (eventData) {
       form.reset({
-        name: event.name,
-        date: new Date(event.date),
-        // This is a simplification. In a real app you'd parse time properly.
-        startTime: format(new Date(event.date), "HH:mm"), 
-        isOnline: event.location.toLowerCase().includes('online'),
-        location: event.location,
-        description: `This is a sample description for ${event.name}. You can edit this content.`,
-        bannerUrl: event.imageUrl,
-        ticketStyle: 'simple',
+        name: eventData.name,
+        date: new Date(eventData.date),
+        startTime: eventData.startTime,
+        endTime: eventData.endTime,
+        isOnline: eventData.isOnline,
+        location: eventData.location,
+        description: eventData.description,
+        bannerUrl: eventData.bannerUrl,
+        price: eventData.price,
       });
     }
-    setIsLoading(false);
-  }, [params.eventId, form]);
+  }, [eventData, form]);
 
   const onSubmit = (data: EventFormValues) => {
-    console.log(data);
+    if (!eventDocRef) return;
+    
+    updateDocumentNonBlocking(eventDocRef, {
+      ...data,
+      date: data.date.toISOString(),
+    });
+    
     toast({
-        title: "Event Updated (Simulated)",
+        title: "Event Updated",
         description: `The event "${data.name}" has been successfully updated.`,
     });
     router.push('/admin/events');
@@ -118,7 +115,7 @@ export default function AdminEditEventPage({ params }: { params: { eventId: stri
     );
   }
 
-  if (!eventData) {
+  if (!eventData && !isLoading) {
       return (
            <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
                 <h1 className="text-3xl font-bold tracking-tight">Event Not Found</h1>
@@ -136,7 +133,7 @@ export default function AdminEditEventPage({ params }: { params: { eventId: stri
             <Button variant="ghost" size="sm" asChild>
                 <Link href="/admin/events"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Events</Link>
             </Button>
-            <h1 className="text-3xl font-bold tracking-tight">Edit Event: {eventData.name}</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Edit Event: {eventData?.name}</h1>
             <p className="text-muted-foreground">Modify the details of the event below.</p>
         </div>
       <Form {...form}>
@@ -146,8 +143,8 @@ export default function AdminEditEventPage({ params }: { params: { eventId: stri
                     {form.watch('bannerUrl') ? (
                         <Image src={form.watch('bannerUrl')!} alt="Banner preview" layout="fill" objectFit="cover" />
                     ) : (
-                        <div className="text-center text-muted-foreground">
-                            <ImageIcon className="mx-auto h-12 w-12" />
+                         <div className="text-center text-muted-foreground">
+                            <Plus className="mx-auto h-12 w-12" />
                             <p className="mt-2 text-sm font-semibold">Add a cover photo</p>
                         </div>
                     )}
@@ -224,19 +221,6 @@ export default function AdminEditEventPage({ params }: { params: { eventId: stri
             
              <FormField
                 control={form.control}
-                name="isOnline"
-                render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-card">
-                    <div className="space-y-0.5">
-                        <FormLabel>Online event</FormLabel>
-                    </div>
-                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                </FormItem>
-                )}
-            />
-            
-            <FormField
-                control={form.control}
                 name="location"
                 render={({ field }) => (
                 <FormItem>
@@ -254,6 +238,18 @@ export default function AdminEditEventPage({ params }: { params: { eventId: stri
                 <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl><Textarea placeholder="Add a description..." {...field} className="min-h-32" /></FormControl>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+            
+            <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Price</FormLabel>
+                    <FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl>
                     <FormMessage />
                 </FormItem>
                 )}

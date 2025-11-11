@@ -9,6 +9,13 @@ import { Search, Globe, Music, Palette, Code, Utensils, Award } from 'lucide-rea
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { useFirestore, useCollection } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import type { Event } from '@/lib/types';
+import EventCard from '@/components/event-card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
+
 
 const categoryIcons = {
   All: Globe,
@@ -23,6 +30,10 @@ const categories = ['All', 'Music', 'Arts', 'Tech', 'Food', 'Sports'] as const;
 
 export default function Home() {
   const router = useRouter();
+  const firestore = useFirestore();
+  const eventsCollection = collection(firestore, 'events');
+  const { data: events, isLoading } = useCollection<Event>(eventsCollection);
+
 
   const defaultHeroImage = {
       imageUrl: 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2F67e206b7d52d22580e4ec0d8_890.jpg?alt=media&token=c0a35579-2cdf-4d20-9aa9-6163ff95eddf',
@@ -97,7 +108,22 @@ export default function Home() {
           </TabsList>
           
           <TabsContent value="all">
-            <p className="col-span-full text-center text-muted-foreground py-12">No events found. The database has been reset.</p>
+             {isLoading && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Card key={i}><CardContent className="p-4"><Skeleton className="h-64 w-full" /></CardContent></Card>
+                ))}
+              </div>
+             )}
+             {!isLoading && events && events.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {events.map(event => <EventCard key={event.id} event={event} />)}
+                </div>
+             ) : (
+                !isLoading && (
+                  <p className="col-span-full text-center text-muted-foreground py-12">No events found. Create one to get started!</p>
+                )
+             )}
           </TabsContent>
           {categories.slice(1).map(cat => (
             <TabsContent key={cat} value={cat.toLowerCase()}>

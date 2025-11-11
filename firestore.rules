@@ -53,10 +53,5 @@ service cloud.firestore {
     match /roles_admin/{userId} {
     	allow read, write: if isAdmin();
     }
-
-    // Default deny
-    match /{document=**} {
-      allow read, write: if false;
-    }
   }
 }
