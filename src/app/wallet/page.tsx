@@ -17,13 +17,27 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { doc } from 'firebase/firestore';
+import type { User } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function WalletPage() {
     const { user, isUserLoading } = useUser();
+    const firestore = useFirestore();
     const router = useRouter();
+
+    const userDocRef = useMemoFirebase(() => {
+        if (!user) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [firestore, user]);
+
+    const { data: userData, isLoading: isUserDataLoading } = useDoc<User>(userDocRef);
+
+    const isLoading = isUserLoading || isUserDataLoading;
+    const isVendor = (userData?.roles || []).includes('vendor');
 
     useEffect(() => {
         if (!isUserLoading && !user) {
@@ -31,10 +45,23 @@ export default function WalletPage() {
         }
     }, [isUserLoading, user, router]);
 
-    if (isUserLoading) {
+    if (isLoading) {
         return (
-            <div className="container max-w-4xl py-12 px-4 text-center">
-                <p>Loading...</p>
+            <div className="container max-w-4xl py-12 px-4">
+                 <Skeleton className="h-10 w-1/3 mb-8" />
+                 <div className="grid md:grid-cols-3 gap-6 mb-8">
+                    <Card className="md:col-span-1">
+                        <CardHeader>
+                            <Skeleton className="h-5 w-2/3" />
+                        </CardHeader>
+                        <CardContent>
+                             <Skeleton className="h-10 w-1/2 mb-6" />
+                             <Skeleton className="h-10 w-full" />
+                        </CardContent>
+                    </Card>
+                    <Skeleton className="md:col-span-2 h-40" />
+                </div>
+                <Skeleton className="h-64 w-full" />
             </div>
         )
     }
@@ -47,16 +74,16 @@ export default function WalletPage() {
             </div>
 
             <div className="grid md:grid-cols-3 gap-6 mb-8">
-                <Card className="md:col-span-1">
+                <Card className="md:col-span-1 bg-card/80 backdrop-blur-sm">
                     <CardHeader>
                         <CardTitle className="text-sm font-medium text-muted-foreground">Available Balance</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <p className="text-4xl font-bold">$0.00</p>
-                        <Button className="w-full mt-6" disabled>Request Payout</Button>
+                        <Button className="w-full mt-6" disabled={!isVendor}>Request Payout</Button>
                     </CardContent>
                 </Card>
-                <Card className="md:col-span-2">
+                <Card className="md:col-span-2 bg-card/80 backdrop-blur-sm">
                     <CardHeader>
                         <CardTitle>Balance History</CardTitle>
                         <CardDescription>Your balance over the last 30 days.</CardDescription>
@@ -67,7 +94,7 @@ export default function WalletPage() {
                 </Card>
             </div>
 
-            <Card>
+            <Card className="bg-card/80 backdrop-blur-sm">
                 <CardHeader>
                     <CardTitle>Recent Transactions</CardTitle>
                 </CardHeader>
