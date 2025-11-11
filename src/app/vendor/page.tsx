@@ -111,7 +111,7 @@ export default function VendorLandingPage() {
             <h2 className="text-3xl md:text-4xl font-headline font-bold">Choose Your Plan</h2>
             <p className="mt-2 text-muted-foreground max-w-xl mx-auto">Simple, transparent pricing. No hidden fees. Cancel anytime.</p>
           </div>
-          <div className="grid lg:grid-cols-3 gap-8 max-w-5xl mx-auto items-start">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto items-start">
             {pricingTiers.map((tier) => (
               <Card key={tier.name} className={`relative flex flex-col ${tier.popular ? 'border-primary border-2 -my-4' : ''}`}>
                  {tier.popular && (
