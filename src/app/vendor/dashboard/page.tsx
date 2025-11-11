@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -33,8 +34,12 @@ export default function VendorDashboardPage() {
     const isLoading = isUserLoading || isVendorLoading;
 
     useEffect(() => {
-        // Redirect non-logged-in users or non-vendors after loading has finished
-        if (!isLoading && !vendorData) {
+        // Redirect non-logged-in users or non-approved-vendors after loading has finished
+        if (!isLoading && (!vendorData || vendorData.status !== 'approved')) {
+            // Special case: if vendor data exists but status is pending, stay on this page
+            if (vendorData && vendorData.status === 'pending') {
+                return;
+            }
             router.push('/vendor');
         }
     }, [isLoading, vendorData, router]);
@@ -52,18 +57,8 @@ export default function VendorDashboardPage() {
             </div>
         )
     }
-
-    if (!vendorData) {
-         // This will be briefly visible before the redirect kicks in.
-         // You could also show a full-page loader here.
-         return (
-             <div className="container mx-auto py-12 px-4 text-center">
-                 <p>Redirecting...</p>
-            </div>
-         );
-    }
     
-    if (vendorData.status === 'pending') {
+    if (vendorData?.status === 'pending') {
          return (
              <div className="container mx-auto py-12 px-4 text-center">
                  <Card className="max-w-lg mx-auto">
@@ -80,6 +75,15 @@ export default function VendorDashboardPage() {
                  </Card>
             </div>
          );
+    }
+
+    // This check handles the case where the redirect hasn't happened yet
+    if (!vendorData || vendorData.status !== 'approved') {
+        return (
+            <div className="container mx-auto py-12 px-4 text-center">
+                <p>Loading or redirecting...</p>
+           </div>
+        );
     }
     
   return (
