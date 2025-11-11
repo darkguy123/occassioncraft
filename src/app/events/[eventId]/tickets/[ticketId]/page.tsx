@@ -14,26 +14,6 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import QRCode from 'qrcode';
 
-const ticketStyles = {
-    simple: {
-        gradient: "from-slate-50 to-slate-200 dark:from-slate-800 dark:to-slate-900",
-        textColor: "text-slate-800 dark:text-slate-200",
-        mutedTextColor: "text-slate-600 dark:text-slate-400",
-        highlightTextColor: "text-slate-900 dark:text-slate-50",
-    },
-    standard: {
-        gradient: "from-blue-100 to-indigo-200 dark:from-blue-900 dark:to-indigo-950",
-        textColor: "text-blue-800 dark:text-blue-200",
-        mutedTextColor: "text-blue-600 dark:text-blue-400",
-        highlightTextColor: "text-blue-900 dark:text-blue-50",
-    },
-    minimal: {
-        gradient: "from-gray-900 to-black",
-        textColor: "text-gray-200",
-        mutedTextColor: "text-gray-400",
-        highlightTextColor: "text-white",
-    },
-};
 
 export default function TicketDetailsPage() {
     const { user } = useUser();
@@ -57,8 +37,7 @@ export default function TicketDetailsPage() {
     const { data: eventData, isLoading: isEventLoading } = useDoc<Event>(eventDocRef);
 
     const isLoading = isTicketLoading || isEventLoading;
-    const ticketStyle = eventData?.ticketStyle || 'simple';
-    const style = ticketStyles[ticketStyle];
+    const ticketImageUrl = eventData?.ticketImageUrl;
 
     useEffect(() => {
         if (ticketId) {
@@ -70,8 +49,8 @@ export default function TicketDetailsPage() {
                         margin: 1,
                         width: 256,
                         color: {
-                            dark: ticketStyle === 'minimal' ? '#FFFFFF' : '#000000',
-                            light: '#00000000' // Transparent background
+                            dark: '#000000',
+                            light: '#FFFFFF' 
                         }
                     });
                     setQrCodeUrl(url);
@@ -82,7 +61,7 @@ export default function TicketDetailsPage() {
 
             generateQrCode();
         }
-    }, [ticketId, ticketStyle]);
+    }, [ticketId]);
 
     if (isLoading) {
         return (
@@ -112,40 +91,39 @@ export default function TicketDetailsPage() {
     return (
         <div className="min-h-[calc(100vh-8rem)] w-full flex items-center justify-center bg-secondary/30 p-4">
             <Card className={cn(
-                "w-full max-w-md rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br relative transition-all duration-300",
-                style.gradient
+                "w-full max-w-md rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br relative transition-all duration-300 from-slate-50 to-slate-200 dark:from-slate-800 dark:to-slate-900"
             )}>
-                {ticketStyle === 'standard' && (
-                    <div className="absolute inset-0 bg-[url('/assets/subtle-pattern.svg')] opacity-10 dark:opacity-20"></div>
+                {ticketImageUrl && (
+                    <Image src={ticketImageUrl} alt="Ticket background" layout="fill" className="object-cover blur-md opacity-50" />
                 )}
 
                 <div className="p-6 md:p-8 backdrop-blur-sm bg-white/10 rounded-2xl relative z-10">
                     <div className="flex justify-between items-start">
                         <div className="space-y-1">
-                            <p className={cn("text-xs uppercase tracking-widest", style.mutedTextColor)}>Event Ticket</p>
-                            <h3 className={cn("font-headline text-3xl font-bold leading-tight", style.highlightTextColor)}>{eventData.name}</h3>
+                            <p className="text-xs uppercase tracking-widest text-black/60 dark:text-white/60">Event Ticket</p>
+                            <h3 className="font-headline text-3xl font-bold leading-tight text-black dark:text-white">{eventData.name}</h3>
                         </div>
-                        <Ticket className={cn("h-8 w-8", style.mutedTextColor)} />
+                        <Ticket className="h-8 w-8 text-black/60 dark:text-white/60" />
                     </div>
 
                     <div className="mt-8 space-y-4 text-sm">
                         <div className="flex items-center gap-3">
-                            <Calendar className={cn("h-4 w-4 shrink-0", style.mutedTextColor)} />
-                            <span className={cn("font-medium", style.textColor)}>{formattedDate} at {formattedTime}</span>
+                            <Calendar className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
+                            <span className="font-medium text-black dark:text-white">{formattedDate} at {formattedTime}</span>
                         </div>
                         <div className="flex items-center gap-3">
-                            <MapPin className={cn("h-4 w-4 shrink-0", style.mutedTextColor)} />
-                            <span className={cn("truncate font-medium", style.textColor)}>{eventData.isOnline ? 'Online Event' : eventData.location}</span>
+                            <MapPin className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
+                            <span className="truncate font-medium text-black dark:text-white">{eventData.isOnline ? 'Online Event' : eventData.location}</span>
                         </div>
                          <div className="flex items-center gap-3">
-                            <UserIcon className={cn("h-4 w-4 shrink-0", style.mutedTextColor)} />
-                            <span className={cn("truncate font-medium", style.textColor)}>{user?.displayName || 'Ticket Holder'}</span>
+                            <UserIcon className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
+                            <span className="truncate font-medium text-black dark:text-white">{user?.displayName || 'Ticket Holder'}</span>
                         </div>
                     </div>
 
                      <div className="mt-8 text-center flex flex-col items-center justify-center">
                         {qrCodeUrl ? (
-                            <div className="bg-white/90 p-2 rounded-lg shadow-lg backdrop-blur-sm">
+                            <div className="bg-white p-2 rounded-lg shadow-lg">
                                 <Image
                                     src={qrCodeUrl}
                                     alt="Ticket QR Code"
@@ -157,12 +135,12 @@ export default function TicketDetailsPage() {
                         ) : (
                             <Skeleton className="h-48 w-48" />
                         )}
-                         <p className={cn("text-xs mt-3", style.mutedTextColor)}>Scan this at the event entrance</p>
+                         <p className="text-xs mt-3 text-black/60 dark:text-white/60">Scan this at the event entrance</p>
                     </div>
 
-                    <div className={cn("mt-8 border-t-2 border-dashed pt-4 flex items-center justify-between gap-4 text-xs", ticketStyle === 'minimal' ? "border-white/20" : "border-black/20")}>
-                        <p className={cn(style.mutedTextColor)}>Ticket ID: {ticketId}</p>
-                        <p className={cn(style.mutedTextColor)}>Purchased: {format(new Date(ticketData.purchaseDate), "PP")}</p>
+                    <div className="mt-8 border-t-2 border-dashed border-black/20 dark:border-white/20 pt-4 flex items-center justify-between gap-4 text-xs">
+                        <p className="text-black/60 dark:text-white/60">Ticket ID: {ticketId}</p>
+                        <p className="text-black/60 dark:text-white/60">Purchased: {format(new Date(ticketData.purchaseDate), "PP")}</p>
                     </div>
 
                 </div>

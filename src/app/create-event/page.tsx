@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon, Image as ImageIcon, MapPin, Plus, Video, Sparkles, Ticket } from "lucide-react"
+import { CalendarIcon, Image as ImageIcon, MapPin, Plus, Video, Sparkles, Ticket, Loader2 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
@@ -25,6 +25,7 @@ import Image from "next/image"
 import { EventPreview } from "@/components/event-preview"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { TicketStylePreview } from "@/components/ticket-style-preview"
+import { generateTicketBackgrounds } from "@/ai/flows/generate-ticket-backgrounds";
 
 const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters.").default(""),
@@ -35,7 +36,7 @@ const eventFormSchema = z.object({
   location: z.string().optional().default(""),
   description: z.string().optional().default(""),
   bannerUrl: z.string().optional(),
-  ticketStyle: z.enum(['simple', 'standard', 'minimal']).default('simple'),
+  ticketImageUrl: z.string().optional(),
   price: z.coerce.number().min(0, "Price must be non-negative.").default(0),
 });
 
@@ -55,6 +56,9 @@ export default function CreateEventPage() {
   const { data: userData, isLoading: isUserDataLoading } = useDoc<UserType>(userDocRef);
   
   const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
+  const [generatedBackgrounds, setGeneratedBackgrounds] = useState<string[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
@@ -67,7 +71,7 @@ export default function CreateEventPage() {
       location: "",
       description: "",
       bannerUrl: "",
-      ticketStyle: 'simple',
+      ticketImageUrl: "",
       price: 0,
     },
     mode: "onChange",
@@ -89,7 +93,6 @@ export default function CreateEventPage() {
       return;
     }
     
-    // Now that loading is complete, we can safely check the data
     const isAdminByRole = (userData?.roles || []).includes('admin');
     const isVendor = (userData?.roles || []).includes('vendor');
     const isAuthorized = isAdminByRole || isVendor;
@@ -119,8 +122,8 @@ export default function CreateEventPage() {
         ...data,
         date: data.date.toISOString(),
         vendorId: user.uid,
-        organizer: user.displayName, // Denormalizing for easier display
-        status: 'approved', // Defaulting to approved for simplicity
+        organizer: user.displayName, 
+        status: 'approved', 
     };
     
     addDocumentNonBlocking(eventCollectionRef, eventData);
@@ -150,6 +153,35 @@ export default function CreateEventPage() {
     }
   };
 
+  const handleGenerateBackgrounds = async () => {
+    const eventTitle = form.getValues('name');
+    if (!eventTitle) {
+        toast({
+            variant: 'destructive',
+            title: 'Event Title Required',
+            description: 'Please enter an event title before generating backgrounds.'
+        });
+        return;
+    }
+    setIsGenerating(true);
+    setGeneratedBackgrounds([]);
+    form.setValue('ticketImageUrl', '');
+    try {
+        const result = await generateTicketBackgrounds(eventTitle);
+        setGeneratedBackgrounds(result.imageUrls);
+    } catch (error) {
+        console.error('AI background generation failed', error);
+        toast({
+            variant: 'destructive',
+            title: 'Generation Failed',
+            description: 'Could not generate background images. Please try again.'
+        });
+    } finally {
+        setIsGenerating(false);
+    }
+  };
+
+
   if (authStatus !== 'authorized') {
     return (
         <div className="max-w-2xl mx-auto py-10 px-4">
@@ -168,9 +200,7 @@ export default function CreateEventPage() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-x-12 max-w-6xl mx-auto py-10 px-4">
           
-          {/* Form Fields Column */}
           <div className="space-y-8">
-            {/* Banner Section */}
             <div className="space-y-2">
                 <div className="w-full aspect-[16/7] bg-card rounded-lg border-2 border-dashed flex items-center justify-center relative overflow-hidden">
                     {form.watch('bannerUrl') ? (
@@ -205,7 +235,6 @@ export default function CreateEventPage() {
                 )}
             />
 
-            {/* Date and Time Section */}
             <div className="flex items-start gap-4">
                  <CalendarIcon className="h-6 w-6 text-muted-foreground mt-2"/>
                  <div className="grid gap-4 flex-grow grid-cols-1 sm:grid-cols-2">
@@ -256,7 +285,6 @@ export default function CreateEventPage() {
                 </div>
             </div>
 
-            {/* Location Section */}
             <div className="flex items-start gap-4">
                 <div className="h-6 w-6 text-muted-foreground mt-2 flex items-center justify-center">
                     {isOnline ? <Video className="h-6 w-6"/> : <MapPin className="h-6 w-6"/>}
@@ -294,7 +322,6 @@ export default function CreateEventPage() {
                  </div>
             </div>
             
-            {/* Description Section */}
              <div className="flex items-start gap-4">
                  <Sparkles className="h-6 w-6 text-muted-foreground mt-2"/>
                  <div className="grid gap-4 flex-grow">
@@ -310,78 +337,52 @@ export default function CreateEventPage() {
                     />
                 </div>
             </div>
-
-            {/* Ticket Appearance Section */}
+            
             <div className="flex items-start gap-4">
                 <Ticket className="h-6 w-6 text-muted-foreground mt-2" />
                 <div className="grid gap-4 flex-grow">
                     <h3 className="font-semibold text-lg">Ticket Appearance</h3>
+                     <Button type="button" onClick={handleGenerateBackgrounds} disabled={isGenerating}>
+                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                        Generate Backgrounds
+                    </Button>
                     <FormField
                         control={form.control}
-                        name="ticketStyle"
+                        name="ticketImageUrl"
                         render={({ field }) => (
                             <FormItem className="space-y-3">
                                 <FormControl>
                                     <RadioGroup
                                         onValueChange={field.onChange}
-                                        defaultValue={field.value}
-                                        className="grid grid-cols-3 gap-4"
+                                        value={field.value}
+                                        className={cn("grid grid-cols-3 gap-4", generatedBackgrounds.length === 0 && 'hidden')}
                                     >
-                                        <FormItem>
-                                            <FormControl>
-                                                <RadioGroupItem value="simple" className="sr-only" />
-                                            </FormControl>
-                                            <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer h-28">
-                                                <div className="w-full h-full bg-gradient-to-br from-slate-50 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-sm p-1">
-                                                    <div className="w-full h-full border-2 border-dashed border-slate-400/50 rounded-sm flex flex-col justify-between p-1">
-                                                        <div className="h-2 w-1/2 bg-slate-300 dark:bg-slate-600 rounded-full"></div>
-                                                        <div className="h-1 w-full bg-slate-300 dark:bg-slate-600 rounded-full"></div>
-                                                        <div className="h-1 w-3/4 bg-slate-300 dark:bg-slate-600 rounded-full"></div>
-                                                    </div>
-                                                </div>
-                                                <span className="mt-2 text-sm font-medium">Simple</span>
-                                            </FormLabel>
-                                        </FormItem>
-                                        <FormItem>
-                                            <FormControl>
-                                                <RadioGroupItem value="standard" className="sr-only" />
-                                            </FormControl>
-                                             <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer h-28">
-                                                 <div className="w-full h-full bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900 dark:to-blue-950 rounded-sm p-1">
-                                                    <div className="w-full h-full border-2 border-dashed border-blue-400/50 rounded-sm flex flex-col justify-between p-1">
-                                                        <div className="h-2 w-1/2 bg-blue-300 dark:bg-blue-700 rounded-full"></div>
-                                                        <div className="h-1 w-full bg-blue-300 dark:bg-blue-700 rounded-full"></div>
-                                                        <div className="h-1 w-3/4 bg-blue-300 dark:bg-blue-700 rounded-full"></div>
-                                                    </div>
-                                                </div>
-                                                <span className="mt-2 text-sm font-medium">Standard</span>
-                                            </FormLabel>
-                                        </FormItem>
-                                        <FormItem>
-                                            <FormControl>
-                                                <RadioGroupItem value="minimal" className="sr-only" />
-                                            </FormControl>
-                                            <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer h-28">
-                                                 <div className="w-full h-full bg-gradient-to-br from-gray-900 to-black rounded-sm p-1">
-                                                    <div className="w-full h-full border-2 border-dashed border-gray-400/50 rounded-sm flex flex-col justify-between p-1">
-                                                        <div className="h-2 w-1/2 bg-gray-600 rounded-full"></div>
-                                                        <div className="h-1 w-full bg-gray-600 rounded-full"></div>
-                                                        <div className="h-1 w-3/4 bg-gray-600 rounded-full"></div>
-                                                    </div>
-                                                </div>
-                                                <span className="mt-2 text-sm font-medium">Minimal</span>
-                                            </FormLabel>
-                                        </FormItem>
+                                        {generatedBackgrounds.map((url, index) => (
+                                            <FormItem key={index}>
+                                                <FormControl>
+                                                    <RadioGroupItem value={url} className="sr-only" />
+                                                </FormControl>
+                                                <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer h-28">
+                                                    <Image src={url} alt={`Generated background ${index + 1}`} width={120} height={100} className="w-full h-full object-cover rounded-sm" />
+                                                </FormLabel>
+                                            </FormItem>
+                                        ))}
                                     </RadioGroup>
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
+                    {isGenerating && (
+                         <div className="grid grid-cols-3 gap-4">
+                            <Skeleton className="h-28 w-full" />
+                            <Skeleton className="h-28 w-full" />
+                            <Skeleton className="h-28 w-full" />
+                        </div>
+                    )}
                 </div>
             </div>
             
-            {/* Price Section */}
             <div className="flex items-start gap-4">
                 <Ticket className="h-6 w-6 text-muted-foreground mt-2"/>
                 <div className="grid gap-4 flex-grow">
@@ -399,13 +400,11 @@ export default function CreateEventPage() {
                 </div>
             </div>
 
-            {/* Footer */}
             <div className="flex justify-end pt-4 border-t">
                 <Button type="submit" size="lg">Publish Event</Button>
             </div>
           </div>
 
-          {/* Preview Column */}
           <div className="hidden md:block sticky top-10 self-start">
              <div className="space-y-8">
                 <div>

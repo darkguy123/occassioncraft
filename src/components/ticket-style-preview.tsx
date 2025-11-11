@@ -3,53 +3,33 @@
 
 import type { EventFormValues } from '@/app/create-event/page';
 import { Card } from '@/components/ui/card';
-import { Ticket, MapPin, Calendar } from 'lucide-react';
+import { Ticket, MapPin, Calendar, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
+import { Skeleton } from './ui/skeleton';
 
 interface TicketStylePreviewProps {
     eventData: Partial<EventFormValues>;
 }
 
-const ticketStyles = {
-    simple: {
-        gradient: "from-slate-50 to-slate-200 dark:from-slate-800 dark:to-slate-900",
-        textColor: "text-slate-800 dark:text-slate-200",
-        mutedTextColor: "text-slate-600 dark:text-slate-400",
-        highlightTextColor: "text-slate-900 dark:text-slate-50",
-    },
-    standard: {
-        gradient: "from-blue-100 to-indigo-200 dark:from-blue-900 dark:to-indigo-950",
-        textColor: "text-blue-800 dark:text-blue-200",
-        mutedTextColor: "text-blue-600 dark:text-blue-400",
-        highlightTextColor: "text-blue-900 dark:text-blue-50",
-    },
-    minimal: {
-        gradient: "from-gray-900 to-black",
-        textColor: "text-gray-200",
-        mutedTextColor: "text-gray-400",
-        highlightTextColor: "text-white",
-    },
-};
 
 export function TicketStylePreview({ eventData }: TicketStylePreviewProps) {
-    const { name, date, startTime, location, ticketStyle = 'simple' } = eventData;
-    const style = ticketStyles[ticketStyle];
+    const { name, date, startTime, location, ticketImageUrl } = eventData;
     const [qrCodeUrl, setQrCodeUrl] = useState('');
 
     useEffect(() => {
         const generateQrCode = async () => {
             try {
-                // Use a placeholder value for the preview
                 const url = await QRCode.toDataURL('sample-ticket-id', {
                     errorCorrectionLevel: 'H',
                     margin: 1,
+                    width: 128,
                     color: {
-                        dark: ticketStyle === 'minimal' ? '#FFFFFF' : '#000000',
-                        light: '#00000000'
+                        dark: '#000000', // Black
+                        light: '#FFFFFF' // White
                     }
                 });
                 setQrCodeUrl(url);
@@ -59,7 +39,7 @@ export function TicketStylePreview({ eventData }: TicketStylePreviewProps) {
         };
 
         generateQrCode();
-    }, [ticketStyle]);
+    }, []);
 
 
     const formattedDate = date ? format(date, "MMM d, yyyy") : 'Your Date';
@@ -67,45 +47,50 @@ export function TicketStylePreview({ eventData }: TicketStylePreviewProps) {
 
     return (
         <Card className={cn(
-            "max-w-sm mx-auto rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br relative transition-all duration-300",
-            style.gradient
+            "max-w-sm mx-auto rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br relative transition-all duration-300 from-slate-50 to-slate-200 dark:from-slate-800 dark:to-slate-900"
         )}>
-            {ticketStyle === 'standard' && (
-                 <div className="absolute inset-0 bg-[url('/assets/subtle-pattern.svg')] opacity-10 dark:opacity-20"></div>
+            {ticketImageUrl && (
+                 <Image src={ticketImageUrl} alt="Ticket Background" layout="fill" className="object-cover blur-md opacity-50" />
+            )}
+             {!ticketImageUrl && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/50 z-0">
+                    <Sparkles className="h-16 w-16" />
+                    <p className="mt-2 text-sm">AI Background will appear here</p>
+                </div>
             )}
             <div className="p-6 backdrop-blur-sm bg-white/10 rounded-2xl relative z-10">
                 <div className="flex justify-between items-start">
                     <div className="space-y-1">
-                        <p className={cn("text-xs uppercase tracking-widest", style.mutedTextColor)}>Event Ticket</p>
-                        <h3 className={cn("font-headline text-2xl font-bold leading-tight", style.highlightTextColor)}>{name || 'Your Event Title'}</h3>
+                        <p className="text-xs uppercase tracking-widest text-black/60 dark:text-white/60">Event Ticket</p>
+                        <h3 className="font-headline text-2xl font-bold leading-tight text-black dark:text-white">{name || 'Your Event Title'}</h3>
                     </div>
-                    <Ticket className={cn("h-8 w-8", style.mutedTextColor)} />
+                    <Ticket className="h-8 w-8 text-black/60 dark:text-white/60" />
                 </div>
 
                 <div className="mt-8 space-y-3 text-sm">
                     <div className="flex items-center gap-3">
-                        <Calendar className={cn("h-4 w-4 shrink-0", style.mutedTextColor)} />
-                        <span className={style.textColor}>{formattedDate} at {formattedTime}</span>
+                        <Calendar className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
+                        <span className="text-black dark:text-white">{formattedDate} at {formattedTime}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                        <MapPin className={cn("h-4 w-4 shrink-0", style.mutedTextColor)} />
-                        <span className={cn("truncate", style.textColor)}>{location || 'Your Location'}</span>
+                        <MapPin className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
+                        <span className="truncate text-black dark:text-white">{location || 'Your Location'}</span>
                     </div>
                 </div>
 
-                 <div className={cn("mt-6 border-t-2 border-dashed pt-6 flex items-center justify-between gap-4", ticketStyle === 'minimal' ? "border-white/20" : "border-black/20")}>
+                 <div className="mt-6 border-t-2 border-dashed border-black/20 dark:border-white/20 pt-6 flex items-center justify-between gap-4">
                     <div className="space-y-1">
-                        <p className={cn("text-xs", style.mutedTextColor)}>Jane Doe</p>
-                        <p className={cn("font-semibold", style.highlightTextColor)}>General Admission</p>
+                        <p className="text-xs text-black/60 dark:text-white/60">Jane Doe</p>
+                        <p className="font-semibold text-black dark:text-white">General Admission</p>
                     </div>
-                    <div className="bg-white/80 p-1 rounded-md shadow-lg backdrop-blur-sm">
-                         {qrCodeUrl && <Image
+                    <div className="bg-white p-2 rounded-lg shadow-lg">
+                         {qrCodeUrl ? <Image
                             src={qrCodeUrl}
                             alt="QR Code"
-                            width={64}
-                            height={64}
+                            width={80}
+                            height={80}
                             data-ai-hint="qr code"
-                        />}
+                        /> : <Skeleton className="h-20 w-20" />}
                     </div>
                 </div>
             </div>
