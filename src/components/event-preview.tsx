@@ -14,11 +14,11 @@ interface EventPreviewProps {
 }
 
 export function EventPreview({ eventData, bannerUrl }: EventPreviewProps) {
-  const { name, date, startTime, location, tickets } = eventData;
+  const { name, date, startTime, location } = eventData;
 
   const formattedDate = date ? format(date, 'EEEE, MMMM d') : 'Select a date';
   const formattedTime = startTime || 'Select a time';
-  const displayPrice = tickets && tickets.length > 0 && tickets[0].price > 0 ? `$${tickets[0].price.toFixed(2)}` : 'Free';
+  const displayPrice = 'Free'; // Simplified for now
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -84,5 +84,3 @@ export function EventPreview({ eventData, bannerUrl }: EventPreviewProps) {
     </div>
   );
 }
-
-    
