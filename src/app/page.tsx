@@ -59,7 +59,6 @@ export default function Home() {
   const firestore = useFirestore();
   const eventsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Only fetch approved events for the public homepage
     return query(collectionGroup(firestore, 'events'), where('status', '==', 'approved'));
   }, [firestore]);
 
