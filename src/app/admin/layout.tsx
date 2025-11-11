@@ -36,6 +36,7 @@ export default function AdminLayout({
   useEffect(() => {
     const isLoading = isUserLoading || isUserDataLoading || isAdminRoleLoading;
 
+    // Wait until all loading is false before proceeding
     if (isLoading) {
       setAuthStatus('loading');
       return;
@@ -43,9 +44,12 @@ export default function AdminLayout({
 
     if (!user) {
       router.push('/login');
+      // Set to unauthorized to prevent content flash
+      setAuthStatus('unauthorized');
       return;
     }
       
+    // Now that loading is complete, we can safely check the data
     const isAdminByRole = (userData?.roles || []).includes('admin');
     const isAdminByCollection = !!adminRoleData;
     const isAdmin = isAdminByRole || isAdminByCollection;
@@ -54,11 +58,14 @@ export default function AdminLayout({
       setAuthStatus('authorized');
     } else {
       setAuthStatus('unauthorized');
+      // Redirect non-admins away
       router.push('/dashboard');
     }
   }, [isUserLoading, isUserDataLoading, isAdminRoleLoading, user, userData, adminRoleData, router]);
 
   if (authStatus !== 'authorized') {
+    // Show a loading skeleton while we verify auth, or if unauthorized.
+    // This prevents content from flashing before redirect.
     return (
       <div className="flex min-h-screen">
         <aside className="w-64 flex-shrink-0 border-r bg-background p-4">

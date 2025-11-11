@@ -105,7 +105,10 @@ export default function AdminUsersPage() {
         const userData = userDoc.data() as User;
         const updatedRoles = [...new Set([...(userData.roles || []), 'admin'])];
 
+        // Update the user document with the new role
         updateDocumentNonBlocking(userRef, { roles: updatedRoles });
+        
+        // CRITICAL: Create the document in roles_admin to grant permissions
         setDocumentNonBlocking(adminRoleRef, { isAdmin: true }, { merge: true });
 
         toast({

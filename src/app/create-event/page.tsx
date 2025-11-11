@@ -53,6 +53,8 @@ export default function CreateEventPage() {
   }, [firestore, user]);
 
   const { data: userData, isLoading: isUserDataLoading } = useDoc<UserType>(userDocRef);
+  
+  const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
@@ -72,6 +74,35 @@ export default function CreateEventPage() {
   
   const isOnline = form.watch('isOnline');
   const watchedEventData = form.watch();
+
+  useEffect(() => {
+    const isLoading = isUserLoading || isUserDataLoading;
+    if (isLoading) {
+      setAuthStatus('loading');
+      return;
+    }
+
+    if (!user) {
+      router.push('/login');
+      setAuthStatus('unauthorized');
+      return;
+    }
+
+    const isAuthorized = userData && ((userData.roles || []).includes('admin') || (userData.roles || []).includes('vendor'));
+
+    if (isAuthorized) {
+        setAuthStatus('authorized');
+    } else {
+        setAuthStatus('unauthorized');
+        toast({
+            variant: "destructive",
+            title: "Unauthorized",
+            description: "You must be a vendor or admin to create an event.",
+        });
+        router.push('/dashboard');
+    }
+  }, [isUserLoading, isUserDataLoading, user, userData, router, toast]);
+
 
   const onSubmit = (data: EventFormValues) => {
     if (!user || !firestore) {
@@ -115,26 +146,7 @@ export default function CreateEventPage() {
     }
   };
 
-  const isLoading = isUserLoading || isUserDataLoading;
-  const isAuthorized = userData && ((userData.roles || []).includes('admin') || (userData.roles || []).includes('vendor'));
-
-  useEffect(() => {
-    if (isLoading) return;
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-    if (!isAuthorized) {
-        toast({
-            variant: "destructive",
-            title: "Unauthorized",
-            description: "You must be a vendor or admin to create an event.",
-        });
-        router.push('/dashboard');
-    }
-  }, [isLoading, user, isAuthorized, router, toast]);
-
-  if (isLoading || !isAuthorized) {
+  if (authStatus !== 'authorized') {
     return (
         <div className="max-w-2xl mx-auto py-10 px-4">
           <Skeleton className="h-10 w-3/4 mb-8" />
