@@ -9,6 +9,7 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import type { User } from '@/lib/types';
 import { doc } from 'firebase/firestore';
 import { Notifications } from './notifications';
+import { PlusCircle } from 'lucide-react';
 
 export function Header() {
   const { user, isUserLoading } = useUser();
@@ -49,6 +50,7 @@ export function Header() {
   }, [hasMounted]);
 
   const isVendor = userData && (userData.roles || []).includes('vendor');
+  const isAdmin = userData && (userData.roles || []).includes('admin');
   const vendorLinkHref = hasMounted && isVendor ? "/vendor/dashboard" : "/vendor";
   const vendorLinkText = hasMounted && isVendor ? "My Dashboard" : "Host Your Event";
 
@@ -76,6 +78,14 @@ export function Header() {
           {!isUserLoading &&
             (user ? (
               <>
+                {(isVendor || isAdmin) && (
+                   <Button asChild variant="outline" size="sm">
+                        <Link href="/create-event">
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Create Event
+                        </Link>
+                    </Button>
+                )}
                 <Notifications />
                 <UserNav />
               </>
