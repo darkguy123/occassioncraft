@@ -1,3 +1,4 @@
+
 import type { Event, Ticket, VendorEvent } from '@/lib/types';
 
 export const sampleEvents: Event[] = [
