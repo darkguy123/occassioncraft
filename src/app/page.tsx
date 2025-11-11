@@ -60,7 +60,7 @@ export default function Home() {
   const eventsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collectionGroup(firestore, 'events'), where('status', '==', 'approved'));
-  }, [firestore]);
+  }, []);
 
   const { data: events, isLoading } = useCollection<Event>(eventsQuery);
 

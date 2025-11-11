@@ -60,7 +60,7 @@ export default function AdminEventsPage() {
   const eventsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collectionGroup(firestore, 'events'));
-  }, [firestore]);
+  }, []);
 
   const { data: events, isLoading } = useCollection<Event>(eventsQuery);
 
