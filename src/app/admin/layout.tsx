@@ -5,7 +5,7 @@ import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { useUser, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { User } from "@/lib/types";
 
@@ -30,24 +30,32 @@ export default function AdminLayout({
 
   const { data: userData, isLoading: isUserDataLoading } = useDoc<User>(userDocRef);
   const { data: adminRoleData, isLoading: isAdminRoleLoading } = useDoc(adminRoleDocRef);
+  
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   const isLoading = isUserLoading || isUserDataLoading || isAdminRoleLoading;
-  const isAdminByRole = (userData?.roles || []).includes('admin');
-  const isAdminByCollection = !!adminRoleData;
-  const isAdmin = isAdminByRole || isAdminByCollection;
 
   useEffect(() => {
-    if (isLoading) return;
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-    if (!isAdmin) {
-      router.push('/dashboard');
-    }
-  }, [isLoading, user, isAdmin, router]);
+    // Only run the authorization logic after all data has finished loading.
+    if (!isLoading) {
+      if (!user) {
+        router.push('/login');
+        return;
+      }
+      
+      const isAdminByRole = (userData?.roles || []).includes('admin');
+      const isAdminByCollection = !!adminRoleData;
+      const isAdmin = isAdminByRole || isAdminByCollection;
 
-  if (isLoading || !isAdmin) {
+      if (!isAdmin) {
+        router.push('/dashboard');
+      } else {
+        setIsAuthorized(true);
+      }
+    }
+  }, [isLoading, user, userData, adminRoleData, router]);
+
+  if (isLoading || !isAuthorized) {
     return (
       <div className="flex min-h-screen">
         <aside className="w-64 flex-shrink-0 border-r bg-background p-4">
