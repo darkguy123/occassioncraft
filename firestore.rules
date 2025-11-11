@@ -54,9 +54,10 @@ service cloud.firestore {
        allow read, write: if isOwner(userId) || isAdmin();
     }
     
-    // Admin role definitions are write-only for other admins
+    // Admin role definitions are write-only for other admins, or for a user creating their own.
     match /roles_admin/{userId} {
-    	allow read, write: if isAdmin();
+    	allow read: if isAdmin();
+      allow write: if isAdmin() || isOwner(userId);
     }
   }
 }
