@@ -20,15 +20,17 @@ import {
   useUser,
   updateDocumentNonBlocking,
 } from '@/firebase';
-import { collection, query, orderBy, limit, doc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, doc, writeBatch } from 'firebase/firestore';
 import type { Notification } from '@/lib/types';
 import { formatDistanceToNow } from 'date-fns';
 import { Skeleton } from '../ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 export function Notifications() {
   const { user } = useUser();
   const firestore = useFirestore();
   const [isOpen, setIsOpen] = React.useState(false);
+  const { toast } = useToast();
 
   const notificationsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -44,22 +46,41 @@ export function Notifications() {
   const unreadCount = React.useMemo(() => {
     return notifications?.filter((n) => !n.read).length || 0;
   }, [notifications]);
+  
+  const handleMarkAllAsRead = async () => {
+    if (!user || !firestore || !notifications) return;
 
-  const handleOpenChange = (open: boolean) => {
-    setIsOpen(open);
-    if (open && notifications && firestore && user) {
-      // Mark all visible notifications as read
-      notifications.forEach((notification) => {
-        if (!notification.read) {
-          const notifRef = doc(firestore, 'users', user.uid, 'notifications', notification.id);
-          updateDocumentNonBlocking(notifRef, { read: true });
-        }
-      });
+    const unreadNotifications = notifications.filter(n => !n.read);
+    if (unreadNotifications.length === 0) {
+        toast({ title: "No unread notifications."});
+        return;
     }
-  };
+
+    const batch = writeBatch(firestore);
+    unreadNotifications.forEach(notification => {
+        const notifRef = doc(firestore, 'users', user.uid, 'notifications', notification.id);
+        batch.update(notifRef, { read: true });
+    });
+
+    try {
+        await batch.commit();
+        toast({
+            title: "Notifications Marked as Read",
+            description: "All your notifications have been updated.",
+        });
+    } catch (error) {
+        console.error("Error marking notifications as read: ", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not mark notifications as read.",
+        });
+    }
+  }
+
 
   return (
-    <Popover open={isOpen} onOpenChange={handleOpenChange}>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
@@ -75,7 +96,7 @@ export function Notifications() {
         <div className="flex items-center justify-between border-b p-4">
           <h3 className="font-semibold">Notifications</h3>
           {notifications && notifications.length > 0 && (
-              <button className="text-xs text-primary hover:underline">
+              <button onClick={handleMarkAllAsRead} className="text-xs text-primary hover:underline" disabled={unreadCount === 0}>
                 Mark all as read
               </button>
           )}
@@ -99,10 +120,10 @@ export function Notifications() {
                 className="flex items-start gap-4 border-b p-4 last:border-b-0"
               >
                 {!notification.read && (
-                  <div className="mt-1 h-2 w-2 rounded-full bg-primary" />
+                  <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />
                 )}
                 <div className={`flex-1 space-y-1 ${notification.read ? 'opacity-70' : ''}`}>
-                   <Link href={notification.link || '#'} className="hover:underline">
+                   <Link href={notification.link || '#'} className="hover:underline" onClick={() => setIsOpen(false)}>
                     <p className="font-medium">{notification.title}</p>
                     <p className="text-sm text-muted-foreground">
                       {notification.description}
@@ -119,9 +140,11 @@ export function Notifications() {
           )}
         </div>
         <div className="border-t p-2 text-center">
-            <Link href="#" className="text-sm text-muted-foreground hover:text-primary">
-                View all notifications
-            </Link>
+            <Button variant="link" asChild className="text-sm text-muted-foreground hover:text-primary">
+                <Link href="/notifications">
+                    View all notifications
+                </Link>
+            </Button>
         </div>
       </PopoverContent>
     </Popover>
