@@ -43,6 +43,12 @@ function TicketValidator() {
 
     const validateTicket = async (url: string) => {
         setValidationStatus('loading');
+        if (!firestore) {
+             setScanResult({ status: 'error', message: 'Database connection not available.' });
+             setValidationStatus('error');
+             return;
+        }
+
         try {
             const { ticketId, eventId, userId } = parseValidationUrl(url);
             
@@ -141,7 +147,19 @@ function TicketValidator() {
         }
 
         let stream: MediaStream | null = null;
-        const barcodeDetector = new window.BarcodeDetector({ formats: ['qr_code'] });
+        let barcodeDetector: any;
+        try {
+            barcodeDetector = new window.BarcodeDetector({ formats: ['qr_code'] });
+        } catch (e) {
+             setValidationStatus('unsupported');
+            toast({
+                variant: 'destructive',
+                title: 'Scanner Initialization Failed',
+                description: 'Could not start the QR code scanner.',
+            });
+            return;
+        }
+        
         let animationFrameId: number;
 
         const detect = async () => {
@@ -237,13 +255,13 @@ function TicketValidator() {
                         <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
 
                         {validationStatus === 'loading' && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm">
+                            <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
                                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
                             </div>
                         )}
                         
                         {scanResult && (validationStatus === 'success' || validationStatus === 'error') && (
-                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/90 p-4 text-center">
+                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/95 p-4 text-center">
                                 {scanResult.status === 'success' ? (
                                     <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
                                 ) : (
@@ -252,7 +270,7 @@ function TicketValidator() {
                                 <h3 className={`text-2xl font-bold ${scanResult.status === 'success' ? 'text-green-600' : 'text-destructive'}`}>{scanResult.message}</h3>
                                 
                                 {scanResult.details && (
-                                    <div className="mt-4 text-sm text-left bg-secondary p-4 rounded-md w-full">
+                                    <div className="mt-4 text-sm text-left bg-secondary p-4 rounded-md w-full max-w-sm">
                                         <p><strong>Event:</strong> {scanResult.details.eventName}</p>
                                         <p><strong>Attendee:</strong> {scanResult.details.attendeeName}</p>
                                         <p><strong>Purchased:</strong> {scanResult.details.purchaseDate}</p>
