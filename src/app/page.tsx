@@ -82,7 +82,7 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <div className="relative flex-grow w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input placeholder="Search events..." className="pl-10 text-base" />
+                <Input placeholder="Search events..." className="pl-10 text-base text-foreground" />
               </div>
               <Button size="lg" className="font-bold" onClick={handleSearchClick}>
                 <Search className="mr-2 h-5 w-5" />

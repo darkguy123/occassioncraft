@@ -2,12 +2,22 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { ThemeProvider as NextThemesProvider, useTheme as useNextTheme } from "next-themes"
+
 
 interface ThemeContextType {
   // You can add theme-related state or functions here if needed in components
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+export function useTheme() {
+  const context = useContext(ThemeContext);
+  if (context === undefined) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
+}
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
@@ -40,16 +50,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <ThemeContext.Provider value={{}}>
-      {children}
-    </ThemeContext.Provider>
+    <NextThemesProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+    >
+        <ThemeContext.Provider value={{}}>
+            {children}
+        </ThemeContext.Provider>
+    </NextThemesProvider>
   );
 }
 
-export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
-  return context;
-}
