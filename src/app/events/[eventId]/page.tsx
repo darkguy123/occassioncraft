@@ -30,21 +30,24 @@ export default function EventDetailsPage() {
     }, [firestore, eventId]);
 
     const { data: eventData, isLoading: isEventLoading } = useDoc<Event>(eventDocRef);
+    
+    const isFreeEvent = eventData?.price === 0;
 
     const paystackConfig = useMemo(() => {
-        if (!eventData || !user?.email) return null;
+        if (!eventData || !user?.email || isFreeEvent) return null;
         return {
             reference: uuidv4(),
             email: user.email,
             amount: eventData.price * 100, // Amount in kobo
+            currency: 'NGN',
             publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
         };
-    }, [eventData, user?.email]);
+    }, [eventData, user?.email, isFreeEvent]);
 
     const initializePayment = usePaystackPayment(paystackConfig!);
 
-    const onPaymentSuccess = (reference: any) => {
-        if (!user || !firestore || !eventData) {
+    const createTicketAndNotify = (ticketId: string) => {
+         if (!user || !firestore || !eventData) {
             toast({
                 variant: 'destructive',
                 title: 'Error',
@@ -53,7 +56,6 @@ export default function EventDetailsPage() {
             return;
         }
 
-        const ticketId = reference.reference;
         const ticketsCollectionRef = collection(firestore, `users/${user.uid}/tickets`);
         const newTicketRef = doc(ticketsCollectionRef, ticketId);
         
@@ -67,7 +69,7 @@ export default function EventDetailsPage() {
         const notificationsCollectionRef = collection(firestore, `users/${user.uid}/notifications`);
         const notificationData: Omit<Notification, 'id'> = {
             userId: user.uid,
-            title: `Ticket Purchased: ${eventData.name}`,
+            title: isFreeEvent ? `Ticket Claimed: ${eventData.name}` : `Ticket Purchased: ${eventData.name}`,
             description: `Your ticket for ${eventData.name} is ready.`,
             createdAt: new Date().toISOString(),
             read: false,
@@ -79,12 +81,16 @@ export default function EventDetailsPage() {
         addDocumentNonBlocking(notificationsCollectionRef, notificationData);
 
         toast({
-            title: 'Payment Successful!',
-            description: 'Your ticket has been purchased.',
+            title: isFreeEvent ? 'Ticket Claimed!' : 'Payment Successful!',
+            description: 'Your ticket has been secured.',
         });
 
         // Redirect to the newly created ticket page
         router.push(`/events/${eventData.id}/tickets/${ticketId}`);
+    }
+
+    const onPaymentSuccess = (reference: any) => {
+        createTicketAndNotify(reference.reference);
     };
 
     const onPaymentClose = () => {
@@ -96,6 +102,12 @@ export default function EventDetailsPage() {
     };
 
     const handleBuyTicket = () => {
+        if (isFreeEvent) {
+            const ticketId = uuidv4();
+            createTicketAndNotify(ticketId);
+            return;
+        }
+
         if (!paystackConfig) {
             toast({
                 variant: 'destructive',
@@ -192,12 +204,18 @@ export default function EventDetailsPage() {
                                 </div>
                             </div>
                             <div className="my-6 text-center">
-                                <span className="font-bold text-4xl">${eventData.price.toFixed(2)}</span>
-                                <span className="text-muted-foreground">/ticket</span>
+                                {isFreeEvent ? (
+                                    <span className="font-bold text-4xl">Free</span>
+                                ) : (
+                                    <>
+                                        <span className="font-bold text-4xl">₦{eventData.price.toFixed(2)}</span>
+                                        <span className="text-muted-foreground">/ticket</span>
+                                    </>
+                                )}
                             </div>
                              <Button size="lg" className="w-full font-bold text-lg" onClick={handleBuyTicket}>
                                 <TicketIcon className="mr-2 h-5 w-5" />
-                                Buy Ticket
+                                {isFreeEvent ? 'Book Now' : 'Buy Ticket'}
                             </Button>
                         </Card>
                     </div>
