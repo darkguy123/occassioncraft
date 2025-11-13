@@ -157,6 +157,9 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
 
+      // This is the point of no return. If this succeeds, the account is created.
+      // We should only show the welcome dialog after this point.
+
       if (user) {
         // Send verification email
         await sendEmailVerification(user);
@@ -209,13 +212,14 @@ export default function SignupPage() {
           };
           setDocumentNonBlocking(vendorRef, vendorData, { merge: true });
         }
+
+        // All operations are successful, now we can show the welcome dialog.
+        setShowWelcomeDialog(true);
       }
       
       // Clear saved data on successful submission
       localStorage.removeItem('signupFormData');
       localStorage.removeItem('signupFormStep');
-      
-      setShowWelcomeDialog(true);
 
     } catch (error: any) {
         let errorMessage = error.message;
@@ -261,7 +265,7 @@ export default function SignupPage() {
                       <RotateCcw className="mr-2 h-4 w-4" /> Start Over
                     </Button>
                   </div>
-                  <Progress value={progress} className="h-2" />
+                  <Progress value={progress} className="h-2 animated-progress" />
               </div>
 
               <Form {...form}>
@@ -309,3 +313,4 @@ export default function SignupPage() {
     </>
   );
 }
+
