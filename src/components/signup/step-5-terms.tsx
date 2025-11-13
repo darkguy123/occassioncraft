@@ -1,3 +1,4 @@
+
 'use client';
 
 import { UseFormReturn } from "react-hook-form";
@@ -52,9 +53,9 @@ export function Step5Terms({ form }: StepProps) {
                 control={form.control}
                 name="terms"
                 render={({ field }) => (
-                    <FormItem className="flex items-start space-x-2 rounded-md border p-4">
+                    <FormItem className="flex items-start space-x-3 rounded-md border p-4 border-white/20">
                         <FormControl>
-                             <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                             <Checkbox checked={field.value} onCheckedChange={field.onChange} id="terms"/>
                         </FormControl>
                         <div className="grid gap-1.5 leading-none">
                             <Label htmlFor="terms" className="text-sm font-normal">
@@ -78,10 +79,6 @@ export function Step5Terms({ form }: StepProps) {
                                 <DialogFooter>
                                     <Button type="button" onClick={handleAcceptPolicy}>I Accept</Button>
                                 </DialogFooter>
-                                <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-                                    <X className="h-4 w-4" />
-                                    <span className="sr-only">Close</span>
-                                </DialogClose>
                                 </DialogContent>
                             </Dialog>
                             </Label>

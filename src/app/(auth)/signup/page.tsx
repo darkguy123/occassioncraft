@@ -22,6 +22,7 @@ import { Step4Avatar } from "@/components/signup/step-4-avatar";
 import { Step5Terms } from "@/components/signup/step-5-terms";
 import Link from "next/link";
 import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "firebase/auth";
+import Image from "next/image";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -139,7 +140,7 @@ export default function SignupPage() {
   const handlePrev = () => {
     if (currentStep > 0) {
       setDirection(-1);
-      setCurrentStep(prev => prev - 1);
+      setCurrentStep(prev => prev + 1);
     }
   };
 
@@ -165,6 +166,7 @@ export default function SignupPage() {
 
         await updateProfile(user, {
             displayName: data.fullName,
+            // The photoURL is not set here to avoid length limitations
         });
 
         const [firstName, ...lastName] = data.fullName.split(' ');
@@ -184,6 +186,7 @@ export default function SignupPage() {
           lastName: lastName.join(' '),
           email: data.email,
           roles: Array.from(new Set(roles)), 
+          // The avatar is saved directly to Firestore
           profileImageUrl: data.avatarUrl || '',
           dateJoined: new Date().toISOString(),
         };
@@ -206,13 +209,12 @@ export default function SignupPage() {
           };
           setDocumentNonBlocking(vendorRef, vendorData, { merge: true });
         }
-
+        
+        localStorage.removeItem('signupFormData');
+        localStorage.removeItem('signupFormStep');
+        
         setShowWelcomeDialog(true);
       }
-      
-      localStorage.removeItem('signupFormData');
-      localStorage.removeItem('signupFormStep');
-
     } catch (error: any) {
         if (error.code === 'auth/email-already-in-use') {
             setShowEmailExistsDialog(true);
@@ -237,12 +239,21 @@ export default function SignupPage() {
 
   return (
     <>
-      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)] py-12 px-4">
-        <Card className="mx-auto max-w-md w-full">
+      <div className="relative flex items-center justify-center min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-4.5rem)] py-12 px-4">
+        <Image
+          src='https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2F67e206b7d52d22580e4ec0d8_890.jpg?alt=media&token=c0a35579-2cdf-4d20-9aa9-6163ff95eddf'
+          alt="Hero Banner"
+          fill
+          className="object-cover -z-10"
+          data-ai-hint='concert stage lights'
+        />
+        <div className="absolute inset-0 bg-black/70 -z-10" />
+
+        <Card className="mx-auto max-w-md w-full text-white border-white/20">
           <CardHeader className="text-center">
               <Ticket className="mx-auto h-8 w-8 text-primary" />
               <CardTitle className="text-2xl font-headline">Create an Account</CardTitle>
-              <CardDescription>Join our platform in just a few steps.</CardDescription>
+              <CardDescription className="text-white/80">Join our platform in just a few steps.</CardDescription>
           </CardHeader>
           <CardContent>
               <div className="space-y-4 mb-8">
@@ -310,7 +321,7 @@ export default function SignupPage() {
                 <AlertTriangle className="text-amber-500" /> Account Exists
             </AlertDialogTitle>
             <AlertDialogDescription>
-              An account with the email address <span className="font-semibold">{form.getValues("email")}</span> already exists.
+              An account with the email address <span className="font-semibold text-foreground">{form.getValues("email")}</span> already exists.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="grid grid-cols-2 gap-4">
@@ -326,5 +337,3 @@ export default function SignupPage() {
     </>
   );
 }
-
-    

@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { setPersistence, browserLocalPersistence, browserSessionPersistence } from "firebase/auth";
+import Image from "next/image";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -69,12 +70,21 @@ export default function LoginPage() {
 
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-8rem)] py-12 px-4">
-      <Card className="mx-auto max-w-sm w-full">
+    <div className="relative flex items-center justify-center min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-4.5rem)] py-12 px-4">
+       <Image
+          src='https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2F67e206b7d52d22580e4ec0d8_890.jpg?alt=media&token=c0a35579-2cdf-4d20-9aa9-6163ff95eddf'
+          alt="Hero Banner"
+          fill
+          className="object-cover -z-10"
+          data-ai-hint='concert stage lights'
+        />
+        <div className="absolute inset-0 bg-black/70 -z-10" />
+
+      <Card className="mx-auto max-w-sm w-full text-white border-white/20">
         <CardHeader className="text-center">
             <Ticket className="mx-auto h-8 w-8 text-primary" />
           <CardTitle className="text-2xl font-headline">Welcome Back</CardTitle>
-          <CardDescription>
+          <CardDescription className="text-white/80">
             Enter your email below to login to your account
           </CardDescription>
         </CardHeader>
@@ -87,13 +97,14 @@ export default function LoginPage() {
                 type="email"
                 placeholder="m@example.com"
                 {...register("email")}
+                className="bg-white/10 border-white/20 placeholder:text-white/50"
               />
               {errors.email && <p className="text-destructive text-xs">{errors.email.message}</p>}
             </div>
             <div className="grid gap-2">
                <Label htmlFor="password">Password</Label>
               <div className="relative">
-                <Input id="password" type={showPassword ? "text" : "password"} {...register("password")} />
+                <Input id="password" type={showPassword ? "text" : "password"} {...register("password")} className="bg-white/10 border-white/20 placeholder:text-white/50" />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
