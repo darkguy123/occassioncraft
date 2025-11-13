@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, BookText, FileText, Info, Image as ImageIcon, Palette } from 'lucide-react';
+import { Upload, BookText, FileText, Info, Image as ImageIcon, Palette, Link as LinkIcon, Twitter, Facebook, Instagram } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -31,6 +31,11 @@ export default function AdminSettingsPage() {
   const [privacyPolicy, setPrivacyPolicy] = useState('');
   const [terms, setTerms] = useState('');
   const [aboutUs, setAboutUs] = useState('');
+  
+  const [twitterUrl, setTwitterUrl] = useState('');
+  const [facebookUrl, setFacebookUrl] = useState('');
+  const [instagramUrl, setInstagramUrl] = useState('');
+
 
   useEffect(() => {
     const loadSettings = () => {
@@ -51,6 +56,13 @@ export default function AdminSettingsPage() {
       
       const savedAccent = localStorage.getItem('theme-accent-hex');
       if (savedAccent) setAccentColor(savedAccent);
+      
+      const savedTwitter = localStorage.getItem('social-twitter');
+      if (savedTwitter) setTwitterUrl(savedTwitter);
+      const savedFacebook = localStorage.getItem('social-facebook');
+      if (savedFacebook) setFacebookUrl(savedFacebook);
+      const savedInstagram = localStorage.getItem('social-instagram');
+      if (savedInstagram) setInstagramUrl(savedInstagram);
     };
     
     loadSettings();
@@ -166,6 +178,17 @@ export default function AdminSettingsPage() {
     });
   };
 
+  const handleSaveSocials = () => {
+    localStorage.setItem('social-twitter', twitterUrl);
+    localStorage.setItem('social-facebook', facebookUrl);
+    localStorage.setItem('social-instagram', instagramUrl);
+    toast({
+      title: 'Social Links Saved',
+      description: 'Your footer social media links have been updated.',
+    });
+    window.dispatchEvent(new Event('storage'));
+  };
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="space-y-2">
@@ -174,10 +197,11 @@ export default function AdminSettingsPage() {
       </div>
 
       <Tabs defaultValue="branding" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 max-w-lg">
+        <TabsList className="grid w-full grid-cols-4 max-w-lg">
             <TabsTrigger value="branding">Branding</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
             <TabsTrigger value="content">Content</TabsTrigger>
+            <TabsTrigger value="socials">Socials</TabsTrigger>
         </TabsList>
         <TabsContent value="branding">
             <Card>
@@ -304,6 +328,48 @@ export default function AdminSettingsPage() {
                     </div>
                 </CardContent>
             </Card>
+        </TabsContent>
+        <TabsContent value="socials">
+          <Card>
+            <CardHeader>
+              <CardTitle>Social Media Links</CardTitle>
+              <CardDescription>
+                Add the URLs for your social media profiles to be displayed in the footer.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="twitter-url" className="flex items-center gap-2"><Twitter className="h-4 w-4 text-[#1DA1F2]" /> Twitter</Label>
+                <Input
+                  id="twitter-url"
+                  placeholder="https://twitter.com/your-profile"
+                  value={twitterUrl}
+                  onChange={(e) => setTwitterUrl(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="facebook-url" className="flex items-center gap-2"><Facebook className="h-4 w-4 text-[#1877F2]" /> Facebook</Label>
+                <Input
+                  id="facebook-url"
+                  placeholder="https://facebook.com/your-profile"
+                  value={facebookUrl}
+                  onChange={(e) => setFacebookUrl(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="instagram-url" className="flex items-center gap-2"><Instagram className="h-4 w-4 text-[#E4405F]" /> Instagram</Label>
+                <Input
+                  id="instagram-url"
+                  placeholder="https://instagram.com/your-profile"
+                  value={instagramUrl}
+                  onChange={(e) => setInstagramUrl(e.target.value)}
+                />
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={handleSaveSocials}>Save Socials</Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
