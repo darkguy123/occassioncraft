@@ -62,7 +62,7 @@ export type Notification = {
 export type Wallet = {
   id: string;
   balance: number;
-  currency: 'NGN' | 'USD';
+  currency: 'NGN';
 }
 
 export type Transaction = {

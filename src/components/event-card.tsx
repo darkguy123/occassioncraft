@@ -42,7 +42,7 @@ export default function EventCard({ event }: EventCardProps) {
         <CardFooter className="p-4 flex justify-between items-center bg-secondary/50">
           <div className="flex items-center">
             <Ticket className="h-5 w-5 mr-2 text-primary" />
-            <span className="font-bold text-lg">${event.price.toFixed(2)}</span>
+            <span className="font-bold text-lg">₦{event.price.toFixed(2)}</span>
           </div>
           <Button variant="outline" size="sm">
             Details

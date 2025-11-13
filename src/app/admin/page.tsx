@@ -50,7 +50,7 @@ export default function AdminDashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">$7,100.00</div>
+            <div className="text-3xl font-bold">₦7,100.00</div>
             <p className="text-xs text-muted-foreground">+12.1% from last month</p>
           </CardContent>
         </Card>
@@ -103,7 +103,7 @@ export default function AdminDashboardPage() {
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
-                        <YAxis tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => `$${Number(value) / 1000}k`} />
+                        <YAxis tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => `₦${Number(value) / 1000}k`} />
                         <Tooltip 
                             cursor={{stroke: 'hsl(var(--primary))', strokeWidth: 2, strokeDasharray: '3 3'}}
                             content={({ active, payload, label }) => {
@@ -116,7 +116,7 @@ export default function AdminDashboardPage() {
                                             {label}
                                         </span>
                                         <span className="font-bold text-primary">
-                                            ${payload[0].value?.toLocaleString()}
+                                            ₦{payload[0].value?.toLocaleString()}
                                         </span>
                                         </div>
                                     </div>

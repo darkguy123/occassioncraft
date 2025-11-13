@@ -132,7 +132,7 @@ export default function VendorDashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$0.00</div>
+            <div className="text-2xl font-bold">₦0.00</div>
             <p className="text-xs text-muted-foreground">No sales data yet</p>
           </CardContent>
         </Card>
@@ -184,7 +184,7 @@ export default function VendorDashboardPage() {
                   <TableRow key={event.id}>
                     <TableCell className="font-medium">{event.name}</TableCell>
                     <TableCell><Badge variant="secondary">{event.status || 'Published'}</Badge></TableCell>
-                    <TableCell>${event.price.toFixed(2)}</TableCell>
+                    <TableCell>₦{event.price.toFixed(2)}</TableCell>
                     <TableCell className="text-right">
                        <DropdownMenu>
                             <DropdownMenuTrigger asChild>

@@ -17,9 +17,10 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { DollarSign } from 'lucide-react';
 import { usePaystackPayment } from 'react-paystack';
-import { useUser, useFirestore, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
-import { doc, collection } from 'firebase/firestore';
+import { useUser, useFirestore, updateDocumentNonBlocking, addDocumentNonBlocking, useDoc } from '@/firebase';
+import { doc, collection, increment } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
+import type { Wallet } from '@/lib/types';
 
 interface TopUpDialogProps {
   isOpen: boolean;
@@ -27,7 +28,7 @@ interface TopUpDialogProps {
 }
 
 const topUpSchema = z.object({
-  amount: z.coerce.number().positive({ message: 'Amount must be greater than zero.' }).min(5, { message: 'Minimum top-up is ₦500' }),
+  amount: z.coerce.number().positive({ message: 'Amount must be greater than zero.' }).min(500, { message: 'Minimum top-up is ₦500.' }),
 });
 
 type TopUpFormValues = z.infer<typeof topUpSchema>;
@@ -62,15 +63,15 @@ export function TopUpDialog({ isOpen, onClose }: TopUpDialogProps) {
     const walletRef = doc(firestore, 'wallets', user.uid);
     const transactionRef = doc(collection(firestore, `wallets/${user.uid}/transactions`), reference.reference);
 
-    // This is a simplified update. A real-world app should use a transaction.
+    // Use Firestore increment for safer balance updates
     updateDocumentNonBlocking(walletRef, {
-        balance: (form.getValues('amount') || 0) + (user as any)?.wallet?.balance || 0,
+        balance: increment(amount),
     });
 
     addDocumentNonBlocking(transactionRef, {
         id: reference.reference,
         walletId: user.uid,
-        amount: form.getValues('amount'),
+        amount: amount,
         type: 'top-up',
         date: new Date().toISOString(),
         description: 'Wallet top-up via Paystack',

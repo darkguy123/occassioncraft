@@ -99,7 +99,7 @@ export default function AdminEventsPage() {
                     <TableCell className="font-medium">{event.name}</TableCell>
                     <TableCell>{event.organizer}</TableCell>
                     <TableCell><Badge variant="secondary">{event.status || 'Published'}</Badge></TableCell>
-                    <TableCell>${event.price.toFixed(2)}</TableCell>
+                    <TableCell>₦{event.price.toFixed(2)}</TableCell>
                     <TableCell className="text-right">
                        <DropdownMenu>
                             <DropdownMenuTrigger asChild>
