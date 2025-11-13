@@ -40,10 +40,11 @@ export default function TicketDetailsPage() {
     const ticketImageUrl = eventData?.ticketImageUrl;
 
     useEffect(() => {
-        if (ticketId) {
+        if (ticketId && eventId && user) {
             const generateQrCode = async () => {
                 try {
-                    const validationUrl = `${window.location.origin}/validate?ticketId=${ticketId}`;
+                    // Embed all necessary info in the QR code for validation
+                    const validationUrl = `${window.location.origin}/validate?ticketId=${ticketId}&eventId=${eventId}&userId=${user.uid}`;
                     const url = await QRCode.toDataURL(validationUrl, {
                         errorCorrectionLevel: 'H',
                         margin: 1,
@@ -61,7 +62,7 @@ export default function TicketDetailsPage() {
 
             generateQrCode();
         }
-    }, [ticketId]);
+    }, [ticketId, eventId, user]);
 
     if (isLoading) {
         return (
@@ -148,3 +149,5 @@ export default function TicketDetailsPage() {
         </div>
     )
 }
+
+    

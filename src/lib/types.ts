@@ -27,6 +27,7 @@ export type Event = {
   organizer?: string; // Can be denormalized
   category?: string; // Can be denormalized
   price: number; // Simplified price
+  status?: 'approved' | 'pending' | 'rejected';
 };
 
 export type UserTicket = {
@@ -35,6 +36,7 @@ export type UserTicket = {
   purchaseDate: string; // ISO 8601 string
   userId: string;
   event?: Event; // Denormalized event data
+  isUsed?: boolean;
 };
 
 export type Vendor = {

@@ -110,9 +110,11 @@ export default function VendorDashboardPage() {
             <p className="text-muted-foreground">Manage your events, track sales, and engage with your attendees.</p>
         </div>
         <div className="flex gap-2">
-            <Button variant="outline">
-                <QrCode className="mr-2 h-4 w-4" />
-                Scan Ticket
+            <Button asChild variant="outline">
+                <Link href="/validate">
+                    <QrCode className="mr-2 h-4 w-4" />
+                    Scan Ticket
+                </Link>
             </Button>
             <Button asChild>
                 <Link href="/create-event">
