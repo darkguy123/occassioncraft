@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Ticket, PartyPopper, RotateCcw } from "lucide-react";
+import { ArrowLeft, Ticket, PartyPopper, RotateCcw, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
 import { Step1AccountDetails } from "@/components/signup/step-1-account-details";
@@ -25,8 +25,10 @@ import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } 
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
+  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
@@ -75,6 +77,7 @@ export default function SignupPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(1);
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
+  const [showEmailExistsDialog, setShowEmailExistsDialog] = useState(false);
   
   const auth = useAuth();
   const firestore = useFirestore();
@@ -157,14 +160,9 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
 
-      // This is the point of no return. If this succeeds, the account is created.
-      // We should only show the welcome dialog after this point.
-
       if (user) {
-        // Send verification email
         await sendEmailVerification(user);
 
-        // Update profile display name ONLY. Avatar is stored in Firestore.
         await updateProfile(user, {
             displayName: data.fullName,
         });
@@ -173,14 +171,12 @@ export default function SignupPage() {
         
         const roles = data.roles.length > 0 ? data.roles : ['user'];
         
-        // Admin Seeder Logic: Assign 'admin' role if the email matches.
         if (data.email.toLowerCase() === 'valentinoboss18@gmail.com') {
             if (!roles.includes('admin')) {
                 roles.push('admin');
             }
         }
         
-        // Create User document
         const userRef = doc(firestore, "users", user.uid);
         const userData = {
           id: user.uid,
@@ -188,18 +184,16 @@ export default function SignupPage() {
           lastName: lastName.join(' '),
           email: data.email,
           roles: Array.from(new Set(roles)), 
-          profileImageUrl: data.avatarUrl || '', // Avatar (base64) is stored here
+          profileImageUrl: data.avatarUrl || '',
           dateJoined: new Date().toISOString(),
         };
         setDocumentNonBlocking(userRef, userData, { merge: true });
 
-        // If the user is an admin, create an entry in the roles_admin collection
         if (roles.includes('admin')) {
             const adminRoleRef = doc(firestore, "roles_admin", user.uid);
             setDocumentNonBlocking(adminRoleRef, { isAdmin: true }, { merge: true });
         }
 
-        // If Vendor, create a separate vendor document
         if (data.roles.includes('vendor')) {
           const vendorRef = doc(firestore, "vendors", user.uid);
           const vendorData = {
@@ -208,29 +202,27 @@ export default function SignupPage() {
             companyName: data.companyName,
             description: data.companyDescription,
             contactEmail: data.email,
-            status: 'pending', // Default to pending for vendors
+            status: 'pending',
           };
           setDocumentNonBlocking(vendorRef, vendorData, { merge: true });
         }
 
-        // All operations are successful, now we can show the welcome dialog.
         setShowWelcomeDialog(true);
       }
       
-      // Clear saved data on successful submission
       localStorage.removeItem('signupFormData');
       localStorage.removeItem('signupFormStep');
 
     } catch (error: any) {
-        let errorMessage = error.message;
         if (error.code === 'auth/email-already-in-use') {
-            errorMessage = "This email is already in use. Try logging in or starting over.";
+            setShowEmailExistsDialog(true);
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Sign-up Failed",
+                description: error.message,
+            });
         }
-      toast({
-        variant: "destructive",
-        title: "Sign-up Failed",
-        description: errorMessage,
-      });
     }
   };
 
@@ -310,7 +302,29 @@ export default function SignupPage() {
             </AlertDialogAction>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={showEmailExistsDialog} onOpenChange={setShowEmailExistsDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="text-amber-500" /> Account Exists
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              An account with the email address <span className="font-semibold">{form.getValues("email")}</span> already exists.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="grid grid-cols-2 gap-4">
+             <AlertDialogAction asChild>
+                <Link href="/login">Login</Link>
+            </AlertDialogAction>
+            <AlertDialogAction asChild variant="secondary">
+                <Link href="/forgot-password">Forgot Password?</Link>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
 
+    
