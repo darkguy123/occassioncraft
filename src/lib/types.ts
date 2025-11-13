@@ -58,3 +58,19 @@ export type Notification = {
   read: boolean;
   link?: string;
 }
+
+export type Wallet = {
+  id: string;
+  balance: number;
+  currency: 'NGN' | 'USD';
+}
+
+export type Transaction = {
+  id: string;
+  walletId: string;
+  amount: number;
+  type: 'top-up' | 'ticket-sale' | 'payout' | 'refund' | 'adjustment';
+  date: string; // ISO 8601 string
+  description: string;
+  relatedEntityId?: string;
+}
