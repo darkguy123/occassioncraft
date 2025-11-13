@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -12,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon, Image as ImageIcon, MapPin, Plus, Video, Sparkles, Ticket, Loader2 } from "lucide-react"
+import { CalendarIcon, Image as ImageIcon, MapPin, Plus, Video, Sparkles, Ticket, Upload } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
@@ -25,7 +24,6 @@ import Image from "next/image"
 import { EventPreview } from "@/components/event-preview"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { TicketStylePreview } from "@/components/ticket-style-preview"
-import { generateTicketBackgrounds } from "@/ai/flows/generate-ticket-backgrounds";
 
 const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters.").default(""),
@@ -37,10 +35,17 @@ const eventFormSchema = z.object({
   description: z.string().optional().default(""),
   bannerUrl: z.string().optional(),
   ticketImageUrl: z.string().optional(),
+  ticketBrandingImageUrl: z.string().optional(), // New field for branding
   price: z.coerce.number().min(0, "Price must be non-negative.").default(0),
 });
 
 export type EventFormValues = z.infer<typeof eventFormSchema>;
+
+const predefinedBackgrounds = [
+    { id: 'style1', url: 'https://picsum.photos/seed/ticket1/400/600', hint: 'abstract gradient' },
+    { id: 'style2', url: 'https://picsum.photos/seed/ticket2/400/600', hint: 'geometric pattern' },
+    { id: 'style3', url: 'https://picsum.photos/seed/ticket3/400/600', hint: 'dark texture' },
+];
 
 export default function CreateEventPage() {
   const { toast } = useToast();
@@ -56,9 +61,6 @@ export default function CreateEventPage() {
   const { data: userData, isLoading: isUserDataLoading } = useDoc<UserType>(userDocRef);
   
   const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
-  const [generatedBackgrounds, setGeneratedBackgrounds] = useState<string[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
-
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
@@ -71,7 +73,8 @@ export default function CreateEventPage() {
       location: "",
       description: "",
       bannerUrl: "",
-      ticketImageUrl: "",
+      ticketImageUrl: predefinedBackgrounds[0].url,
+      ticketBrandingImageUrl: "",
       price: 0,
     },
     mode: "onChange",
@@ -137,7 +140,7 @@ export default function CreateEventPage() {
     router.push(isAdmin ? '/admin/events' : '/vendor/dashboard');
   };
   
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, field: 'bannerUrl' | 'ticketBrandingImageUrl') => {
     const file = event.target.files?.[0];
     if (file) {
         if (file.size > 4 * 1024 * 1024) { // 4MB limit
@@ -147,40 +150,11 @@ export default function CreateEventPage() {
         const reader = new FileReader();
         reader.onloadend = () => {
             const result = reader.result as string;
-            form.setValue('bannerUrl', result, { shouldValidate: true });
+            form.setValue(field, result, { shouldValidate: true });
         };
         reader.readAsDataURL(file);
     }
   };
-
-  const handleGenerateBackgrounds = async () => {
-    const eventTitle = form.getValues('name');
-    if (!eventTitle) {
-        toast({
-            variant: 'destructive',
-            title: 'Event Title Required',
-            description: 'Please enter an event title before generating backgrounds.'
-        });
-        return;
-    }
-    setIsGenerating(true);
-    setGeneratedBackgrounds([]);
-    form.setValue('ticketImageUrl', '');
-    try {
-        const result = await generateTicketBackgrounds(eventTitle);
-        setGeneratedBackgrounds(result.imageUrls);
-    } catch (error) {
-        console.error('AI background generation failed', error);
-        toast({
-            variant: 'destructive',
-            title: 'Generation Failed',
-            description: 'Could not generate background images. Please try again.'
-        });
-    } finally {
-        setIsGenerating(false);
-    }
-  };
-
 
   if (authStatus !== 'authorized') {
     return (
@@ -218,7 +192,7 @@ export default function CreateEventPage() {
                         <Plus className="mr-2 h-4 w-4"/> Upload Banner
                     </label>
                 </Button>
-                <Input id="banner-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange}/>
+                <Input id="banner-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'bannerUrl')}/>
             </div>
             
             <FormField
@@ -342,28 +316,40 @@ export default function CreateEventPage() {
                 <Ticket className="h-6 w-6 text-muted-foreground mt-2" />
                 <div className="grid gap-4 flex-grow">
                     <h3 className="font-semibold text-lg">Ticket Appearance</h3>
-                     <Button type="button" onClick={handleGenerateBackgrounds} disabled={isGenerating}>
-                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                        Generate Backgrounds
-                    </Button>
+                    
+                     <div className="grid gap-2">
+                        <FormLabel>Branding Image (Optional)</FormLabel>
+                        <div className="flex items-center gap-4">
+                           {form.watch('ticketBrandingImageUrl') && <Image src={form.watch('ticketBrandingImageUrl')!} alt="Branding preview" width={100} height={50} className="rounded-md object-contain h-14 bg-slate-200" />}
+                            <Button asChild variant="outline" size="sm">
+                                <label htmlFor="branding-upload" className="cursor-pointer">
+                                    <Upload className="mr-2 h-4 w-4"/> Upload Logo/Banner
+                                </label>
+                            </Button>
+                        </div>
+                        <Input id="branding-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'ticketBrandingImageUrl')}/>
+                        <p className="text-xs text-muted-foreground">Recommended aspect ratio: 2:1 (e.g. 400x200px)</p>
+                    </div>
+
                     <FormField
                         control={form.control}
                         name="ticketImageUrl"
                         render={({ field }) => (
                             <FormItem className="space-y-3">
+                               <FormLabel>Ticket Background</FormLabel>
                                 <FormControl>
                                     <RadioGroup
                                         onValueChange={field.onChange}
-                                        value={field.value}
-                                        className={cn("grid grid-cols-3 gap-4", generatedBackgrounds.length === 0 && 'hidden')}
+                                        defaultValue={field.value}
+                                        className="grid grid-cols-3 gap-4"
                                     >
-                                        {generatedBackgrounds.map((url, index) => (
-                                            <FormItem key={index}>
+                                        {predefinedBackgrounds.map((bg) => (
+                                            <FormItem key={bg.id}>
                                                 <FormControl>
-                                                    <RadioGroupItem value={url} className="sr-only" />
+                                                    <RadioGroupItem value={bg.url} className="sr-only" />
                                                 </FormControl>
                                                 <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer h-28">
-                                                    <Image src={url} alt={`Generated background ${index + 1}`} width={120} height={100} className="w-full h-full object-cover rounded-sm" />
+                                                    <Image src={bg.url} alt={bg.hint} width={120} height={100} data-ai-hint={bg.hint} className="w-full h-full object-cover rounded-sm" />
                                                 </FormLabel>
                                             </FormItem>
                                         ))}
@@ -373,13 +359,6 @@ export default function CreateEventPage() {
                             </FormItem>
                         )}
                     />
-                    {isGenerating && (
-                         <div className="grid grid-cols-3 gap-4">
-                            <Skeleton className="h-28 w-full" />
-                            <Skeleton className="h-28 w-full" />
-                            <Skeleton className="h-28 w-full" />
-                        </div>
-                    )}
                 </div>
             </div>
             
@@ -422,5 +401,3 @@ export default function CreateEventPage() {
     </div>
   );
 }
-
-    

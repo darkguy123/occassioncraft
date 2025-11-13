@@ -38,6 +38,7 @@ export default function TicketDetailsPage() {
 
     const isLoading = isTicketLoading || isEventLoading;
     const ticketImageUrl = eventData?.ticketImageUrl;
+    const ticketBrandingImageUrl = eventData?.ticketBrandingImageUrl;
 
     useEffect(() => {
         if (ticketId && eventId && user) {
@@ -98,50 +99,59 @@ export default function TicketDetailsPage() {
                     <Image src={ticketImageUrl} alt="Ticket background" layout="fill" className="object-cover blur-md opacity-50" />
                 )}
 
-                <div className="p-6 md:p-8 backdrop-blur-sm bg-white/10 rounded-2xl relative z-10">
-                    <div className="flex justify-between items-start">
-                        <div className="space-y-1">
-                            <p className="text-xs uppercase tracking-widest text-black/60 dark:text-white/60">Event Ticket</p>
-                            <h3 className="font-headline text-3xl font-bold leading-tight text-black dark:text-white">{eventData.name}</h3>
+                <div className="p-1 backdrop-blur-sm bg-white/10 rounded-2xl relative z-10">
+                    {ticketBrandingImageUrl && (
+                        <div className="h-24 relative rounded-t-xl overflow-hidden mb-2">
+                            <Image src={ticketBrandingImageUrl} alt="Branding" layout="fill" className="object-cover" />
                         </div>
-                        <Ticket className="h-8 w-8 text-black/60 dark:text-white/60" />
-                    </div>
+                    )}
 
-                    <div className="mt-8 space-y-4 text-sm">
-                        <div className="flex items-center gap-3">
-                            <Calendar className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
-                            <span className="font-medium text-black dark:text-white">{formattedDate} at {formattedTime}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <MapPin className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
-                            <span className="truncate font-medium text-black dark:text-white">{eventData.isOnline ? 'Online Event' : eventData.location}</span>
-                        </div>
-                         <div className="flex items-center gap-3">
-                            <UserIcon className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
-                            <span className="truncate font-medium text-black dark:text-white">{user?.displayName || 'Ticket Holder'}</span>
-                        </div>
-                    </div>
+                    <div className={cn("p-6 md:p-8", ticketBrandingImageUrl && "pt-2")}>
 
-                     <div className="mt-8 text-center flex flex-col items-center justify-center">
-                        {qrCodeUrl ? (
-                            <div className="bg-white p-2 rounded-lg shadow-lg">
-                                <Image
-                                    src={qrCodeUrl}
-                                    alt="Ticket QR Code"
-                                    width={200}
-                                    height={200}
-                                    data-ai-hint="qr code"
-                                />
+                        <div className="flex justify-between items-start">
+                            <div className="space-y-1">
+                                <p className="text-xs uppercase tracking-widest text-black/60 dark:text-white/60">Event Ticket</p>
+                                <h3 className="font-headline text-3xl font-bold leading-tight text-black dark:text-white">{eventData.name}</h3>
                             </div>
-                        ) : (
-                            <Skeleton className="h-48 w-48" />
-                        )}
-                         <p className="text-xs mt-3 text-black/60 dark:text-white/60">Scan this at the event entrance</p>
-                    </div>
+                            <Ticket className="h-8 w-8 text-black/60 dark:text-white/60" />
+                        </div>
 
-                    <div className="mt-8 border-t-2 border-dashed border-black/20 dark:border-white/20 pt-4 flex items-center justify-between gap-4 text-xs">
-                        <p className="text-black/60 dark:text-white/60">Ticket ID: {ticketId}</p>
-                        <p className="text-black/60 dark:text-white/60">Purchased: {format(new Date(ticketData.purchaseDate), "PP")}</p>
+                        <div className="mt-8 space-y-4 text-sm">
+                            <div className="flex items-center gap-3">
+                                <Calendar className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
+                                <span className="font-medium text-black dark:text-white">{formattedDate} at {formattedTime}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <MapPin className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
+                                <span className="truncate font-medium text-black dark:text-white">{eventData.isOnline ? 'Online Event' : eventData.location}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <UserIcon className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
+                                <span className="truncate font-medium text-black dark:text-white">{user?.displayName || 'Ticket Holder'}</span>
+                            </div>
+                        </div>
+
+                        <div className="mt-8 text-center flex flex-col items-center justify-center">
+                            {qrCodeUrl ? (
+                                <div className="bg-white p-2 rounded-lg shadow-lg">
+                                    <Image
+                                        src={qrCodeUrl}
+                                        alt="Ticket QR Code"
+                                        width={200}
+                                        height={200}
+                                        data-ai-hint="qr code"
+                                    />
+                                </div>
+                            ) : (
+                                <Skeleton className="h-48 w-48" />
+                            )}
+                            <p className="text-xs mt-3 text-black/60 dark:text-white/60">Scan this at the event entrance</p>
+                        </div>
+
+                        <div className="mt-8 border-t-2 border-dashed border-black/20 dark:border-white/20 pt-4 flex items-center justify-between gap-4 text-xs">
+                            <p className="text-black/60 dark:text-white/60">Ticket ID: {ticketId}</p>
+                            <p className="text-black/60 dark:text-white/60">Purchased: {format(new Date(ticketData.purchaseDate), "PP")}</p>
+                        </div>
                     </div>
 
                 </div>
@@ -149,5 +159,3 @@ export default function TicketDetailsPage() {
         </div>
     )
 }
-
-    

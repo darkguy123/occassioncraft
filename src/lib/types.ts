@@ -22,7 +22,8 @@ export type Event = {
   location: string;
   description?: string;
   bannerUrl?: string;
-  ticketImageUrl?: string; // Changed from ticketStyle
+  ticketImageUrl?: string;
+  ticketBrandingImageUrl?: string;
   vendorId: string;
   organizer?: string; // Can be denormalized
   category?: string; // Can be denormalized
