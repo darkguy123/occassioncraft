@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -11,7 +10,6 @@ import type { User } from '@/lib/types';
 import { doc } from 'firebase/firestore';
 import { Notifications } from './notifications';
 import { PlusCircle } from 'lucide-react';
-import { ModeToggle } from '@/components/shared/mode-toggle';
 
 const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Flogo.png?alt=media&token=1d01f9c3-5c82-4541-b819-25f0a7398a61';
 
@@ -82,13 +80,11 @@ export function Header() {
                         </Link>
                     </Button>
                 )}
-                <ModeToggle />
                 <Notifications />
                 <UserNav />
               </>
             ) : (
               <>
-                <ModeToggle />
                 <Button variant="ghost" asChild>
                   <Link href="/login">Log In</Link>
                 </Button>

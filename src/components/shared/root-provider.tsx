@@ -6,7 +6,6 @@ import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { NavigationEvents } from '@/components/shared/navigation-events';
 import { Suspense, useState, useEffect } from 'react';
-import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { AnimatePresence, motion } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 
@@ -75,12 +74,7 @@ export function RootProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     return (
-        <NextThemesProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-        >
+        <>
           <Suspense fallback={<link rel="icon" href="https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Ffavicon.png?alt=media&token=86504a79-54d9-4315-9923-388f8d662e07" />}>
              <Favicon />
           </Suspense>
@@ -109,6 +103,6 @@ export function RootProvider({ children }: { children: React.ReactNode }) {
                 <NavigationEvents />
               </Suspense>
           </FirebaseClientProvider>
-        </NextThemesProvider>
+        </>
     );
 }

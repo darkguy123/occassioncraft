@@ -15,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="light" suppressHydrationWarning>
+    <html lang="en">
       <head>
         <Suspense fallback={<link rel="icon" href="/favicon.ico" />}>
         </Suspense>
