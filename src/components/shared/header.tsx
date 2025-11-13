@@ -12,10 +12,12 @@ import { doc } from 'firebase/firestore';
 import { Notifications } from './notifications';
 import { PlusCircle } from 'lucide-react';
 
+const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Flogo.png?alt=media&token=1d01f9c3-5c82-4541-b819-25f0a7398a61';
+
 export function Header() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const [logoUrl, setLogoUrl] = useState<string>('https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Flogo.png?alt=media&token=1d01f9c3-5c82-4541-b819-25f0a7398a61');
+  const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
   const [hasMounted, setHasMounted] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
@@ -34,11 +36,7 @@ export function Header() {
     
     const updateLogo = () => {
       const savedLogo = localStorage.getItem('websiteLogo');
-      if (savedLogo) {
-        setLogoUrl(savedLogo);
-      } else {
-        setLogoUrl('https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Flogo.png?alt=media&token=1d01f9c3-5c82-4541-b819-25f0a7398a61');
-      }
+      setLogoUrl(savedLogo || DEFAULT_LOGO_URL);
     };
 
     updateLogo();
@@ -50,21 +48,17 @@ export function Header() {
     };
   }, [hasMounted]);
 
-  const isVendor = userData && (userData.roles || []).includes('vendor');
-  const isAdmin = userData && (userData.roles || []).includes('admin');
-  const vendorLinkHref = hasMounted && isVendor ? "/vendor/dashboard" : "/vendor";
-  const vendorLinkText = hasMounted && isVendor ? "My Dashboard" : "Host Your Event";
+  const isVendor = hasMounted && userData && (userData.roles || []).includes('vendor');
+  const isAdmin = hasMounted && userData && (userData.roles || []).includes('admin');
+  const vendorLinkHref = isVendor ? "/vendor/dashboard" : "/vendor";
+  const vendorLinkText = isVendor ? "My Dashboard" : "Host Your Event";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
       <div className="container flex h-16 items-center">
         <div className="mr-4 flex">
            <Link href="/" className="mr-6 flex items-center space-x-2">
-            {hasMounted && logoUrl ? (
-                <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" />
-              ) : (
-                <div style={{ width: 140, height: 32 }} />
-            )}
+            <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" priority />
           </Link>
           <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
             <Link href="/events" className="transition-colors hover:text-foreground/80 text-foreground/60">
