@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Ticket, PartyPopper } from "lucide-react";
+import { ArrowLeft, Ticket, PartyPopper, RotateCcw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
 import { Step1AccountDetails } from "@/components/signup/step-1-account-details";
@@ -54,6 +54,23 @@ const signupSchema = z.object({
 
 export type SignupSchema = z.infer<typeof signupSchema>;
 
+const getStoredSignupData = () => {
+    if (typeof window === 'undefined') return {};
+    const savedData = localStorage.getItem('signupFormData');
+    try {
+        return savedData ? JSON.parse(savedData) : {};
+    } catch (e) {
+        return {};
+    }
+};
+
+const getStoredSignupStep = () => {
+    if (typeof window === 'undefined') return 0;
+    const savedStep = localStorage.getItem('signupFormStep');
+    return savedStep ? parseInt(savedStep, 10) : 0;
+};
+
+
 export default function SignupPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(1);
@@ -78,6 +95,25 @@ export default function SignupPage() {
     },
     mode: "onChange",
   });
+  
+  useEffect(() => {
+    const savedData = getStoredSignupData();
+    const savedStep = getStoredSignupStep();
+
+    if (Object.keys(savedData).length > 0) {
+      form.reset(savedData);
+    }
+    if (savedStep) {
+        setCurrentStep(savedStep);
+    }
+  }, [form]);
+
+  const watchedValues = form.watch();
+
+  useEffect(() => {
+    localStorage.setItem('signupFormData', JSON.stringify(watchedValues));
+    localStorage.setItem('signupFormStep', String(currentStep));
+  }, [watchedValues, currentStep]);
 
   const steps = [
     { id: 1, component: Step1AccountDetails, fields: ['fullName', 'email', 'password'] },
@@ -104,6 +140,17 @@ export default function SignupPage() {
     }
   };
 
+  const handleStartOver = () => {
+    localStorage.removeItem('signupFormData');
+    localStorage.removeItem('signupFormStep');
+    form.reset({
+      fullName: "", email: "", password: "", roles: ["user"],
+      companyName: "", companyDescription: "", avatarUrl: "", terms: false,
+    });
+    setCurrentStep(0);
+    toast({ title: "Form Cleared", description: "You can now start your registration over." });
+  };
+
   const onSubmit = async (data: SignupSchema) => {
     if (!auth || !firestore) return;
     try {
@@ -114,9 +161,9 @@ export default function SignupPage() {
         // Send verification email
         await sendEmailVerification(user);
 
+        // Update profile display name ONLY. Avatar is stored in Firestore.
         await updateProfile(user, {
             displayName: data.fullName,
-            photoURL: data.avatarUrl,
         });
 
         const [firstName, ...lastName] = data.fullName.split(' ');
@@ -138,7 +185,7 @@ export default function SignupPage() {
           lastName: lastName.join(' '),
           email: data.email,
           roles: Array.from(new Set(roles)), 
-          profileImageUrl: data.avatarUrl || '',
+          profileImageUrl: data.avatarUrl || '', // Avatar (base64) is stored here
           dateJoined: new Date().toISOString(),
         };
         setDocumentNonBlocking(userRef, userData, { merge: true });
@@ -148,7 +195,6 @@ export default function SignupPage() {
             const adminRoleRef = doc(firestore, "roles_admin", user.uid);
             setDocumentNonBlocking(adminRoleRef, { isAdmin: true }, { merge: true });
         }
-
 
         // If Vendor, create a separate vendor document
         if (data.roles.includes('vendor')) {
@@ -164,14 +210,22 @@ export default function SignupPage() {
           setDocumentNonBlocking(vendorRef, vendorData, { merge: true });
         }
       }
-
+      
+      // Clear saved data on successful submission
+      localStorage.removeItem('signupFormData');
+      localStorage.removeItem('signupFormStep');
+      
       setShowWelcomeDialog(true);
 
     } catch (error: any) {
+        let errorMessage = error.message;
+        if (error.code === 'auth/email-already-in-use') {
+            errorMessage = "This email is already in use. Try logging in or starting over.";
+        }
       toast({
         variant: "destructive",
         title: "Sign-up Failed",
-        description: error.message,
+        description: errorMessage,
       });
     }
   };
@@ -196,12 +250,17 @@ export default function SignupPage() {
           </CardHeader>
           <CardContent>
               <div className="space-y-4 mb-8">
-                  {currentStep > 0 && (
-                      <Button variant="ghost" onClick={handlePrev} className="text-muted-foreground">
-                          <ArrowLeft className="mr-2 h-4 w-4" />
-                          Back
-                      </Button>
-                  )}
+                  <div className="flex justify-between items-center">
+                    {currentStep > 0 ? (
+                        <Button variant="ghost" onClick={handlePrev} className="text-muted-foreground">
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Back
+                        </Button>
+                    ) : <div />}
+                    <Button variant="destructive" size="sm" onClick={handleStartOver}>
+                      <RotateCcw className="mr-2 h-4 w-4" /> Start Over
+                    </Button>
+                  </div>
                   <Progress value={progress} className="h-2" />
               </div>
 
