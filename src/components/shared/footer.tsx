@@ -76,9 +76,9 @@ export function Footer() {
           <div>
             <h3 className="font-headline font-semibold mb-4">Company</h3>
             <ul className="space-y-2 text-sm">
-              <li><Link href="#" className="hover:text-primary">About Us</Link></li>
+              <li><Link href="/about" className="hover:text-primary">About Us</Link></li>
               <li><Link href="/privacy" className="hover:text-primary">Privacy Policy</Link></li>
-              <li><Link href="#" className="hover:text-primary">Careers</Link></li>
+              <li><Link href="/terms" className="hover:text-primary">Terms of Use</Link></li>
               <li><Link href="/help-center" className="hover:text-primary">Contact</Link></li>
             </ul>
           </div>
@@ -91,3 +91,5 @@ export function Footer() {
     </footer>
   );
 }
+
+    

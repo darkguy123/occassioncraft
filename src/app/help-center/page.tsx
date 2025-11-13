@@ -1,14 +1,28 @@
 
 'use client';
 
+import { useForm, SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { LifeBuoy, Search, Send } from "lucide-react";
+import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+
+const supportSchema = z.object({
+  email: z.string().email(),
+  subject: z.string().min(5, 'Subject must be at least 5 characters long.'),
+  message: z.string().min(10, 'Message must be at least 10 characters long.'),
+});
+
+type SupportFormValues = z.infer<typeof supportSchema>;
+
 
 const faqs = [
     {
@@ -35,15 +49,37 @@ const faqs = [
 
 export default function HelpCenterPage() {
     const { toast } = useToast();
+    const { user } = useUser();
+    const firestore = useFirestore();
 
-    const handleSupportSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        // In a real app, you'd handle form submission to a backend here.
+    const form = useForm<SupportFormValues>({
+        resolver: zodResolver(supportSchema),
+        defaultValues: {
+            email: user?.email || '',
+            subject: '',
+            message: '',
+        }
+    });
+
+    const onSubmit: SubmitHandler<SupportFormValues> = (data) => {
+        if (!firestore) {
+            toast({ variant: "destructive", title: "Error", description: "Could not connect to the database." });
+            return;
+        }
+
+        const ticketsCollection = collection(firestore, 'tickets');
+        addDocumentNonBlocking(ticketsCollection, {
+            ...data,
+            userId: user?.uid || 'anonymous',
+            createdAt: new Date().toISOString(),
+            status: 'open',
+        });
+        
         toast({
             title: "Message Sent!",
             description: "Thanks for reaching out. Our support team will get back to you shortly.",
         });
-        (event.target as HTMLFormElement).reset();
+        form.reset();
     };
 
     return (
@@ -89,24 +125,53 @@ export default function HelpCenterPage() {
                                 <CardDescription>Can't find an answer? Let us help.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <form onSubmit={handleSupportSubmit} className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="email">Your Email</Label>
-                                        <Input id="email" type="email" placeholder="you@example.com" required />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="subject">Subject</Label>
-                                        <Input id="subject" placeholder="e.g., Issue with my ticket" required />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="message">Message</Label>
-                                        <Textarea id="message" placeholder="Please describe your issue in detail..." className="min-h-32" required />
-                                    </div>
-                                    <Button type="submit" className="w-full">
+                                <Form {...form}>
+                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                                     <FormField
+                                        control={form.control}
+                                        name="email"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Your Email</FormLabel>
+                                                <FormControl>
+                                                    <Input type="email" placeholder="you@example.com" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="subject"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Subject</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="e.g., Issue with my ticket" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                     <FormField
+                                        control={form.control}
+                                        name="message"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Message</FormLabel>
+                                                <FormControl>
+                                                    <Textarea placeholder="Please describe your issue in detail..." className="min-h-32" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
                                         <Send className="mr-2 h-4 w-4" />
                                         Send Message
                                     </Button>
                                 </form>
+                                </Form>
                             </CardContent>
                         </Card>
                     </div>
@@ -115,3 +180,5 @@ export default function HelpCenterPage() {
         </div>
     );
 }
+
+    

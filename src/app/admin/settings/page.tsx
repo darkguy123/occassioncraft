@@ -20,7 +20,7 @@ type FileUploadState = {
 export default function AdminSettingsPage() {
   const { toast } = useToast();
 
-  const [logo, setLogo] = useState<FileUploadState>({ file: null, preview: 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Flogo.png?alt=media&token=1d01f9c3-5c82-4541-b819-25f0a7398a61' });
+  const [logo, setLogo] = useState<FileUploadState>({ file: null, preview: null });
   const [favicon, setFavicon] = useState<FileUploadState>({ file: null, preview: null });
   const [heroBanner, setHeroBanner] = useState<FileUploadState>({ file: null, preview: null });
 
@@ -63,6 +63,13 @@ export default function AdminSettingsPage() {
       if (savedFacebook) setFacebookUrl(savedFacebook);
       const savedInstagram = localStorage.getItem('social-instagram');
       if (savedInstagram) setInstagramUrl(savedInstagram);
+      
+      const savedPrivacy = localStorage.getItem('privacyPolicy');
+      if (savedPrivacy) setPrivacyPolicy(savedPrivacy);
+      const savedTerms = localStorage.getItem('termsAndConditions');
+      if (savedTerms) setTerms(savedTerms);
+      const savedAbout = localStorage.getItem('aboutUs');
+      if (savedAbout) setAboutUs(savedAbout);
     };
     
     loadSettings();
@@ -176,6 +183,7 @@ export default function AdminSettingsPage() {
         title: 'Content Saved',
         description: 'Your website content has been updated.',
     });
+    window.dispatchEvent(new Event('storage'));
   };
 
   const handleSaveSocials = () => {
@@ -193,7 +201,7 @@ export default function AdminSettingsPage() {
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Site Settings</h1>
-        <p className="text-muted-foreground">Manage your website&apos;s appearance and content.</p>
+        <p className="text-muted-foreground">Manage your website's appearance and content.</p>
       </div>
 
       <Tabs defaultValue="branding" className="w-full">
@@ -375,3 +383,5 @@ export default function AdminSettingsPage() {
     </div>
   );
 }
+
+    

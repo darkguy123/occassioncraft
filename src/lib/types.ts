@@ -74,3 +74,15 @@ export type Transaction = {
   description: string;
   relatedEntityId?: string;
 }
+
+export type SupportTicket = {
+    id: string;
+    userId: string;
+    email: string;
+    subject: string;
+    message: string;
+    status: 'open' | 'in-progress' | 'closed';
+    createdAt: string; // ISO 8601
+}
+
+    
