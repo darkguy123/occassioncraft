@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Header } from '@/components/shared/header';
@@ -7,7 +6,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { NavigationEvents } from '@/components/shared/navigation-events';
 import { Suspense, useState, useEffect } from 'react';
-import { ThemeProvider as NextThemesProvider } from "next-themes"
+import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { AnimatePresence, motion } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 
@@ -55,6 +54,24 @@ export function RootProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         setHasMounted(true);
+
+        const applyTheme = () => {
+            const root = document.documentElement;
+            const primary = localStorage.getItem('theme-primary');
+            const background = localStorage.getItem('theme-background');
+            const accent = localStorage.getItem('theme-accent');
+    
+            if (primary) root.style.setProperty('--primary', primary);
+            if (background) root.style.setProperty('--background', background);
+            if (accent) root.style.setProperty('--accent', accent);
+        };
+    
+        applyTheme();
+        window.addEventListener('storage', applyTheme);
+    
+        return () => {
+          window.removeEventListener('storage', applyTheme);
+        };
     }, []);
 
     return (
@@ -83,7 +100,6 @@ export function RootProvider({ children }: { children: React.ReactNode }) {
                         </motion.div>
                     </AnimatePresence>
                 ) : (
-                    // Render children directly on the server and initial client render
                     children
                 )}
               </main>
