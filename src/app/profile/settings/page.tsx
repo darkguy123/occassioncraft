@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { updateProfile, getAuth, updateEmail } from 'firebase/auth';
+import { updateProfile, getAuth, verifyBeforeUpdateEmail } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import { Edit, Upload } from 'lucide-react';
 import { ImageCropperDialog } from '@/components/shared/image-cropper-dialog';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Label } from '@/components/ui/label';
+import { ChangeEmailDialog } from '@/components/profile/change-email-dialog';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required."),
@@ -36,6 +37,7 @@ export default function ProfileSettingsPage() {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [croppedAvatarUrl, setCroppedAvatarUrl] = useState<string | null>(null);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
 
   const userRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: userData, isLoading: isUserDataLoading } = useDoc(userRef);
@@ -78,6 +80,35 @@ export default function ProfileSettingsPage() {
     setCroppedAvatarUrl(croppedImageUrl);
     setIsCropperOpen(false);
   };
+  
+  const handleEmailChangeRequest = async (newEmail: string) => {
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+      if (!currentUser || !firestore) return;
+      
+      try {
+          await verifyBeforeUpdateEmail(currentUser, newEmail);
+          
+          // Also update the email in the Firestore document
+          const userDocRef = doc(firestore, 'users', currentUser.uid);
+          updateDocumentNonBlocking(userDocRef, { email: newEmail });
+
+          toast({
+              title: "Verification Email Sent",
+              description: `A verification link has been sent to ${newEmail}. Please check your inbox to complete the change.`,
+          });
+          setIsEmailDialogOpen(false);
+          // Optimistically update form
+          form.setValue('email', newEmail);
+      } catch (error: any) {
+          toast({
+              variant: "destructive",
+              title: "Error Sending Verification",
+              description: error.message,
+          });
+      }
+  }
+
 
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user || !userRef) return;
@@ -91,18 +122,13 @@ export default function ProfileSettingsPage() {
           await updateProfile(currentUser, { 
               displayName: `${data.firstName} ${data.lastName}`,
           });
-
-          // Update email in Firebase Auth (requires re-authentication for security)
-          if (data.email !== currentUser.email) {
-            await updateEmail(currentUser, data.email);
-          }
       }
 
       // Prepare data for Firestore update
       const firestoreUpdateData: any = {
         firstName: data.firstName,
         lastName: data.lastName,
-        email: data.email,
+        // Email is handled separately now
       };
 
       if (croppedAvatarUrl) {
@@ -173,6 +199,14 @@ export default function ProfileSettingsPage() {
             onCrop={onCrop}
         />
     )}
+    
+    <ChangeEmailDialog
+        isOpen={isEmailDialogOpen}
+        onClose={() => setIsEmailDialogOpen(false)}
+        currentEmail={userData?.email}
+        onConfirm={handleEmailChangeRequest}
+    />
+
     <div className="container max-w-2xl py-12 px-4">
       <div className="space-y-2 mb-8">
         <h1 className="text-3xl font-bold font-headline">Profile Settings</h1>
@@ -243,12 +277,18 @@ export default function ProfileSettingsPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Email Address</FormLabel>
-                      <FormControl><Input type="email" {...field} /></FormControl>
+                      <FormControl><Input type="email" {...field} disabled /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              <div className="flex justify-end">
+                 <div className="flex justify-start -mt-2">
+                    <Button type="button" variant="link" className="p-0 h-auto" onClick={() => setIsEmailDialogOpen(true)}>
+                        Change Email
+                    </Button>
+                </div>
+
+              <div className="flex justify-end pt-4 border-t">
                 <Button type="submit">Save Changes</Button>
               </div>
             </form>
