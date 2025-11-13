@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { User } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminLayout({
   children,
@@ -17,6 +18,7 @@ export default function AdminLayout({
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -36,7 +38,6 @@ export default function AdminLayout({
   useEffect(() => {
     const isLoading = isUserLoading || isUserDataLoading || isAdminRoleLoading;
 
-    // Wait until all loading is false before proceeding
     if (isLoading) {
       setAuthStatus('loading');
       return;
@@ -44,12 +45,10 @@ export default function AdminLayout({
 
     if (!user) {
       router.push('/login');
-      // Set to unauthorized to prevent content flash
       setAuthStatus('unauthorized');
       return;
     }
       
-    // Now that loading is complete, we can safely check the data
     const isAdminByRole = (userData?.roles || []).includes('admin');
     const isAdminByCollection = !!adminRoleData;
     const isAdmin = isAdminByRole || isAdminByCollection;
@@ -58,14 +57,16 @@ export default function AdminLayout({
       setAuthStatus('authorized');
     } else {
       setAuthStatus('unauthorized');
-      // Redirect non-admins away
+      toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "You do not have permission to access the admin panel.",
+      });
       router.push('/dashboard');
     }
-  }, [isUserLoading, isUserDataLoading, isAdminRoleLoading, user, userData, adminRoleData, router]);
+  }, [isUserLoading, isUserDataLoading, isAdminRoleLoading, user, userData, adminRoleData, router, toast]);
 
   if (authStatus !== 'authorized') {
-    // Show a loading skeleton while we verify auth, or if unauthorized.
-    // This prevents content from flashing before redirect.
     return (
       <div className="flex min-h-screen">
         <aside className="w-64 flex-shrink-0 border-r bg-background p-4">
