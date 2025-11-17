@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -24,6 +25,7 @@ import Image from "next/image"
 import { EventPreview } from "@/components/event-preview"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { TicketStylePreview } from "@/components/ticket-style-preview"
+import { generateTicketImage } from "@/ai/flows/generate-ticket-image-flow"
 
 const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters.").default(""),
@@ -41,10 +43,10 @@ const eventFormSchema = z.object({
 
 export type EventFormValues = z.infer<typeof eventFormSchema>;
 
-const predefinedBackgrounds = [
-    { id: 'style1', url: 'https://picsum.photos/seed/ticket1/400/600', hint: 'abstract gradient' },
-    { id: 'style2', url: 'https://picsum.photos/seed/ticket2/400/600', hint: 'geometric pattern' },
-    { id: 'style3', url: 'https://picsum.photos/seed/ticket3/400/600', hint: 'dark texture' },
+const initialBackgrounds = [
+    { id: 'style1', url: '', hint: 'abstract gradient' },
+    { id: 'style2', url: '', hint: 'geometric pattern' },
+    { id: 'style3', url: '', hint: 'dark texture' },
 ];
 
 export default function CreateEventPage() {
@@ -52,6 +54,9 @@ export default function CreateEventPage() {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+
+  const [predefinedBackgrounds, setPredefinedBackgrounds] = useState(initialBackgrounds);
+  const [areTicketImagesLoading, setAreTicketImagesLoading] = useState(true);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -73,13 +78,45 @@ export default function CreateEventPage() {
       location: "",
       description: "",
       bannerUrl: "",
-      ticketImageUrl: predefinedBackgrounds[0].url,
+      ticketImageUrl: "",
       ticketBrandingImageUrl: "",
       price: 0,
     },
     mode: "onChange",
   });
   
+  useEffect(() => {
+    const generateImages = async () => {
+        setAreTicketImagesLoading(true);
+        try {
+            const imagePromises = initialBackgrounds.map(bg => generateTicketImage(bg.hint));
+            const generatedUrls = await Promise.all(imagePromises);
+            
+            const updatedBackgrounds = initialBackgrounds.map((bg, index) => ({
+                ...bg,
+                url: generatedUrls[index],
+            }));
+            
+            setPredefinedBackgrounds(updatedBackgrounds);
+            // Set the first generated image as the default selection
+            if (updatedBackgrounds.length > 0) {
+                form.setValue('ticketImageUrl', updatedBackgrounds[0].url);
+            }
+        } catch (error) {
+            console.error("Failed to generate ticket images:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Image Generation Failed',
+                description: 'Could not generate AI ticket backgrounds. Please try again later.'
+            });
+        } finally {
+            setAreTicketImagesLoading(false);
+        }
+    };
+    generateImages();
+  }, [form, toast]);
+
+
   const isOnline = form.watch('isOnline');
   const watchedEventData = form.watch();
 
@@ -178,7 +215,7 @@ export default function CreateEventPage() {
             <div className="space-y-2">
                 <div className="w-full aspect-[16/7] bg-card rounded-lg border-2 border-dashed flex items-center justify-center relative overflow-hidden">
                     {form.watch('bannerUrl') ? (
-                        <Image src={form.watch('bannerUrl')!} alt="Banner preview" layout="fill" objectFit="cover" />
+                        <Image src={form.watch('bannerUrl')!} alt="Banner preview" fill objectFit="cover" />
                     ) : (
                         <div className="text-center text-muted-foreground">
                             <ImageIcon className="mx-auto h-12 w-12" />
@@ -343,16 +380,22 @@ export default function CreateEventPage() {
                                         defaultValue={field.value}
                                         className="grid grid-cols-3 gap-4"
                                     >
-                                        {predefinedBackgrounds.map((bg) => (
-                                            <FormItem key={bg.id}>
-                                                <FormControl>
-                                                    <RadioGroupItem value={bg.url} className="sr-only" />
-                                                </FormControl>
-                                                <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer h-28">
-                                                    <Image src={bg.url} alt={bg.hint} width={120} height={100} data-ai-hint={bg.hint} className="w-full h-full object-cover rounded-sm" />
-                                                </FormLabel>
-                                            </FormItem>
-                                        ))}
+                                        {areTicketImagesLoading ? (
+                                            Array.from({ length: 3 }).map((_, i) => (
+                                                <Skeleton key={i} className="h-28 w-full" />
+                                            ))
+                                        ) : (
+                                            predefinedBackgrounds.map((bg) => (
+                                                <FormItem key={bg.id}>
+                                                    <FormControl>
+                                                        <RadioGroupItem value={bg.url} className="sr-only" />
+                                                    </FormControl>
+                                                    <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer h-28">
+                                                        <Image src={bg.url} alt={bg.hint} width={120} height={100} data-ai-hint={bg.hint} className="w-full h-full object-cover rounded-sm" />
+                                                    </FormLabel>
+                                                </FormItem>
+                                            ))
+                                        )}
                                     </RadioGroup>
                                 </FormControl>
                                 <FormMessage />
@@ -401,3 +444,4 @@ export default function CreateEventPage() {
     </div>
   );
 }
+
