@@ -12,20 +12,19 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon, Image as ImageIcon, MapPin, Plus, Video, Sparkles, Ticket, Upload } from "lucide-react"
+import { CalendarIcon, Image as ImageIcon, MapPin, Plus, Video, Sparkles, Ticket, Upload, RefreshCw } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
 import type { User as UserType } from "@/lib/types";
 import { doc, collection } from "firebase/firestore";
-import { useEffect, useState }from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
 import Image from "next/image"
 import { EventPreview } from "@/components/event-preview"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { TicketStylePreview } from "@/components/ticket-style-preview"
-import { generateTicketImage } from "@/ai/flows/generate-ticket-image-flow"
+import backgroundsData from '@/lib/ticket-backgrounds.json';
 
 const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters.").default(""),
@@ -37,17 +36,13 @@ const eventFormSchema = z.object({
   description: z.string().optional().default(""),
   bannerUrl: z.string().optional(),
   ticketImageUrl: z.string().optional(),
-  ticketBrandingImageUrl: z.string().optional(), // New field for branding
+  ticketBrandingImageUrl: z.string().optional(),
   price: z.coerce.number().min(0, "Price must be non-negative.").default(0),
 });
 
 export type EventFormValues = z.infer<typeof eventFormSchema>;
 
-const initialBackgrounds = [
-    { id: 'style1', url: '', hint: 'abstract gradient' },
-    { id: 'style2', url: '', hint: 'geometric pattern' },
-    { id: 'style3', url: '', hint: 'dark texture' },
-];
+const allBackgrounds = backgroundsData.backgrounds;
 
 export default function CreateEventPage() {
   const { toast } = useToast();
@@ -55,8 +50,7 @@ export default function CreateEventPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
-  const [predefinedBackgrounds, setPredefinedBackgrounds] = useState(initialBackgrounds);
-  const [areTicketImagesLoading, setAreTicketImagesLoading] = useState(true);
+  const [displayedBackgrounds, setDisplayedBackgrounds] = useState<{id: string; url: string}[]>([]);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -85,36 +79,18 @@ export default function CreateEventPage() {
     mode: "onChange",
   });
   
+  const loadNewBackgrounds = useCallback(() => {
+    const shuffled = [...allBackgrounds].sort(() => 0.5 - Math.random());
+    const newSelection = shuffled.slice(0, 3);
+    setDisplayedBackgrounds(newSelection);
+    if (newSelection.length > 0) {
+        form.setValue('ticketImageUrl', newSelection[0].url);
+    }
+  }, [form]);
+
   useEffect(() => {
-    const generateImages = async () => {
-        setAreTicketImagesLoading(true);
-        try {
-            const imagePromises = initialBackgrounds.map(bg => generateTicketImage(bg.hint));
-            const generatedUrls = await Promise.all(imagePromises);
-            
-            const updatedBackgrounds = initialBackgrounds.map((bg, index) => ({
-                ...bg,
-                url: generatedUrls[index],
-            }));
-            
-            setPredefinedBackgrounds(updatedBackgrounds);
-            // Set the first generated image as the default selection
-            if (updatedBackgrounds.length > 0) {
-                form.setValue('ticketImageUrl', updatedBackgrounds[0].url);
-            }
-        } catch (error) {
-            console.error("Failed to generate ticket images:", error);
-            toast({
-                variant: 'destructive',
-                title: 'Image Generation Failed',
-                description: 'Could not generate AI ticket backgrounds. Please try again later.'
-            });
-        } finally {
-            setAreTicketImagesLoading(false);
-        }
-    };
-    generateImages();
-  }, [form, toast]);
+    loadNewBackgrounds();
+  }, [loadNewBackgrounds]);
 
 
   const isOnline = form.watch('isOnline');
@@ -373,25 +349,30 @@ export default function CreateEventPage() {
                         name="ticketImageUrl"
                         render={({ field }) => (
                             <FormItem className="space-y-3">
-                               <FormLabel>Ticket Background</FormLabel>
+                               <div className="flex items-center justify-between">
+                                  <FormLabel>Ticket Background</FormLabel>
+                                  <Button type="button" variant="ghost" size="sm" onClick={loadNewBackgrounds}>
+                                    <RefreshCw className="mr-2 h-4 w-4"/> Load More
+                                  </Button>
+                               </div>
                                 <FormControl>
                                     <RadioGroup
                                         onValueChange={field.onChange}
-                                        defaultValue={field.value}
+                                        value={field.value}
                                         className="grid grid-cols-3 gap-4"
                                     >
-                                        {areTicketImagesLoading ? (
+                                        {displayedBackgrounds.length === 0 ? (
                                             Array.from({ length: 3 }).map((_, i) => (
                                                 <Skeleton key={i} className="h-28 w-full" />
                                             ))
                                         ) : (
-                                            predefinedBackgrounds.map((bg) => (
+                                            displayedBackgrounds.map((bg) => (
                                                 <FormItem key={bg.id}>
                                                     <FormControl>
                                                         <RadioGroupItem value={bg.url} className="sr-only" />
                                                     </FormControl>
                                                     <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer h-28">
-                                                        <Image src={bg.url} alt={bg.hint} width={120} height={100} data-ai-hint={bg.hint} className="w-full h-full object-cover rounded-sm" />
+                                                        <Image src={bg.url} alt={`background ${bg.id}`} width={120} height={100} className="w-full h-full object-cover rounded-sm" />
                                                     </FormLabel>
                                                 </FormItem>
                                             ))
@@ -444,4 +425,3 @@ export default function CreateEventPage() {
     </div>
   );
 }
-

@@ -1,0 +1,13 @@
+
+{
+    "backgrounds": [
+        { "id": "bg-1", "url": "https://picsum.photos/seed/bg1/400/600" },
+        { "id": "bg-2", "url": "https://picsum.photos/seed/bg2/400/600" },
+        { "id": "bg-3", "url": "https://picsum.photos/seed/bg3/400/600" },
+        { "id": "bg-4", "url": "https://picsum.photos/seed/bg4/400/600" },
+        { "id": "bg-5", "url": "https://picsum.photos/seed/bg5/400/600" },
+        { "id": "bg-6", "url": "https://picsum.photos/seed/bg6/400/600" },
+        { "id": "bg-7", "url": "https://picsum.photos/seed/bg7/400/600" },
+        { "id": "bg-8", "url": "https://picsum.photos/seed/bg8/400/600" }
+    ]
+}

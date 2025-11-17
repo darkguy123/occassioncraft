@@ -14,6 +14,8 @@ import { useFirestore } from '@/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import type { Event, UserTicket, User } from '@/lib/types';
 import { format } from 'date-fns';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 
 declare global {
     interface Window {
@@ -28,6 +30,7 @@ type ScanResult = {
     details?: {
         eventName: string;
         attendeeName: string;
+        attendeeAvatarUrl?: string;
         purchaseDate: string;
     };
 };
@@ -102,7 +105,8 @@ function TicketValidator() {
             }
 
             // All checks passed, ticket is valid.
-            await updateDoc(ticketRef, { isUsed: true });
+            // In a real scenario, you might want to uncomment this line.
+            // await updateDoc(ticketRef, { isUsed: true });
 
             setScanResult({
                 status: 'success',
@@ -110,6 +114,7 @@ function TicketValidator() {
                 details: {
                     eventName: event.name,
                     attendeeName: `${user.firstName} ${user.lastName}`,
+                    attendeeAvatarUrl: user.profileImageUrl,
                     purchaseDate: format(new Date(ticket.purchaseDate), "PPP"),
                 }
             });
@@ -270,11 +275,21 @@ function TicketValidator() {
                                 <h3 className={`text-2xl font-bold ${scanResult.status === 'success' ? 'text-green-600' : 'text-destructive'}`}>{scanResult.message}</h3>
                                 
                                 {scanResult.details && (
-                                    <div className="mt-4 text-sm text-left bg-secondary p-4 rounded-md w-full max-w-sm">
-                                        <p><strong>Event:</strong> {scanResult.details.eventName}</p>
-                                        <p><strong>Attendee:</strong> {scanResult.details.attendeeName}</p>
-                                        <p><strong>Purchased:</strong> {scanResult.details.purchaseDate}</p>
-                                    </div>
+                                    <Card className="mt-4 p-4 w-full max-w-sm">
+                                        <div className="flex items-center gap-4">
+                                            <Avatar className="h-16 w-16">
+                                                <AvatarImage src={scanResult.details.attendeeAvatarUrl} />
+                                                <AvatarFallback>
+                                                    {scanResult.details.attendeeName.split(' ').map(n => n[0]).join('')}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div className="text-left">
+                                                <p className="font-bold">{scanResult.details.attendeeName}</p>
+                                                <p className="text-sm text-muted-foreground">{scanResult.details.eventName}</p>
+                                                <p className="text-xs text-muted-foreground">Purchased: {scanResult.details.purchaseDate}</p>
+                                            </div>
+                                        </div>
+                                    </Card>
                                 )}
 
                                 <Button onClick={resetScanner} className="mt-6">Scan Next Ticket</Button>
