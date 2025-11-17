@@ -31,7 +31,7 @@ export function Step1AccountDetails({ form, onNext }: StepProps) {
                         <FormItem>
                             <FormLabel>Full name</FormLabel>
                             <FormControl>
-                                <Input placeholder="Max Robinson" {...field} className="bg-white/10 border-white/20 placeholder:text-white/50" />
+                                <Input placeholder="Max Robinson" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -44,7 +44,7 @@ export function Step1AccountDetails({ form, onNext }: StepProps) {
                         <FormItem>
                             <FormLabel>Email</FormLabel>
                             <FormControl>
-                                <Input type="email" placeholder="m@example.com" {...field} className="bg-white/10 border-white/20 placeholder:text-white/50" />
+                                <Input type="email" placeholder="m@example.com" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -58,7 +58,7 @@ export function Step1AccountDetails({ form, onNext }: StepProps) {
                             <FormLabel>Password</FormLabel>
                              <div className="relative">
                                 <FormControl>
-                                    <Input type={showPassword ? "text" : "password"} {...field} className="bg-white/10 border-white/20 placeholder:text-white/50" />
+                                    <Input type={showPassword ? "text" : "password"} {...field} />
                                 </FormControl>
                                  <button
                                     type="button"

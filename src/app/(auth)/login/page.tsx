@@ -80,11 +80,11 @@ export default function LoginPage() {
         />
         <div className="absolute inset-0 bg-black/70 -z-10" />
 
-      <Card className="mx-auto max-w-sm w-full text-white border-white/20">
+      <Card className="mx-auto max-w-sm w-full">
         <CardHeader className="text-center">
             <Ticket className="mx-auto h-8 w-8 text-primary" />
           <CardTitle className="text-2xl font-headline">Welcome Back</CardTitle>
-          <CardDescription className="text-white/80">
+          <CardDescription>
             Enter your email below to login to your account
           </CardDescription>
         </CardHeader>
@@ -97,14 +97,13 @@ export default function LoginPage() {
                 type="email"
                 placeholder="m@example.com"
                 {...register("email")}
-                className="bg-white/10 border-white/20 placeholder:text-white/50"
               />
               {errors.email && <p className="text-destructive text-xs">{errors.email.message}</p>}
             </div>
             <div className="grid gap-2">
                <Label htmlFor="password">Password</Label>
               <div className="relative">
-                <Input id="password" type={showPassword ? "text" : "password"} {...register("password")} className="bg-white/10 border-white/20 placeholder:text-white/50" />
+                <Input id="password" type={showPassword ? "text" : "password"} {...register("password")} />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}

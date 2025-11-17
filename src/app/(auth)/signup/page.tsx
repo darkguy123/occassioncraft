@@ -249,11 +249,11 @@ export default function SignupPage() {
         />
         <div className="absolute inset-0 bg-black/70 -z-10" />
 
-        <Card className="mx-auto max-w-md w-full text-white border-white/20">
+        <Card className="mx-auto max-w-md w-full">
           <CardHeader className="text-center">
               <Ticket className="mx-auto h-8 w-8 text-primary" />
               <CardTitle className="text-2xl font-headline">Create an Account</CardTitle>
-              <CardDescription className="text-white/80">Join our platform in just a few steps.</CardDescription>
+              <CardDescription>Join our platform in just a few steps.</CardDescription>
           </CardHeader>
           <CardContent>
               <div className="space-y-4 mb-8">

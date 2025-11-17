@@ -53,7 +53,7 @@ export function Step5Terms({ form }: StepProps) {
                 control={form.control}
                 name="terms"
                 render={({ field }) => (
-                    <FormItem className="flex items-start space-x-3 rounded-md border p-4 border-white/20">
+                    <FormItem className="flex items-start space-x-3 rounded-md border p-4">
                         <FormControl>
                              <Checkbox checked={field.value} onCheckedChange={field.onChange} id="terms"/>
                         </FormControl>
