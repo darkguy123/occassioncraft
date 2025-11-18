@@ -141,51 +141,20 @@ function TicketValidator() {
     };
 
     useEffect(() => {
-        if (typeof window.BarcodeDetector === 'undefined') {
-            setValidationStatus('unsupported');
-            toast({
-                variant: 'destructive',
-                title: 'Browser Not Supported',
-                description: 'Your browser does not support native QR code scanning.',
-            });
-            return;
-        }
-
         let stream: MediaStream | null = null;
-        let barcodeDetector: any;
-        try {
-            barcodeDetector = new window.BarcodeDetector({ formats: ['qr_code'] });
-        } catch (e) {
-             setValidationStatus('unsupported');
-            toast({
-                variant: 'destructive',
-                title: 'Scanner Initialization Failed',
-                description: 'Could not start the QR code scanner.',
-            });
-            return;
-        }
-        
         let animationFrameId: number;
 
-        const detect = async () => {
-            if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA && validationStatus === 'scanning') {
-                try {
-                    const barcodes = await barcodeDetector.detect(videoRef.current);
-                    if (barcodes.length > 0 && !scannedData) {
-                        const scannedUrl = barcodes[0].rawValue;
-                        setScannedData(scannedUrl);
-                        validateTicket(scannedUrl);
-                    }
-                } catch (e) {
-                    console.error('Barcode detection failed:', e);
-                }
-            }
-            if (validationStatus === 'scanning') {
-                animationFrameId = requestAnimationFrame(detect);
-            }
-        };
-
         const getCameraPermission = async () => {
+            if (typeof window.BarcodeDetector === 'undefined') {
+                setValidationStatus('unsupported');
+                toast({
+                    variant: 'destructive',
+                    title: 'Browser Not Supported',
+                    description: 'Your browser does not support native QR code scanning.',
+                });
+                return;
+            }
+
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 setHasCameraPermission(true);
@@ -193,7 +162,6 @@ function TicketValidator() {
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
                 }
-                detect();
             } catch (err) {
                 console.error("Camera permission error:", err);
                 setHasCameraPermission(false);
@@ -215,6 +183,48 @@ function TicketValidator() {
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    useEffect(() => {
+        let animationFrameId: number;
+        let barcodeDetector: any;
+
+        if (validationStatus === 'scanning' && videoRef.current) {
+            try {
+                barcodeDetector = new window.BarcodeDetector({ formats: ['qr_code'] });
+            } catch (e) {
+                setValidationStatus('unsupported');
+                toast({
+                    variant: 'destructive',
+                    title: 'Scanner Initialization Failed',
+                    description: 'Could not start the QR code scanner.',
+                });
+                return;
+            }
+
+            const detect = async () => {
+                if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA && validationStatus === 'scanning') {
+                    try {
+                        const barcodes = await barcodeDetector.detect(videoRef.current);
+                        if (barcodes.length > 0 && !scannedData) {
+                            const scannedUrl = barcodes[0].rawValue;
+                            setScannedData(scannedUrl);
+                            validateTicket(scannedUrl);
+                        }
+                    } catch (e) {
+                        console.error('Barcode detection failed:', e);
+                    }
+                }
+                if (validationStatus === 'scanning') {
+                    animationFrameId = requestAnimationFrame(detect);
+                }
+            };
+            detect();
+        }
+
+        return () => {
+            cancelAnimationFrame(animationFrameId);
+        };
+    }, [validationStatus, scannedData]);
     
     const resetScanner = () => {
         setScanResult(null);
@@ -222,28 +232,11 @@ function TicketValidator() {
         setValidationStatus('scanning');
     }
 
-    if (hasCameraPermission === null) {
+    if (hasCameraPermission === null && validationStatus !== 'unsupported') {
         return (
             <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)]">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
                 <p className="mt-4 text-muted-foreground">Requesting camera access...</p>
-            </div>
-        )
-    }
-
-    if (hasCameraPermission === false || validationStatus === 'unsupported') {
-        return (
-            <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
-                <Alert variant="destructive" className="max-w-md">
-                    <CameraOff className="h-4 w-4" />
-                    <AlertTitle>{validationStatus === 'unsupported' ? 'Browser Not Supported' : 'Camera Access Required'}</AlertTitle>
-                    <AlertDescription>
-                        {validationStatus === 'unsupported' 
-                            ? 'Sorry, your browser does not have the built-in capabilities for QR scanning.' 
-                            : 'This feature requires camera access to scan QR codes. Please enable it in your browser settings and refresh the page.'
-                        }
-                    </AlertDescription>
-                </Alert>
             </div>
         )
     }
@@ -258,6 +251,21 @@ function TicketValidator() {
                 <CardContent>
                     <div className="aspect-video w-full bg-slate-900/80 rounded-lg overflow-hidden relative mb-6">
                         <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+                        
+                        {(hasCameraPermission === false || validationStatus === 'unsupported') && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+                                <Alert variant="destructive" className="max-w-md">
+                                    <CameraOff className="h-4 w-4" />
+                                    <AlertTitle>{validationStatus === 'unsupported' ? 'Browser Not Supported' : 'Camera Access Required'}</AlertTitle>
+                                    <AlertDescription>
+                                        {validationStatus === 'unsupported' 
+                                            ? 'Sorry, your browser does not have the built-in capabilities for QR scanning.' 
+                                            : 'This feature requires camera access to scan QR codes. Please enable it in your browser settings and refresh the page.'
+                                        }
+                                    </AlertDescription>
+                                </Alert>
+                            </div>
+                        )}
 
                         {validationStatus === 'loading' && (
                             <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
@@ -304,6 +312,7 @@ function TicketValidator() {
                             {validationStatus === 'loading' && 'Validating ticket...'}
                             {validationStatus === 'success' && 'Validation complete.'}
                             {validationStatus === 'error' && 'Validation failed.'}
+                             {validationStatus === 'unsupported' && 'Scanner not supported by this browser.'}
                         </AlertDescription>
                     </Alert>
                 </CardContent>
