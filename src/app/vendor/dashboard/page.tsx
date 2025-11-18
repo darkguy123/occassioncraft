@@ -51,8 +51,16 @@ export default function VendorDashboardPage() {
 
     const { data: tickets, isLoading: areTicketsLoading } = useCollection<UserTicket>(ticketsQuery);
 
+    const totalRevenue = useMemo(() => {
+        if (!tickets || !vendorEvents) return 0;
+        return tickets.reduce((acc, ticket) => {
+            const event = vendorEvents.find(e => e.id === ticket.eventId);
+            return acc + (event?.price || 0);
+        }, 0);
+    }, [tickets, vendorEvents]);
 
-    const isLoading = isUserLoading || isUserDataLoading || areEventsLoading || areTicketsLoading;
+
+    const isLoading = isUserLoading || isUserDataLoading || areEventsLoading || (vendorEventIds.length > 0 && areTicketsLoading);
     const isVendor = (userData?.roles || []).includes('vendor');
 
     useEffect(() => {
@@ -142,8 +150,8 @@ export default function VendorDashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₦0.00</div>
-            <p className="text-xs text-muted-foreground">No sales data yet</p>
+            <div className="text-2xl font-bold">₦{totalRevenue.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">From all events</p>
           </CardContent>
         </Card>
         <Card>
@@ -153,7 +161,7 @@ export default function VendorDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">+{tickets?.length || 0}</div>
-            <p className="text-xs text-muted-foreground">Total tickets sold</p>
+            <p className="text-xs text-muted-foreground">Across all events</p>
           </CardContent>
         </Card>
         <Card>
@@ -234,3 +242,5 @@ export default function VendorDashboardPage() {
     </div>
   );
 }
+
+    
