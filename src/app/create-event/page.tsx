@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -11,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon, Image as ImageIcon, MapPin, Plus, Video, Sparkles, Ticket, Upload, RefreshCw, Trash2, PartyPopper, Users, Star, ArrowLeft } from "lucide-react"
+import { CalendarIcon, Image as ImageIcon, MapPin, Plus, Video, Sparkles, Ticket, Upload, RefreshCw, Trash2, PartyPopper, Users, Star } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
@@ -57,8 +58,8 @@ export type EventFormValues = z.infer<typeof eventFormSchema>;
 const allBackgrounds = backgroundsData.backgrounds;
 
 const TIER_FEES = {
-    regular: { fee: 7000, maxTickets: 50 },
-    premium: { fee: 9000, maxTickets: 50 },
+    regular: { fee: 70000, maxTickets: 50 },
+    premium: { fee: 90000, maxTickets: 50 },
     'tiered-1': { fee: 50000, maxTickets: 50 },
     'tiered-2': { fee: 60000, maxTickets: 40 },
     'tiered-3': { fee: 70000, maxTickets: 20 },
@@ -436,7 +437,7 @@ export default function CreateEventPage() {
                                         <RefreshCw className="mr-2 h-4 w-4"/> Load More
                                     </Button>
                                     </div>
-                                     <FormControl>
+                                    <FormControl>
                                         <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-3 gap-4">
                                             {displayedBackgrounds.map((bg) => (
                                                 <RadioGroupItem value={bg.url} key={bg.id} className="sr-only" id={bg.id}/>
@@ -504,5 +505,3 @@ export default function CreateEventPage() {
     </div>
   );
 }
-
-    
