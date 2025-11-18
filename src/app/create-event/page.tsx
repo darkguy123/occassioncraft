@@ -280,6 +280,15 @@ export default function CreateEventPage() {
         </div>
     );
   }
+  
+  const handleNextStep = () => {
+      const eventType = form.getValues('eventType');
+      if (eventType === 'tiered') {
+          setCurrentStep(2);
+      } else {
+          setCurrentStep(3);
+      }
+  }
 
   const renderStep = () => {
       switch (currentStep) {
@@ -295,34 +304,34 @@ export default function CreateEventPage() {
                                 <FormControl>
                                     <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         <FormItem>
-                                            <FormControl>
-                                                <Label className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground h-full cursor-pointer", field.value === 'regular' && 'border-primary bg-primary/10')}>
+                                            <Label className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground h-full cursor-pointer", field.value === 'regular' && 'border-primary ring-2 ring-primary')}>
+                                                <FormControl>
                                                     <RadioGroupItem value="regular" className="sr-only" />
-                                                    <PartyPopper className="mb-3 h-8 w-8" />
-                                                    <span className="font-bold">Regular Event</span>
-                                                    <span className="text-xs text-muted-foreground text-center mt-1">₦{TIER_FEES.regular.fee.toLocaleString()} for {TIER_FEES.regular.maxTickets} tickets.</span>
-                                                </Label>
-                                            </FormControl>
+                                                </FormControl>
+                                                <PartyPopper className="mb-3 h-8 w-8" />
+                                                <span className="font-bold">Regular Event</span>
+                                                <span className="text-xs text-muted-foreground text-center mt-1">₦{TIER_FEES.regular.fee.toLocaleString()} for {TIER_FEES.regular.maxTickets} tickets.</span>
+                                            </Label>
                                         </FormItem>
                                         <FormItem>
-                                            <FormControl>
-                                                <Label className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground h-full cursor-pointer", field.value === 'premium' && 'border-primary bg-primary/10')}>
+                                            <Label className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground h-full cursor-pointer", field.value === 'premium' && 'border-primary ring-2 ring-primary')}>
+                                                <FormControl>
                                                     <RadioGroupItem value="premium" className="sr-only" />
-                                                    <Star className="mb-3 h-8 w-8" />
-                                                    <span className="font-bold">Premium Event</span>
-                                                    <span className="text-xs text-muted-foreground text-center mt-1">₦{TIER_FEES.premium.fee.toLocaleString()} for {TIER_FEES.premium.maxTickets} tickets with custom designs.</span>
-                                                </Label>
-                                            </FormControl>
+                                                </FormControl>
+                                                <Star className="mb-3 h-8 w-8" />
+                                                <span className="font-bold">Premium Event</span>
+                                                <span className="text-xs text-muted-foreground text-center mt-1">₦{TIER_FEES.premium.fee.toLocaleString()} for {TIER_FEES.premium.maxTickets} tickets with custom designs.</span>
+                                            </Label>
                                         </FormItem>
                                         <FormItem>
-                                            <FormControl>
-                                                <Label className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground h-full cursor-pointer", field.value === 'tiered' && 'border-primary bg-primary/10')}>
+                                            <Label className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground h-full cursor-pointer", field.value === 'tiered' && 'border-primary ring-2 ring-primary')}>
+                                                <FormControl>
                                                     <RadioGroupItem value="tiered" className="sr-only" />
-                                                    <Users className="mb-3 h-8 w-8" />
-                                                    <span className="font-bold">Tiered Event</span>
-                                                    <span className="text-xs text-muted-foreground text-center mt-1">Offer multiple ticket types with different pricing.</span>
-                                                </Label>
-                                            </FormControl>
+                                                </FormControl>
+                                                <Users className="mb-3 h-8 w-8" />
+                                                <span className="font-bold">Tiered Event</span>
+                                                <span className="text-xs text-muted-foreground text-center mt-1">Offer multiple ticket types with different pricing.</span>
+                                            </Label>
                                         </FormItem>
                                     </RadioGroup>
                                 </FormControl>
@@ -331,7 +340,7 @@ export default function CreateEventPage() {
                         )}
                     />
                     <div className="flex justify-end pt-4">
-                        <Button type="button" onClick={() => setCurrentStep(2)} disabled={!eventType}>
+                        <Button type="button" onClick={handleNextStep} disabled={!eventType}>
                             Next Step <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
                         </Button>
                     </div>
@@ -351,14 +360,14 @@ export default function CreateEventPage() {
                                         <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                             {Object.entries(TIER_DESCRIPTIONS).map(([key, { name, fee, tickets }]) => (
                                                 <FormItem key={key}>
-                                                    <FormControl>
-                                                        <Label className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground h-full cursor-pointer", field.value === key && 'border-primary bg-primary/10')}>
+                                                     <Label className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground h-full cursor-pointer", field.value === key && 'border-primary ring-2 ring-primary')}>
+                                                        <FormControl>
                                                             <RadioGroupItem value={key} className="sr-only" />
-                                                            <span className="font-bold">{name}</span>
-                                                            <span className="text-xl font-headline my-1">₦{fee.toLocaleString()}</span>
-                                                            <span className="text-xs text-muted-foreground">{tickets} tickets max</span>
-                                                        </Label>
-                                                    </FormControl>
+                                                        </FormControl>
+                                                        <span className="font-bold">{name}</span>
+                                                        <span className="text-xl font-headline my-1">₦{fee.toLocaleString()}</span>
+                                                        <span className="text-xs text-muted-foreground">{tickets} tickets max</span>
+                                                    </Label>
                                                 </FormItem>
                                             ))}
                                         </RadioGroup>
@@ -481,8 +490,10 @@ export default function CreateEventPage() {
                                         <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-3 gap-4">
                                             {displayedBackgrounds.map((bg) => (
                                                 <FormItem key={bg.id}>
-                                                     <Label className={cn("flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground h-28 cursor-pointer", field.value === bg.url && 'border-primary')}>
-                                                        <RadioGroupItem value={bg.url} className="sr-only" />
+                                                     <Label className={cn("flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground h-28 cursor-pointer", field.value === bg.url && 'border-primary ring-2 ring-primary')}>
+                                                        <FormControl>
+                                                          <RadioGroupItem value={bg.url} className="sr-only" />
+                                                        </FormControl>
                                                         <Image src={bg.url} alt={`background ${bg.id}`} width={120} height={100} className="w-full h-full object-cover rounded-sm" />
                                                     </Label>
                                                 </FormItem>
@@ -558,5 +569,3 @@ export default function CreateEventPage() {
     </div>
   );
 }
-
-    
