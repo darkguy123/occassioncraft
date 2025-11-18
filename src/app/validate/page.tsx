@@ -170,9 +170,6 @@ function TicketValidator() {
     };
 
     useEffect(() => {
-        let stream: MediaStream | null = null;
-        let animationFrameId: number;
-
         const getCameraPermission = async () => {
             if (typeof window.BarcodeDetector === 'undefined') {
                 setValidationStatus('unsupported');
@@ -185,7 +182,7 @@ function TicketValidator() {
             }
 
             try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 setHasCameraPermission(true);
                 setValidationStatus('scanning');
                 if (videoRef.current) {
@@ -204,12 +201,6 @@ function TicketValidator() {
 
         getCameraPermission();
 
-        return () => {
-            cancelAnimationFrame(animationFrameId);
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
-        };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -231,7 +222,12 @@ function TicketValidator() {
             }
 
             const detect = async () => {
-                if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA && validationStatus === 'scanning') {
+                if (
+                    videoRef.current && 
+                    videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA && 
+                    validationStatus === 'scanning' &&
+                    videoRef.current.videoWidth > 0 // Check if video has dimensions
+                ) {
                     try {
                         const barcodes = await barcodeDetector.detect(videoRef.current);
                         if (barcodes.length > 0 && !scannedData) {
@@ -253,7 +249,7 @@ function TicketValidator() {
         return () => {
             cancelAnimationFrame(animationFrameId);
         };
-    }, [validationStatus, scannedData]);
+    }, [validationStatus, scannedData, toast, validateTicketFromUrl]);
     
     const resetScanner = () => {
         setScanResult(null);
