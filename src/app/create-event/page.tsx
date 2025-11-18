@@ -56,9 +56,9 @@ export type EventFormValues = z.infer<typeof eventFormSchema>;
 const allBackgrounds = backgroundsData.backgrounds;
 
 const EVENT_TYPE_FEES = {
-    regular: 70000,
-    premium: 90000,
-    tiered: 50000,
+    regular: 7000,
+    premium: 9000,
+    tiered: 12000,
 };
 
 export default function CreateEventPage() {
@@ -103,7 +103,6 @@ export default function CreateEventPage() {
     reference: uuidv4(),
     email: user?.email || '',
     amount: (eventType ? EVENT_TYPE_FEES[eventType] : 0) * 100, // Amount in kobo
-    currency: 'NGN',
     publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
   };
   
@@ -490,7 +489,7 @@ export default function CreateEventPage() {
                                         ))}
                                     </RadioGroup>
                                 </FormControl>
-                                {eventType === 'regular' && <FormDescription className="text-xs">Regular events are limited to these 5 background options.</FormDescription>}
+                                {eventType === 'regular' && <FormDescription className="text-xs">Regular events are limited to these background options.</FormDescription>}
                                 <FormMessage />
                                 </FormItem>
                             )}
