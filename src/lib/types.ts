@@ -1,5 +1,4 @@
 
-
 export type UserRole = 'user' | 'vendor' | 'admin';
 
 export type User = {
@@ -11,6 +10,12 @@ export type User = {
     profileImageUrl?: string;
     dateJoined?: string;
 };
+
+export type EventTier = {
+    name: string;
+    price: number;
+    quantity: number;
+}
 
 export type Event = {
   id: string;
@@ -27,8 +32,11 @@ export type Event = {
   vendorId: string;
   organizer?: string; // Can be denormalized
   category?: string; // Can be denormalized
-  price: number; // Simplified price
+  price: number; // Simplified price, now default for regular/premium
   status?: 'approved' | 'pending' | 'rejected';
+  eventType: 'regular' | 'premium' | 'tiered';
+  premiumOption?: 'individual' | 'general';
+  tiers?: EventTier[];
 };
 
 export type UserTicket = {
@@ -39,6 +47,8 @@ export type UserTicket = {
   event?: Event; // Denormalized event data
   isUsed?: boolean;
   vendorId: string; // Denormalized for security rules
+  tier?: string; // For tiered events
+  attendeeName?: string; // For premium/tiered events
 };
 
 export type Vendor = {

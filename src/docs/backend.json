@@ -48,6 +48,26 @@
             "approved",
             "rejected"
           ]
+        },
+        "eventType": {
+          "type": "string",
+          "enum": ["regular", "premium", "tiered"]
+        },
+        "premiumOption": {
+            "type": "string",
+            "enum": ["individual", "general"]
+        },
+        "tiers": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": { "type": "string" },
+                    "price": { "type": "number" },
+                    "quantity": { "type": "number" }
+                },
+                "required": ["name", "price", "quantity"]
+            }
         }
       },
       "required": [
@@ -59,7 +79,8 @@
         "location",
         "categoryId",
         "ticketTemplateId",
-        "status"
+        "status",
+        "eventType"
       ]
     },
     "Vendor": {
@@ -166,6 +187,14 @@
         "isUsed": {
           "type": "boolean",
           "description": "Indicates if the ticket has been used."
+        },
+        "tier": {
+          "type": "string",
+          "description": "The name of the tier for tiered events."
+        },
+        "attendeeName": {
+          "type": "string",
+          "description": "The name of the person attending, if different from the buyer."
         }
       },
       "required": [
