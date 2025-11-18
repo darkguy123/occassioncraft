@@ -60,7 +60,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="mt-4 text-lg md:text-xl max-w-2xl"
+            className="mt-4 text-lg md:text-xl max-w-2xl text-white"
           >
             From concerts to conferences, find live events for all the things you love.
           </motion.p>
@@ -68,7 +68,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="mt-8 w-full max-w-xl"
+            className="mt-8 w-full max-w-2xl"
           >
             <SearchInput />
           </motion.div>

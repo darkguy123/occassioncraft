@@ -15,6 +15,7 @@ import { Card, CardContent } from '@/components/ui/card';
 function EventsDisplay() {
   const searchParams = useSearchParams();
   const queryParam = searchParams.get('q');
+  const locationParam = searchParams.get('loc');
   const firestore = useFirestore();
 
   const { data: allEvents, isLoading: isAllEventsLoading } = useCollection<Event>(
@@ -23,17 +24,41 @@ function EventsDisplay() {
   
   const filteredEvents = useMemo(() => {
     if (!allEvents) return [];
-    if (!queryParam) return allEvents;
+    
+    let events = allEvents;
 
-    const lowercasedQuery = queryParam.toLowerCase();
-    return allEvents.filter(event => 
-        event.name.toLowerCase().includes(lowercasedQuery) ||
-        (event.description && event.description.toLowerCase().includes(lowercasedQuery)) ||
-        (event.location && event.location.toLowerCase().includes(lowercasedQuery))
-    );
-  }, [allEvents, queryParam]);
+    if (queryParam) {
+      const lowercasedQuery = queryParam.toLowerCase();
+      events = events.filter(event => 
+          event.name.toLowerCase().includes(lowercasedQuery) ||
+          (event.description && event.description.toLowerCase().includes(lowercasedQuery))
+      );
+    }
+    
+    if (locationParam) {
+        const lowercasedLocation = locationParam.toLowerCase();
+        events = events.filter(event => 
+            event.location && event.location.toLowerCase().includes(lowercasedLocation)
+        )
+    }
+
+    return events;
+  }, [allEvents, queryParam, locationParam]);
 
   const isLoading = isAllEventsLoading;
+
+  const getTitle = () => {
+    if (queryParam && locationParam) {
+        return `"${queryParam}" in "${locationParam}"`;
+    }
+    if (queryParam) {
+        return `"${queryParam}"`;
+    }
+    if (locationParam) {
+        return `Events in "${locationParam}"`;
+    }
+    return "All Upcoming Events";
+  }
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -45,18 +70,12 @@ function EventsDisplay() {
               Back to Home
             </Link>
           </Button>
-          {queryParam ? (
-            <>
-              <h1 className="text-3xl font-bold font-headline mt-2">
-                Search results for "{queryParam}"
-              </h1>
-               <p className="text-muted-foreground">{filteredEvents?.length || 0} result(s) found.</p>
-            </>
-          ) : (
+          
             <h1 className="text-3xl font-bold font-headline mt-2">
-                All Upcoming Events
+                {queryParam || locationParam ? `Search results for ${getTitle()}`: 'All Upcoming Events'}
             </h1>
-          )}
+            {(queryParam || locationParam) && <p className="text-muted-foreground">{filteredEvents?.length || 0} result(s) found.</p>}
+          
         </div>
       </div>
 
