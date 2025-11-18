@@ -296,8 +296,8 @@ export default function CreateEventPage() {
               return (
                 <div className="space-y-8">
                     <div className="space-y-3">
-                        <Label className="text-xl font-bold">Step 1: Choose Event Type</Label>
-                         <RadioGroup 
+                        <h2 className="text-xl font-bold">Step 1: Choose Event Type</h2>
+                        <RadioGroup 
                             value={eventType} 
                             onValueChange={(value) => form.setValue('eventType', value as 'regular' | 'premium' | 'tiered')}
                             className="grid grid-cols-1 sm:grid-cols-3 gap-4"
@@ -334,7 +334,7 @@ export default function CreateEventPage() {
             return (
                 <div className="space-y-8">
                      <div className="space-y-3">
-                        <Label className="text-xl font-bold">Step 2: Choose Tiered Plan</Label>
+                        <h2 className="text-xl font-bold">Step 2: Choose Tiered Plan</h2>
                         <RadioGroup 
                             value={tieredSubType} 
                             onValueChange={(value) => form.setValue('tieredSubType', value)}
@@ -458,14 +458,10 @@ export default function CreateEventPage() {
                                     <FormControl>
                                         <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-3 gap-4">
                                             {displayedBackgrounds.map((bg) => (
-                                                <FormItem key={bg.id}>
-                                                     <Label className={cn("flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground h-28 cursor-pointer", field.value === bg.url && 'border-primary ring-2 ring-primary')}>
-                                                        <FormControl>
-                                                          <RadioGroupItem value={bg.url} className="sr-only" />
-                                                        </FormControl>
-                                                        <Image src={bg.url} alt={`background ${bg.id}`} width={120} height={100} className="w-full h-full object-cover rounded-sm" />
-                                                    </Label>
-                                                </FormItem>
+                                                <Label key={bg.id} className={cn("flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground h-28 cursor-pointer", field.value === bg.url && 'border-primary ring-2 ring-primary')}>
+                                                    <RadioGroupItem value={bg.url} className="sr-only" />
+                                                    <Image src={bg.url} alt={`background ${bg.id}`} width={120} height={100} className="w-full h-full object-cover rounded-sm" />
+                                                </Label>
                                             ))}
                                         </RadioGroup>
                                     </FormControl>
@@ -538,5 +534,3 @@ export default function CreateEventPage() {
     </div>
   );
 }
-
-    
