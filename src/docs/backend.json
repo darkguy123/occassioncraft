@@ -53,6 +53,9 @@
           "type": "string",
           "enum": ["regular", "premium", "tiered"]
         },
+        "tieredSubType": {
+            "type": "string"
+        },
         "tiers": {
             "type": "array",
             "items": {
@@ -67,6 +70,9 @@
         },
         "platformFee": {
             "type": "number"
+        },
+        "maxTickets": {
+            "type": "number"
         }
       },
       "required": [
@@ -76,11 +82,10 @@
         "description",
         "date",
         "location",
-        "categoryId",
-        "ticketTemplateId",
         "status",
         "eventType",
-        "platformFee"
+        "platformFee",
+        "maxTickets"
       ]
     },
     "Vendor": {

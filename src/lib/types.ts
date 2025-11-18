@@ -35,8 +35,10 @@ export type Event = {
   price: number; // For non-tiered events, this is the ticket price
   status?: 'approved' | 'pending' | 'rejected';
   eventType: 'regular' | 'premium' | 'tiered';
+  tieredSubType?: string;
   tiers?: EventTier[];
   platformFee: number;
+  maxTickets: number;
 };
 
 export type UserTicket = {
