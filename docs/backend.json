@@ -1,6 +1,375 @@
 
 {
-  "entities": {},
+  "entities": {
+    "Event": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Event",
+      "type": "object",
+      "description": "Represents an event created by a vendor.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the event."
+        },
+        "vendorId": {
+          "type": "string",
+          "description": "Reference to Vendor. (Relationship: Vendor 1:N Event)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the event."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the event."
+        },
+        "date": {
+          "type": "string",
+          "description": "Date of the event.",
+          "format": "date-time"
+        },
+        "location": {
+          "type": "string",
+          "description": "Location of the event."
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "Reference to Category. (Relationship: Category 1:N Event)"
+        },
+        "ticketTemplateId": {
+          "type": "string",
+          "description": "Reference to TicketTemplate. (Relationship: TicketTemplate 1:N Event)"
+        },
+        "status": {
+          "type": "string",
+          "description": "The approval status of the event.",
+          "enum": [
+            "pending",
+            "approved",
+            "rejected"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "vendorId",
+        "name",
+        "description",
+        "date",
+        "location",
+        "categoryId",
+        "ticketTemplateId",
+        "status"
+      ]
+    },
+    "Vendor": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Vendor",
+      "type": "object",
+      "description": "Represents a vendor who creates events.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the vendor, same as the user ID."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the vendor."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the vendor.",
+          "format": "email"
+        },
+        "paystackRecipientId": {
+          "type": "string",
+          "description": "Paystack Recipient ID for vendor payouts."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user who can purchase tickets and attend events.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "First name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Last name of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "roles": {
+          "type": "array",
+          "description": "The roles assigned to the user.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "user",
+              "vendor",
+              "admin"
+            ]
+          }
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "email",
+        "roles"
+      ]
+    },
+    "Ticket": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Ticket",
+      "type": "object",
+      "description": "Represents a ticket purchased by a user for an event.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ticket."
+        },
+        "eventId": {
+          "type": "string",
+          "description": "Reference to Event. (Relationship: Event 1:N Ticket)"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Ticket)"
+        },
+        "purchaseDate": {
+          "type": "string",
+          "description": "Date the ticket was purchased.",
+          "format": "date-time"
+        },
+        "price": {
+          "type": "number",
+          "description": "Price of the ticket."
+        },
+        "isUsed": {
+          "type": "boolean",
+          "description": "Indicates if the ticket has been used."
+        }
+      },
+      "required": [
+        "id",
+        "eventId",
+        "userId",
+        "purchaseDate",
+        "price",
+        "isUsed"
+      ]
+    },
+    "Category": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Category",
+      "type": "object",
+      "description": "Represents a category for events.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the category."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the category."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "Admin": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Admin",
+      "type": "object",
+      "description": "Represents an administrator user with management privileges.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the admin user."
+        },
+        "username": {
+          "type": "string",
+          "description": "Username of the admin user."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email of the admin user.",
+          "format": "email"
+        }
+      },
+      "required": [
+        "id",
+        "username",
+        "email"
+      ]
+    },
+    "TicketTemplate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TicketTemplate",
+      "type": "object",
+      "description": "Represents a template for designing event tickets.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ticket template."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the ticket template."
+        },
+        "design": {
+          "type": "string",
+          "description": "JSON representing the design elements of the ticket template."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "design"
+      ]
+    },
+    "Notification": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Notification",
+      "type": "object",
+      "description": "Represents a notification for a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the notification."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user this notification belongs to."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the notification."
+        },
+        "description": {
+          "type": "string",
+          "description": "The main content of the notification."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The timestamp when the notification was created.",
+          "format": "date-time"
+        },
+        "read": {
+          "type": "boolean",
+          "description": "Whether the user has read the notification."
+        },
+        "link": {
+          "type": "string",
+          "description": "An optional link to navigate to when the notification is clicked."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "title",
+        "description",
+        "createdAt",
+        "read"
+      ]
+    },
+    "Wallet": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Wallet",
+      "type": "object",
+      "description": "Represents a user's wallet for storing funds.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the wallet, same as the user ID."
+        },
+        "balance": {
+          "type": "number",
+          "description": "The current balance of the wallet."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The currency of the wallet balance.",
+          "default": "USD"
+        }
+      },
+      "required": [
+        "id",
+        "balance"
+      ]
+    },
+    "Transaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transaction",
+      "type": "object",
+      "description": "Represents a single transaction in a user's wallet.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the transaction."
+        },
+        "walletId": {
+          "type": "string",
+          "description": "The ID of the wallet this transaction belongs to."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the transaction. Can be positive (credit) or negative (debit)."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of transaction.",
+          "enum": [
+            "ticket-sale",
+            "payout",
+            "refund",
+            "adjustment"
+          ]
+        },
+        "date": {
+          "type": "string",
+          "description": "The timestamp when the transaction occurred.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the transaction."
+        },
+        "relatedEntityId": {
+          "type": "string",
+          "description": "The ID of the related entity (e.g., Ticket ID, Payout ID)."
+        }
+      },
+      "required": [
+        "id",
+        "walletId",
+        "amount",
+        "type",
+        "date",
+        "description"
+      ]
+    }
+  },
   "auth": {
     "providers": [
       "password",
@@ -8,7 +377,180 @@
     ]
   },
   "firestore": {
-    "structure": [],
-    "reasoning": "The data structure has been reset to its default empty state."
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Only the user themselves (or an admin) should be able to read/write their own profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/vendors/{vendorId}",
+        "definition": {
+          "entityName": "Vendor",
+          "schema": {
+            "$ref": "#/backend/entities/Vendor"
+          },
+          "description": "Stores vendor profiles. Only the vendor themselves (or an admin) should be able to read/write their own profile.",
+          "params": [
+            {
+              "name": "vendorId",
+              "description": "The unique ID of the vendor."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/events/{eventId}",
+        "definition": {
+          "entityName": "Event",
+          "schema": {
+            "$ref": "#/backend/entities/Event"
+          },
+          "description": "Stores events. This collection is public for reads, allowing anyone to view event details. Write access is restricted to the event's vendor owner or an admin.",
+          "params": [
+            {
+              "name": "eventId",
+              "description": "The unique ID of the event."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/tickets/{ticketId}",
+        "definition": {
+          "entityName": "Ticket",
+          "schema": {
+            "$ref": "#/backend/entities/Ticket"
+          },
+          "description": "Stores tickets purchased by users. Tickets are nested under the user's profile to indicate ownership.  Includes denormalized `userId` and `eventId` for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user who purchased the ticket."
+            },
+            {
+              "name": "ticketId",
+              "description": "The unique ID of the ticket."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/categories/{categoryId}",
+        "definition": {
+          "entityName": "Category",
+          "schema": {
+            "$ref": "#/backend/entities/Category"
+          },
+          "description": "Stores event categories.  Accessible by all users for reading, but only admins can create/update/delete.",
+          "params": [
+            {
+              "name": "categoryId",
+              "description": "The unique ID of the event category."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/ticket_templates/{ticketTemplateId}",
+        "definition": {
+          "entityName": "TicketTemplate",
+          "schema": {
+            "$ref": "#/backend/entities/TicketTemplate"
+          },
+          "description": "Stores ticket templates. Accessible by all users for reading, but only admins can create/update/delete.",
+          "params": [
+            {
+              "name": "ticketTemplateId",
+              "description": "The unique ID of the ticket template."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "Admin",
+          "schema": {
+            "$ref": "#/backend/entities/Admin"
+          },
+          "description": "Indicates admin privileges. The existence of a document at this path grants admin rights to the user. No data within the document is necessary; existence is sufficient.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user with admin privileges."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/notifications/{notificationId}",
+        "definition": {
+          "entityName": "Notification",
+          "schema": {
+            "$ref": "#/backend/entities/Notification"
+          },
+          "description": "Stores notifications for a specific user. Notifications are nested under the user's profile for ownership-based access control.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user."
+            },
+            {
+              "name": "notificationId",
+              "description": "The unique ID of the notification."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/wallets/{userId}",
+        "definition": {
+          "entityName": "Wallet",
+          "schema": {
+            "$ref": "#/backend/entities/Wallet"
+          },
+          "description": "Stores wallet information for a user. A user can only access their own wallet.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/wallets/{userId}/transactions/{transactionId}",
+        "definition": {
+          "entityName": "Transaction",
+          "schema": {
+            "$ref": "#/backend/entities/Transaction"
+          },
+          "description": "Stores transaction history for a user's wallet. Users can only read their own transactions.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user."
+            },
+            {
+              "name": "transactionId",
+              "description": "The unique ID of the transaction."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, adhering to the core design principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). Authorization Independence is achieved through denormalization of authorization-related data, eliminating the need for `get()` calls in security rules. Structural Segregation is applied to ensure homogeneous security postures within collections.  Access Modeling follows consistent patterns for private and collaborative data.\n\nSpecifically:\n\n*   User data is stored under `/users/{userId}` allowing path based ownership.\n*   Vendor data is stored under `/vendors/{vendorId}`, enabling vendor-specific data access controls.\n*   Events are now stored in a root `/events/{eventId}` collection. This makes querying for all events much simpler (e.g., for the public homepage) without requiring complex collection group queries. Each event document contains a `vendorId` field to maintain the relationship and for use in security rules.\n*   Tickets are stored under `/users/{userId}/tickets/{ticketId}`, providing strong ownership and simplifies access control.\n*   Admin users are managed via the `/roles_admin/{uid}` collection. The existence of a document at this path grants admin privileges to the user.\n*   User notifications are stored under `/users/{userId}/notifications/{notificationId}` to ensure privacy and ownership.\n*   Wallets are stored at `/wallets/{userId}` to associate them directly with a user.\n*   Transactions are a subcollection of a wallet at `/wallets/{userId}/transactions/{transactionId}` for clear ownership.\n\nThe structure facilitates secure list operations (QAPs) by ensuring that collections contain data with similar access control requirements. For example, anyone can list events from the `/events` collection, but only an owner or admin can write to a specific event document. The admin role can list all vendors and all events."
   }
 }
