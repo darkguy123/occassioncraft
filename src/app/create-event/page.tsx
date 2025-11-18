@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -294,7 +295,7 @@ export default function CreateEventPage() {
                                     <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         <FormItem>
                                             <FormControl><RadioGroupItem value="regular" className="sr-only" /></FormControl>
-                                            <FormLabel className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer h-full">
+                                            <FormLabel className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-accent cursor-pointer h-full">
                                                 <PartyPopper className="mb-3 h-8 w-8" />
                                                 <span className="font-bold">Regular Event</span>
                                                 <span className="text-xs text-muted-foreground text-center mt-1">₦{TIER_FEES.regular.fee.toLocaleString()} for {TIER_FEES.regular.maxTickets} tickets.</span>
@@ -302,7 +303,7 @@ export default function CreateEventPage() {
                                         </FormItem>
                                         <FormItem>
                                             <FormControl><RadioGroupItem value="premium" className="sr-only" /></FormControl>
-                                            <FormLabel className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer h-full">
+                                            <FormLabel className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-accent cursor-pointer h-full">
                                                 <Star className="mb-3 h-8 w-8" />
                                                 <span className="font-bold">Premium Event</span>
                                                 <span className="text-xs text-muted-foreground text-center mt-1">₦{TIER_FEES.premium.fee.toLocaleString()} for {TIER_FEES.premium.maxTickets} tickets with custom designs.</span>
@@ -310,7 +311,7 @@ export default function CreateEventPage() {
                                         </FormItem>
                                         <FormItem>
                                             <FormControl><RadioGroupItem value="tiered" className="sr-only" /></FormControl>
-                                            <FormLabel className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer h-full">
+                                            <FormLabel className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-accent cursor-pointer h-full">
                                                 <Users className="mb-3 h-8 w-8" />
                                                 <span className="font-bold">Tiered Event</span>
                                                 <span className="text-xs text-muted-foreground text-center mt-1">Offer multiple ticket types with different pricing.</span>
@@ -344,7 +345,7 @@ export default function CreateEventPage() {
                                             {Object.entries(TIER_DESCRIPTIONS).map(([key, { name, fee, tickets }]) => (
                                                 <FormItem key={key}>
                                                     <FormControl><RadioGroupItem value={key} className="sr-only" /></FormControl>
-                                                    <FormLabel className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer h-full">
+                                                    <FormLabel className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-accent cursor-pointer h-full">
                                                         <span className="font-bold">{name}</span>
                                                         <span className="text-xl font-headline my-1">₦{fee.toLocaleString()}</span>
                                                         <span className="text-xs text-muted-foreground">{tickets} tickets max</span>
