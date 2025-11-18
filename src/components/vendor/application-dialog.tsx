@@ -27,22 +27,32 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PartyPopper } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from '../ui/label';
 
 interface VendorApplicationDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  selectedTier?: string;
 }
 
 const applicationSchema = z.object({
   companyName: z.string().min(2, { message: 'Company name must be at least 2 characters.' }),
   companyDescription: z.string().optional(),
+  pricingTier: z.string().min(1, { message: "Please select a pricing tier." }),
 });
 
 type ApplicationFormValues = z.infer<typeof applicationSchema>;
 
-export function VendorApplicationDialog({ isOpen, onClose }: VendorApplicationDialogProps) {
+const pricingTiers = [
+  { name: "Free", description: "5% transaction fee" },
+  { name: "Premium", description: "2.5% transaction fee" },
+  { name: "Diamond", description: "1% transaction fee" },
+];
+
+export function VendorApplicationDialog({ isOpen, onClose, selectedTier }: VendorApplicationDialogProps) {
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
@@ -53,8 +63,15 @@ export function VendorApplicationDialog({ isOpen, onClose }: VendorApplicationDi
     defaultValues: {
       companyName: '',
       companyDescription: '',
+      pricingTier: selectedTier || 'Free',
     },
   });
+
+  useEffect(() => {
+    if (selectedTier) {
+        form.setValue('pricingTier', selectedTier);
+    }
+  }, [selectedTier, form]);
 
   const onSubmit: SubmitHandler<ApplicationFormValues> = async (data) => {
     if (!user || !firestore) {
@@ -79,6 +96,7 @@ export function VendorApplicationDialog({ isOpen, onClose }: VendorApplicationDi
             description: data.companyDescription,
             contactEmail: user.email,
             status: 'pending',
+            pricingTier: data.pricingTier,
         };
         setDocumentNonBlocking(vendorRef, vendorData, { merge: true });
 
@@ -111,17 +129,45 @@ export function VendorApplicationDialog({ isOpen, onClose }: VendorApplicationDi
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
-                control={form.control}
-                name="companyName"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Company Name</FormLabel>
-                    <FormControl>
-                        <Input placeholder="e.g. EventMakers Inc." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
+                    control={form.control}
+                    name="pricingTier"
+                    render={({ field }) => (
+                        <FormItem className="space-y-3">
+                        <FormLabel>Select Your Plan</FormLabel>
+                        <FormControl>
+                            <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="flex flex-col space-y-1"
+                            >
+                            {pricingTiers.map(tier => (
+                                <FormItem key={tier.name} className="flex items-center space-x-3 space-y-0">
+                                    <FormControl>
+                                        <RadioGroupItem value={tier.name} />
+                                    </FormControl>
+                                    <Label className="font-normal">
+                                        {tier.name} <span className="text-muted-foreground">({tier.description})</span>
+                                    </Label>
+                                </FormItem>
+                            ))}
+                            </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="companyName"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Company Name</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g. EventMakers Inc." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
                 />
                  <FormField
                     control={form.control}
@@ -162,4 +208,3 @@ export function VendorApplicationDialog({ isOpen, onClose }: VendorApplicationDi
     </>
   );
 }
-

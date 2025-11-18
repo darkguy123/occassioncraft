@@ -48,6 +48,7 @@ export type Vendor = {
   description?: string;
   contactEmail: string;
   status: 'pending' | 'approved' | 'rejected';
+  pricingTier?: 'Free' | 'Premium' | 'Diamond';
 }
 
 export type Notification = {
@@ -85,5 +86,3 @@ export type SupportTicket = {
     status: 'open' | 'in-progress' | 'closed';
     createdAt: string; // ISO 8601
 }
-
-    

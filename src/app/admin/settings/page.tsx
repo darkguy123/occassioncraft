@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, BookText, FileText, Info, Image as ImageIcon, Palette, Link as LinkIcon, Twitter, Facebook, Instagram } from 'lucide-react';
+import { Upload, BookText, FileText, Info, Image as ImageIcon, Palette, Link as LinkIcon, Twitter, Facebook, Instagram, DollarSign } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -205,11 +205,12 @@ export default function AdminSettingsPage() {
       </div>
 
       <Tabs defaultValue="branding" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 max-w-lg">
+        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
             <TabsTrigger value="branding">Branding</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
             <TabsTrigger value="content">Content</TabsTrigger>
             <TabsTrigger value="socials">Socials</TabsTrigger>
+            <TabsTrigger value="pricing">Pricing</TabsTrigger>
         </TabsList>
         <TabsContent value="branding">
             <Card>
@@ -379,9 +380,28 @@ export default function AdminSettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+        <TabsContent value="pricing">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Vendor Pricing Tiers</CardTitle>
+                    <CardDescription>Set the monthly prices for your vendor subscription plans. Changes will be reflected on the vendor landing page.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="premium-price" className="flex items-center gap-2"><DollarSign className="h-4 w-4" /> Premium Plan Price (NGN)</Label>
+                        <Input id="premium-price" placeholder="e.g. 15000" type="number"/>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="diamond-price" className="flex items-center gap-2"><DollarSign className="h-4 w-4" /> Diamond Plan Price (NGN)</Label>
+                        <Input id="diamond-price" placeholder="e.g. 50000" type="number"/>
+                    </div>
+                    <div className="flex justify-end">
+                        <Button onClick={() => toast({ title: "Note: This is a UI demo", description: "In a real app, this would save the prices to a secure backend." })}>Save Prices</Button>
+                    </div>
+                </CardContent>
+            </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
 }
-
-    

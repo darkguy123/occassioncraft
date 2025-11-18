@@ -14,7 +14,7 @@ import { VendorApplicationDialog } from "@/components/vendor/application-dialog"
 const pricingTiers = [
   {
     name: "Free",
-    price: "$0",
+    price: "₦0",
     priceDescription: "per month",
     description: "Get started and list your first few events for free.",
     features: [
@@ -28,7 +28,7 @@ const pricingTiers = [
   },
   {
     name: "Premium",
-    price: "$49",
+    price: "₦15,000",
     priceDescription: "per month",
     description: "For growing businesses looking for more features.",
     features: [
@@ -44,7 +44,7 @@ const pricingTiers = [
   },
   {
     name: "Diamond",
-    price: "$99",
+    price: "₦50,000",
     priceDescription: "per month",
     description: "For established businesses that need it all.",
     features: [
@@ -63,6 +63,7 @@ export default function VendorLandingPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const [isApplicationOpen, setIsApplicationOpen] = useState(false);
+  const [selectedTier, setSelectedTier] = useState<string | undefined>(undefined);
   const pricingRef = useRef<HTMLElement>(null);
 
   const userDocRef = useMemoFirebase(() => {
@@ -76,6 +77,13 @@ export default function VendorLandingPage() {
   const handleScrollToPricing = () => {
     pricingRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+  
+  const handleCtaClick = (tierName?: string) => {
+    if (user && !isVendor) {
+      setSelectedTier(tierName);
+      setIsApplicationOpen(true);
+    }
+  };
 
   const CtaButton = ({tier}: { tier?: typeof pricingTiers[number] }) => {
     const isFullWidth = !!tier;
@@ -87,7 +95,7 @@ export default function VendorLandingPage() {
       return <Button size="lg" asChild variant={tier?.variant as any} className={isFullWidth ? "w-full" : ""}><Link href="/vendor/dashboard">Go to Dashboard</Link></Button>
     }
     if (user && !isVendor) {
-      return <Button size="lg" variant={tier?.variant as any} className={isFullWidth ? "w-full" : ""} onClick={() => setIsApplicationOpen(true)}>{tier ? tier.cta : 'Apply Now'}</Button>
+      return <Button size="lg" variant={tier?.variant as any} className={isFullWidth ? "w-full" : ""} onClick={() => handleCtaClick(tier?.name)}>{tier ? tier.cta : 'Apply Now'}</Button>
     }
     return <Button size="lg" asChild variant={tier?.variant as any} className={isFullWidth ? "w-full" : ""}><Link href="/signup">{tier ? tier.cta : 'Become a Vendor Today'}</Link></Button>
   }
@@ -95,7 +103,7 @@ export default function VendorLandingPage() {
 
   return (
     <>
-      {user && !isVendor && <VendorApplicationDialog isOpen={isApplicationOpen} onClose={() => setIsApplicationOpen(false)} />}
+      {user && !isVendor && <VendorApplicationDialog isOpen={isApplicationOpen} onClose={() => setIsApplicationOpen(false)} selectedTier={selectedTier}/>}
       <div className="bg-background text-foreground">
         {/* Hero Section */}
         <section className="py-20 md:py-32 text-center">
