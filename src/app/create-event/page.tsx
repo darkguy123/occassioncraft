@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -47,7 +46,7 @@ const eventFormSchema = z.object({
   bannerUrl: z.string().optional(),
   ticketImageUrl: z.string().optional(),
   ticketBrandingImageUrl: z.string().optional(),
-  price: z.coerce.number().min(0, "Price must be non-negative.").default(0), // Kept for event ticket price, not platform fee
+  price: z.coerce.number().min(0, "Price must be non-negative.").default(0), // For non-tiered events
   tiers: z.array(tierSchema).optional(),
 });
 
@@ -55,7 +54,7 @@ export type EventFormValues = z.infer<typeof eventFormSchema>;
 
 const allBackgrounds = backgroundsData.backgrounds;
 
-const EVENT_TYPE_FEES = {
+const EVENT_TYPE_FEES: Record<EventFormValues['eventType'], number> = {
     regular: 7000,
     premium: 9000,
     tiered: 12000,
@@ -199,7 +198,7 @@ export default function CreateEventPage() {
   };
 
   const onSubmit = (data: EventFormValues) => {
-    const fee = EVENT_TYPE_FEES[data.eventType];
+    const fee = eventType ? EVENT_TYPE_FEES[eventType] : 0;
     if (fee > 0) {
        if (!process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY.startsWith('pk_test_xxxx')) {
             toast({
@@ -500,35 +499,20 @@ export default function CreateEventPage() {
                 <div className="flex items-start gap-4">
                     <Ticket className="h-6 w-6 text-muted-foreground mt-2"/>
                     <div className="grid gap-4 flex-grow">
-                        {eventType === 'regular' && (
+                        {eventType !== 'tiered' ? (
                             <FormField
                                 control={form.control}
                                 name="price"
                                 render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Ticket Price</FormLabel>
+                                    <FormLabel>Ticket Price (NGN)</FormLabel>
                                     <FormControl><Input type="number" {...field} className="h-12" /></FormControl>
                                     <FormDescription>Set the price for a single ticket.</FormDescription>
                                     <FormMessage />
                                 </FormItem>
                                 )}
                             />
-                        )}
-                        {eventType === 'premium' && (
-                            <FormField
-                                control={form.control}
-                                name="price"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Ticket Price</FormLabel>
-                                    <FormControl><Input type="number" {...field} className="h-12" /></FormControl>
-                                    <FormDescription>Set the price for a single ticket.</FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                        )}
-                        {eventType === 'tiered' && (
+                        ) : (
                            <div className="space-y-4">
                                 <h3 className="font-semibold">Ticket Tiers</h3>
                                 {fields.map((field, index) => (
@@ -566,14 +550,16 @@ export default function CreateEventPage() {
                          <div className="!mt-6 p-4 rounded-lg bg-primary/10 border border-primary/20">
                             <h4 className="font-bold">Platform Fee</h4>
                             <p className="text-sm text-muted-foreground">
-                                A one-time fee of <span className="font-bold text-primary">₦{EVENT_TYPE_FEES[eventType].toLocaleString()}</span> will be charged to publish this event.
+                                A one-time fee of <span className="font-bold text-primary">₦{eventType ? EVENT_TYPE_FEES[eventType].toLocaleString() : '0'}</span> will be charged to publish this event.
                             </p>
                         </div>
                     </div>
                 </div>
 
                 <div className="flex justify-end pt-4 border-t">
-                    <Button type="submit" size="lg">Pay and Publish Event</Button>
+                    <Button type="submit" size="lg" disabled={form.formState.isSubmitting}>
+                        {form.formState.isSubmitting ? 'Processing...' : 'Pay and Publish Event'}
+                    </Button>
                 </div>
                 </>
             )}
@@ -596,5 +582,3 @@ export default function CreateEventPage() {
     </div>
   );
 }
-
-    

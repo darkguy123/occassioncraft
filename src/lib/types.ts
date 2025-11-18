@@ -1,4 +1,3 @@
-
 export type UserRole = 'user' | 'vendor' | 'admin';
 
 export type User = {
@@ -96,5 +95,3 @@ export type SupportTicket = {
     status: 'open' | 'in-progress' | 'closed';
     createdAt: string; // ISO 8601
 }
-
-    
