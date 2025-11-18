@@ -60,9 +60,9 @@ const allBackgrounds = backgroundsData.backgrounds;
 const TIER_FEES = {
     regular: { fee: 7000, maxTickets: 50 },
     premium: { fee: 9000, maxTickets: 50 },
-    'tiered-1': { fee: 5000, maxTickets: 50 },
-    'tiered-2': { fee: 6000, maxTickets: 40 },
-    'tiered-3': { fee: 7000, maxTickets: 20 },
+    'tiered-1': { fee: 50000, maxTickets: 50 },
+    'tiered-2': { fee: 60000, maxTickets: 40 },
+    'tiered-3': { fee: 70000, maxTickets: 20 },
     'tiered-4': { fee: 10000, maxTickets: 5 },
     'tiered-5': { fee: 20000, maxTickets: 1 },
 };
@@ -285,7 +285,7 @@ export default function CreateEventPage() {
     const eventType = form.getValues('eventType');
     if (eventType === 'tiered') {
       setCurrentStep(2);
-    } else {
+    } else if (eventType === 'regular' || eventType === 'premium') {
       setCurrentStep(3);
     }
   };
@@ -297,9 +297,9 @@ export default function CreateEventPage() {
                 <div className="space-y-8">
                     <div className="space-y-3">
                         <Label className="text-xl font-bold">Step 1: Choose Event Type</Label>
-                        <RadioGroup 
-                            onValueChange={(value) => form.setValue('eventType', value as 'regular' | 'premium' | 'tiered')} 
+                         <RadioGroup 
                             value={eventType} 
+                            onValueChange={(value) => form.setValue('eventType', value as 'regular' | 'premium' | 'tiered')}
                             className="grid grid-cols-1 sm:grid-cols-3 gap-4"
                         >
                             <Label className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground h-full cursor-pointer", eventType === 'regular' && 'border-primary ring-2 ring-primary')}>
@@ -333,32 +333,24 @@ export default function CreateEventPage() {
         case 2:
             return (
                 <div className="space-y-8">
-                     <FormField
-                        control={form.control}
-                        name="tieredSubType"
-                        render={({ field }) => (
-                            <FormItem className="space-y-3">
-                                <FormLabel className="text-xl font-bold">Step 2: Choose Tiered Plan</FormLabel>
-                                <FormControl>
-                                    <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {Object.entries(TIER_DESCRIPTIONS).map(([key, { name, fee, tickets }]) => (
-                                            <FormItem key={key}>
-                                                 <Label className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground h-full cursor-pointer", field.value === key && 'border-primary ring-2 ring-primary')}>
-                                                    <FormControl>
-                                                        <RadioGroupItem value={key} className="sr-only" />
-                                                    </FormControl>
-                                                    <span className="font-bold">{name}</span>
-                                                    <span className="text-xl font-headline my-1">₦{fee.toLocaleString()}</span>
-                                                    <span className="text-xs text-muted-foreground">{tickets} tickets max</span>
-                                                </Label>
-                                            </FormItem>
-                                        ))}
-                                    </RadioGroup>
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                     <div className="space-y-3">
+                        <Label className="text-xl font-bold">Step 2: Choose Tiered Plan</Label>
+                        <RadioGroup 
+                            value={tieredSubType} 
+                            onValueChange={(value) => form.setValue('tieredSubType', value)}
+                            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+                        >
+                            {Object.entries(TIER_DESCRIPTIONS).map(([key, { name, fee, tickets }]) => (
+                                <Label key={key} className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground h-full cursor-pointer", tieredSubType === key && 'border-primary ring-2 ring-primary')}>
+                                    <RadioGroupItem value={key} className="sr-only" />
+                                    <span className="font-bold">{name}</span>
+                                    <span className="text-xl font-headline my-1">₦{fee.toLocaleString()}</span>
+                                    <span className="text-xs text-muted-foreground">{tickets} tickets max</span>
+                                </Label>
+                            ))}
+                        </RadioGroup>
+                        {form.formState.errors.tieredSubType && <p className="text-sm font-medium text-destructive">{form.formState.errors.tieredSubType.message}</p>}
+                    </div>
                     <div className="flex justify-between pt-4">
                         <Button type="button" variant="outline" onClick={() => setCurrentStep(1)}>
                              <ArrowLeft className="mr-2 h-4 w-4" /> Back
