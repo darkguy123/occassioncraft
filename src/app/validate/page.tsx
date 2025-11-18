@@ -9,12 +9,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle, XCircle, AlertTriangle, Loader2, CameraOff } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Loader2, CameraOff, Search } from 'lucide-react';
 import { useFirestore } from '@/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import type { Event, UserTicket, User } from '@/lib/types';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
 
 
 declare global {
@@ -43,8 +44,9 @@ function TicketValidator() {
     const [scanResult, setScanResult] = useState<ScanResult | null>(null);
     const [validationStatus, setValidationStatus] = useState<ValidationStatus>('idle');
     const [scannedData, setScannedData] = useState<string | null>(null);
+    const [manualTicketId, setManualTicketId] = useState('');
 
-    const validateTicket = async (url: string) => {
+    const validateTicketById = async (ticketId: string) => {
         setValidationStatus('loading');
         if (!firestore) {
              setScanResult({ status: 'error', message: 'Database connection not available.' });
@@ -53,78 +55,105 @@ function TicketValidator() {
         }
 
         try {
-            const { ticketId, eventId, userId } = parseValidationUrl(url);
-            
-            if (!ticketId || !eventId || !userId) {
-                setScanResult({ status: 'error', message: 'Invalid QR Code. Does not contain valid ticket information.' });
+            // Find the ticket in the central collection
+            const ticketsRef = collection(firestore, 'tickets');
+            const q = query(ticketsRef, where("ticketId", "==", ticketId));
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                setScanResult({ status: 'error', message: 'Ticket ID not found.' });
                 setValidationStatus('error');
                 return;
             }
 
-            const ticketRef = doc(firestore, `users/${userId}/tickets`, ticketId);
-            const eventRef = doc(firestore, 'events', eventId);
-            const userRef = doc(firestore, 'users', userId);
-
-            const [ticketSnap, eventSnap, userSnap] = await Promise.all([
-                getDoc(ticketRef),
-                getDoc(eventRef),
-                getDoc(userRef)
-            ]);
-
-            if (!ticketSnap.exists()) {
-                setScanResult({ status: 'error', message: 'Ticket not found.' });
-                setValidationStatus('error');
-                return;
-            }
-
-            if (!eventSnap.exists()) {
-                setScanResult({ status: 'error', message: 'Event not found.' });
-                setValidationStatus('error');
-                return;
-            }
-             if (!userSnap.exists()) {
-                setScanResult({ status: 'error', message: 'User not found.' });
-                setValidationStatus('error');
-                return;
-            }
-
+            const ticketSnap = querySnapshot.docs[0];
             const ticket = ticketSnap.data() as UserTicket;
-            const event = eventSnap.data() as Event;
-            const user = userSnap.data() as User;
-
-            if (ticket.eventId !== eventId) {
-                setScanResult({ status: 'error', message: `This ticket is not for this event. It is for "${event.name}".` });
-                setValidationStatus('error');
-                return;
-            }
             
-            if (ticket.isUsed) {
-                setScanResult({ status: 'error', message: 'This ticket has already been used.' });
-                setValidationStatus('error');
-                return;
-            }
-
-            // All checks passed, ticket is valid.
-            // In a real scenario, you might want to uncomment this line.
-            // await updateDoc(ticketRef, { isUsed: true });
-
-            setScanResult({
-                status: 'success',
-                message: 'Ticket is valid. Welcome!',
-                details: {
-                    eventName: event.name,
-                    attendeeName: `${user.firstName} ${user.lastName}`,
-                    attendeeAvatarUrl: user.profileImageUrl,
-                    purchaseDate: format(new Date(ticket.purchaseDate), "PPP"),
-                }
-            });
-            setValidationStatus('success');
+            // Now that we have the ticket, we have the userId and eventId
+            await processValidation(ticket.ticketId, ticket.eventId, ticket.userId);
 
         } catch (error: any) {
             console.error("Validation Error:", error);
             setScanResult({ status: 'error', message: error.message || 'An unexpected error occurred during validation.' });
             setValidationStatus('error');
         }
+    }
+    
+    const processValidation = async (ticketId: string, eventId: string, userId: string) => {
+        if (!firestore) return;
+
+        const ticketRef = doc(firestore, `users/${userId}/tickets`, ticketId);
+        const eventRef = doc(firestore, 'events', eventId);
+        const userRef = doc(firestore, 'users', userId);
+
+        const [ticketSnap, eventSnap, userSnap] = await Promise.all([
+            getDoc(ticketRef),
+            getDoc(eventRef),
+            getDoc(userRef)
+        ]);
+
+        if (!ticketSnap.exists()) {
+            setScanResult({ status: 'error', message: 'Ticket not found for this user.' });
+            setValidationStatus('error');
+            return;
+        }
+
+        if (!eventSnap.exists()) {
+            setScanResult({ status: 'error', message: 'Event not found.' });
+            setValidationStatus('error');
+            return;
+        }
+         if (!userSnap.exists()) {
+            setScanResult({ status: 'error', message: 'User not found.' });
+            setValidationStatus('error');
+            return;
+        }
+
+        const ticket = ticketSnap.data() as UserTicket;
+        const event = eventSnap.data() as Event;
+        const user = userSnap.data() as User;
+
+        if (ticket.eventId !== eventId) {
+            setScanResult({ status: 'error', message: `This ticket is not for this event. It is for "${event.name}".` });
+            setValidationStatus('error');
+            return;
+        }
+        
+        if (ticket.isUsed) {
+            setScanResult({ status: 'error', message: 'This ticket has already been used.' });
+            setValidationStatus('error');
+            return;
+        }
+
+        // All checks passed, ticket is valid.
+        // Uncomment this line in a real scenario to mark the ticket as used.
+        // await updateDoc(ticketRef, { isUsed: true });
+
+        setScanResult({
+            status: 'success',
+            message: 'Ticket is valid. Welcome!',
+            details: {
+                eventName: event.name,
+                attendeeName: `${user.firstName} ${user.lastName}`,
+                attendeeAvatarUrl: user.profileImageUrl,
+                purchaseDate: format(new Date(ticket.purchaseDate), "PPP"),
+            }
+        });
+        setValidationStatus('success');
+    }
+
+    const validateTicketFromUrl = async (url: string) => {
+        setValidationStatus('loading');
+        
+        const { ticketId, eventId, userId } = parseValidationUrl(url);
+        
+        if (!ticketId || !eventId || !userId) {
+            setScanResult({ status: 'error', message: 'Invalid QR Code. Does not contain valid ticket information.' });
+            setValidationStatus('error');
+            return;
+        }
+        
+        await processValidation(ticketId, eventId, userId);
     };
     
     const parseValidationUrl = (url: string) => {
@@ -208,7 +237,7 @@ function TicketValidator() {
                         if (barcodes.length > 0 && !scannedData) {
                             const scannedUrl = barcodes[0].rawValue;
                             setScannedData(scannedUrl);
-                            validateTicket(scannedUrl);
+                            validateTicketFromUrl(scannedUrl);
                         }
                     } catch (e) {
                         console.error('Barcode detection failed:', e);
@@ -229,6 +258,7 @@ function TicketValidator() {
     const resetScanner = () => {
         setScanResult(null);
         setScannedData(null);
+        setManualTicketId('');
         setValidationStatus('scanning');
     }
 
@@ -246,11 +276,11 @@ function TicketValidator() {
             <Card>
                 <CardHeader>
                     <CardTitle>Ticket Validator</CardTitle>
-                    <CardDescription>Point your camera at a ticket's QR code to validate it for event entry.</CardDescription>
+                    <CardDescription>Point your camera at a ticket's QR code or enter the Ticket ID below to validate it for event entry.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="aspect-video w-full bg-slate-900/80 rounded-lg overflow-hidden relative mb-6">
-                        <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+                         <video ref={videoRef} className="w-full aspect-video rounded-md" autoPlay muted playsInline />
                         
                         {(hasCameraPermission === false || validationStatus === 'unsupported') && (
                             <div className="absolute inset-0 flex items-center justify-center bg-background/80">
@@ -315,6 +345,23 @@ function TicketValidator() {
                              {validationStatus === 'unsupported' && 'Scanner not supported by this browser.'}
                         </AlertDescription>
                     </Alert>
+
+                     <div className="mt-6 pt-6 border-t">
+                        <form onSubmit={(e) => { e.preventDefault(); validateTicketById(manualTicketId); }} className="space-y-4">
+                            <label className="font-medium">Or Enter Ticket ID Manually</label>
+                            <div className="flex gap-2">
+                                <Input
+                                    placeholder="Enter Ticket ID..."
+                                    value={manualTicketId}
+                                    onChange={(e) => setManualTicketId(e.target.value)}
+                                    disabled={validationStatus === 'loading'}
+                                />
+                                <Button type="submit" disabled={!manualTicketId || validationStatus === 'loading'}>
+                                    <Search className="mr-2 h-4 w-4" /> Validate
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
                 </CardContent>
             </Card>
         </div>
