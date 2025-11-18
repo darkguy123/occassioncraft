@@ -1,32 +1,39 @@
-
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import EventCard from '@/components/event-card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 import type { Event } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 
 function EventsDisplay() {
   const searchParams = useSearchParams();
-  const location = searchParams.get('location');
+  const queryParam = searchParams.get('q');
   const firestore = useFirestore();
 
-  // A more robust query would be needed for full text search on location
-  const eventsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return location
-      ? query(collection(firestore, 'events'), where('location', '>=', location), where('location', '<=', location + '\uf8ff'))
-      : collection(firestore, 'events');
-  }, [firestore, location]);
-    
-  const { data: filteredEvents, isLoading } = useCollection<Event>(eventsQuery);
+  const { data: allEvents, isLoading: isAllEventsLoading } = useCollection<Event>(
+      useMemoFirebase(() => firestore ? collection(firestore, 'events') : null, [firestore])
+  );
+  
+  const filteredEvents = useMemo(() => {
+    if (!allEvents) return [];
+    if (!queryParam) return allEvents;
+
+    const lowercasedQuery = queryParam.toLowerCase();
+    return allEvents.filter(event => 
+        event.name.toLowerCase().includes(lowercasedQuery) ||
+        (event.description && event.description.toLowerCase().includes(lowercasedQuery)) ||
+        (event.location && event.location.toLowerCase().includes(lowercasedQuery))
+    );
+  }, [allEvents, queryParam]);
+
+  const isLoading = isAllEventsLoading;
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -38,10 +45,10 @@ function EventsDisplay() {
               Back to Home
             </Link>
           </Button>
-          {location ? (
+          {queryParam ? (
             <>
               <h1 className="text-3xl font-bold font-headline mt-2">
-                Events in "{location}"
+                Search results for "{queryParam}"
               </h1>
                <p className="text-muted-foreground">{filteredEvents?.length || 0} result(s) found.</p>
             </>
@@ -68,7 +75,7 @@ function EventsDisplay() {
       ) : (
         <div className="text-center text-muted-foreground py-20 border-2 border-dashed rounded-lg">
           <p className="text-xl">No available events</p>
-          <p className="mt-2">Try searching for a different city or check back later.</p>
+          <p className="mt-2">Try searching for a different keyword or check back later.</p>
         </div>
       )}
     </div>

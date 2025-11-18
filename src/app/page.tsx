@@ -1,21 +1,18 @@
-
 'use client';
 
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Search, Globe, Music, Palette, Code, Utensils, Award } from 'lucide-react';
+import { Globe, Music, Palette, Code, Utensils, Award } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion } from 'framer-motion';
-import { useRouter } from 'next/navigation';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { Event } from '@/lib/types';
 import EventCard from '@/components/event-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
-
+import { SearchInput } from '@/components/search-input';
 
 const categoryIcons = {
   All: Globe,
@@ -29,20 +26,14 @@ const categoryIcons = {
 const categories = ['All', 'Music', 'Arts', 'Tech', 'Food', 'Sports'] as const;
 
 export default function Home() {
-  const router = useRouter();
   const firestore = useFirestore();
   const eventsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'events') : null, [firestore]);
   const { data: events, isLoading } = useCollection<Event>(eventsCollection);
-
 
   const defaultHeroImage = {
       imageUrl: 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2F67e206b7d52d22580e4ec0d8_890.jpg?alt=media&token=c0a35579-2cdf-4d20-9aa9-6163ff95eddf',
       imageHint: 'concert stage lights'
   };
-
-  const handleSearchClick = () => {
-    router.push('/events');
-  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -77,18 +68,9 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="mt-8 w-full max-w-xl bg-white/10 backdrop-blur-lg p-4 rounded-xl shadow-lg border border-white/20"
+            className="mt-8 w-full max-w-xl"
           >
-            <div className="flex items-center gap-2">
-              <div className="relative flex-grow w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input placeholder="Search events..." className="pl-10 text-base text-foreground" />
-              </div>
-              <Button size="lg" className="font-bold" onClick={handleSearchClick}>
-                <Search className="mr-2 h-5 w-5" />
-                Find Events
-              </Button>
-            </div>
+            <SearchInput />
           </motion.div>
         </div>
       </section>
