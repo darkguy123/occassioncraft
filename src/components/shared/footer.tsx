@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Ticket } from 'lucide-react';
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 
 const TwitterIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -17,25 +17,40 @@ const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
 )
 
+const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Flogo.png?alt=media&token=1d01f9c3-5c82-4541-b819-25f0a7398a61';
+
+
 export function Footer() {
   const [socials, setSocials] = useState({ twitter: '#', facebook: '#', instagram: '#' });
+  const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
+  const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
-    const loadSocials = () => {
+    setHasMounted(true);
+  }, []);
+
+
+  useEffect(() => {
+    if (!hasMounted) return;
+    
+    const loadSettings = () => {
       const twitter = localStorage.getItem('social-twitter') || '#';
       const facebook = localStorage.getItem('social-facebook') || '#';
       const instagram = localStorage.getItem('social-instagram') || '#';
       setSocials({ twitter, facebook, instagram });
+
+      const savedLogo = localStorage.getItem('websiteLogo');
+      setLogoUrl(savedLogo || DEFAULT_LOGO_URL);
     };
 
-    loadSocials();
+    loadSettings();
 
-    window.addEventListener('storage', loadSocials);
+    window.addEventListener('storage', loadSettings);
 
     return () => {
-      window.removeEventListener('storage', loadSocials);
+      window.removeEventListener('storage', loadSettings);
     };
-  }, []);
+  }, [hasMounted]);
 
   return (
     <footer className="bg-secondary text-secondary-foreground border-t">
@@ -43,8 +58,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
             <Link href="/" className="flex items-center space-x-2">
-              <Ticket className="h-6 w-6 text-primary" />
-              <span className="font-bold font-headline text-lg">OccasionCraft</span>
+              <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" />
             </Link>
             <p className="text-sm">Create, discover, and celebrate events with OccasionCraft.</p>
             <div className="flex space-x-4">
