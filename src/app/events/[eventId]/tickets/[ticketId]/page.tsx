@@ -138,27 +138,37 @@ export default function TicketDetailsPage() {
         const node = document.getElementById('ticket-to-download');
         if (!node) return;
 
+        const imageOptions = { 
+            quality: 0.98, 
+            cacheBust: true,
+            fetchRequestInit: {
+                mode: 'cors' as RequestMode,
+            }
+        };
+
         const downloadImage = (dataUrl: string) => {
             const link = document.createElement('a');
-            link.download = `ticket-${ticketId}.${format === 'pdf' ? 'jpg' : 'jpg'}`;
+            link.download = `ticket-${ticketId}.jpg`;
             link.href = dataUrl;
             link.click();
         };
         
         const downloadPdf = (dataUrl: string) => {
-            const pdf = new jsPDF();
-            const width = pdf.internal.pageSize.getWidth();
-            const height = pdf.internal.pageSize.getHeight();
-            pdf.addImage(dataUrl, 'PNG', 0, 0, width, height);
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'px',
+                format: [node.offsetWidth, node.offsetHeight]
+            });
+            pdf.addImage(dataUrl, 'PNG', 0, 0, node.offsetWidth, node.offsetHeight);
             pdf.save(`ticket-${ticketId}.pdf`);
         }
 
         if (format === 'jpg') {
-            toJpeg(node, { quality: 0.95, cacheBust: true })
+            toJpeg(node, imageOptions)
                 .then(downloadImage)
                 .catch((err) => console.error('oops, something went wrong!', err));
         } else {
-             toPng(node, { cacheBust: true })
+             toPng(node, imageOptions)
                 .then(downloadPdf)
                 .catch((err) => console.error('oops, something went wrong!', err));
         }
