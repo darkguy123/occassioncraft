@@ -184,9 +184,11 @@ function TicketValidator() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 setHasCameraPermission(true);
-                setValidationStatus('scanning');
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
+                    videoRef.current.play().then(() => {
+                         setValidationStatus('scanning');
+                    });
                 }
             } catch (err) {
                 console.error("Camera permission error:", err);
@@ -223,10 +225,11 @@ function TicketValidator() {
 
             const detect = async () => {
                 if (
-                    videoRef.current && 
-                    videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA && 
-                    validationStatus === 'scanning' &&
-                    videoRef.current.videoWidth > 0 // Check if video has dimensions
+                    videoRef.current &&
+                    !videoRef.current.paused &&
+                    videoRef.current.readyState >= videoRef.current.HAVE_ENOUGH_DATA &&
+                    videoRef.current.videoWidth > 0 &&
+                    validationStatus === 'scanning'
                 ) {
                     try {
                         const barcodes = await barcodeDetector.detect(videoRef.current);
@@ -255,7 +258,11 @@ function TicketValidator() {
         setScanResult(null);
         setScannedData(null);
         setManualTicketId('');
-        setValidationStatus('scanning');
+        if (videoRef.current && videoRef.current.srcObject) {
+            setValidationStatus('scanning');
+        } else {
+            setValidationStatus('idle');
+        }
     }
 
     if (hasCameraPermission === null && validationStatus !== 'unsupported') {
