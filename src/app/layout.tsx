@@ -1,6 +1,7 @@
 
 import type { Metadata } from 'next';
 import './globals.css';
+import './loader.css';
 import { Suspense } from 'react';
 import { RootProvider } from '@/components/shared/root-provider';
 

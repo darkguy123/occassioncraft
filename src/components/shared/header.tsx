@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -10,6 +11,7 @@ import type { User } from '@/lib/types';
 import { doc } from 'firebase/firestore';
 import { Notifications } from './notifications';
 import { PlusCircle } from 'lucide-react';
+import { useLoader } from '@/context/loader-context';
 
 const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Flogo.png?alt=media&token=1d01f9c3-5c82-4541-b819-25f0a7398a61';
 
@@ -18,6 +20,7 @@ export function Header() {
   const firestore = useFirestore();
   const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
   const [hasMounted, setHasMounted] = useState(false);
+  const { showLoader } = useLoader();
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -47,6 +50,10 @@ export function Header() {
     };
   }, [hasMounted]);
 
+  const handleLinkClick = () => {
+    showLoader();
+  };
+
   const isVendor = hasMounted && userData && (userData.roles || []).includes('vendor');
   const isAdmin = hasMounted && userData && (userData.roles || []).includes('admin');
   const vendorLinkHref = isVendor ? "/vendor/dashboard" : "/vendor";
@@ -56,14 +63,14 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
       <div className="container flex h-16 items-center">
         <div className="mr-4 flex">
-           <Link href="/" className="mr-6 flex items-center space-x-2">
+           <Link href="/" className="mr-6 flex items-center space-x-2" onClick={handleLinkClick}>
             <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" priority />
           </Link>
           <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
-            <Link href="/events" className="transition-colors hover:text-foreground/80 text-foreground/60">
+            <Link href="/events" className="transition-colors hover:text-foreground/80 text-foreground/60" onClick={handleLinkClick}>
               Discover Events
             </Link>
-            <Link href={vendorLinkHref} className="transition-colors hover:text-foreground/80 text-foreground/60">
+            <Link href={vendorLinkHref} className="transition-colors hover:text-foreground/80 text-foreground/60" onClick={handleLinkClick}>
                 {vendorLinkText}
             </Link>
           </nav>
@@ -74,7 +81,7 @@ export function Header() {
               <>
                 {(isVendor || isAdmin) && (
                    <Button asChild variant="outline" size="sm">
-                        <Link href="/create-event">
+                        <Link href="/create-event" onClick={handleLinkClick}>
                             <PlusCircle className="mr-2 h-4 w-4" />
                             Create Event
                         </Link>
@@ -86,10 +93,10 @@ export function Header() {
             ) : (
               <>
                 <Button variant="ghost" asChild>
-                  <Link href="/login">Log In</Link>
+                  <Link href="/login" onClick={handleLinkClick}>Log In</Link>
                 </Button>
                 <Button asChild>
-                  <Link href="/signup">Sign Up</Link>
+                  <Link href="/signup" onClick={handleLinkClick}>Sign Up</Link>
                 </Button>
               </>
             ))}

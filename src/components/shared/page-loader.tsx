@@ -1,8 +1,8 @@
+
 'use client';
 
 import { useLoader } from '@/context/loader-context';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Loader2 } from 'lucide-react';
 
 export function PageLoader() {
   const { isLoading } = useLoader();
@@ -19,7 +19,7 @@ export function PageLoader() {
           role="status"
           aria-live="polite"
         >
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <div className="loader"></div>
           <span className="sr-only">Loading...</span>
         </motion.div>
       )}
