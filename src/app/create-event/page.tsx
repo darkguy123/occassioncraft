@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -69,6 +68,15 @@ const TIER_FEES = {
 
 type TierKey = keyof typeof TIER_FEES;
 
+const TIER_DESCRIPTIONS = {
+    '1': { name: 'Tier 1', fee: TIER_FEES['tiered-1'].fee, tickets: TIER_FEES['tiered-1'].maxTickets },
+    '2': { name: 'Tier 2', fee: TIER_FEES['tiered-2'].fee, tickets: TIER_FEES['tiered-2'].maxTickets },
+    '3': { name: 'Tier 3', fee: TIER_FEES['tiered-3'].fee, tickets: TIER_FEES['tiered-3'].maxTickets },
+    '4': { name: 'Tier 4 (Private)', fee: TIER_FEES['tiered-4'].fee, tickets: TIER_FEES['tiered-4'].maxTickets },
+    '5': { name: 'Tier 5 (Private)', fee: TIER_FEES['tiered-5'].fee, tickets: TIER_FEES['tiered-5'].maxTickets },
+};
+
+
 export default function CreateEventPage() {
   const { toast } = useToast();
   const router = useRouter();
@@ -76,8 +84,7 @@ export default function CreateEventPage() {
   const firestore = useFirestore();
 
   const [displayedBackgrounds, setDisplayedBackgrounds] = useState<{id: string; url: string}[]>([]);
-  const [currentStep, setCurrentStep] = useState(1);
-
+  
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
     return doc(firestore, 'users', user.uid);
@@ -260,13 +267,6 @@ export default function CreateEventPage() {
     }
   };
   
-  const TIER_DESCRIPTIONS = {
-    '1': { name: 'Tier 1', fee: TIER_FEES['tiered-1'].fee, tickets: TIER_FEES['tiered-1'].maxTickets },
-    '2': { name: 'Tier 2', fee: TIER_FEES['tiered-2'].fee, tickets: TIER_FEES['tiered-2'].maxTickets },
-    '3': { name: 'Tier 3', fee: TIER_FEES['tiered-3'].fee, tickets: TIER_FEES['tiered-3'].maxTickets },
-    '4': { name: 'Tier 4 (Private)', fee: TIER_FEES['tiered-4'].fee, tickets: TIER_FEES['tiered-4'].maxTickets },
-    '5': { name: 'Tier 5 (Private)', fee: TIER_FEES['tiered-5'].fee, tickets: TIER_FEES['tiered-5'].maxTickets },
-  };
 
   if (authStatus !== 'authorized') {
     return (
@@ -280,95 +280,76 @@ export default function CreateEventPage() {
         </div>
     );
   }
-  
-  const handleNextStep = () => {
-    const eventType = form.getValues('eventType');
-    if (eventType === 'tiered') {
-      setCurrentStep(2);
-    } else if (eventType === 'regular' || eventType === 'premium') {
-      setCurrentStep(3);
-    }
-  };
 
-  const renderStep = () => {
-      switch (currentStep) {
-          case 1:
-              return (
-                <div className="space-y-8">
-                    <div className="space-y-3">
-                        <h2 className="text-xl font-bold">Step 1: Choose Event Type</h2>
-                        <RadioGroup 
-                            value={eventType} 
-                            onValueChange={(value) => form.setValue('eventType', value as 'regular' | 'premium' | 'tiered')}
-                            className="grid grid-cols-1 sm:grid-cols-3 gap-4"
-                        >
-                            <Label className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground h-full cursor-pointer", eventType === 'regular' && 'border-primary ring-2 ring-primary')}>
-                                <RadioGroupItem value="regular" className="sr-only" />
-                                <PartyPopper className="mb-3 h-8 w-8" />
-                                <span className="font-bold">Regular Event</span>
-                                <span className="text-xs text-muted-foreground text-center mt-1">₦{TIER_FEES.regular.fee.toLocaleString()} for {TIER_FEES.regular.maxTickets} tickets.</span>
-                            </Label>
-                            <Label className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground h-full cursor-pointer", eventType === 'premium' && 'border-primary ring-2 ring-primary')}>
-                                <RadioGroupItem value="premium" className="sr-only" />
-                                <Star className="mb-3 h-8 w-8" />
-                                <span className="font-bold">Premium Event</span>
-                                <span className="text-xs text-muted-foreground text-center mt-1">₦{TIER_FEES.premium.fee.toLocaleString()} for {TIER_FEES.premium.maxTickets} tickets with custom designs.</span>
-                            </Label>
-                            <Label className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground h-full cursor-pointer", eventType === 'tiered' && 'border-primary ring-2 ring-primary')}>
-                                <RadioGroupItem value="tiered" className="sr-only" />
-                                <Users className="mb-3 h-8 w-8" />
-                                <span className="font-bold">Tiered Event</span>
-                                <span className="text-xs text-muted-foreground text-center mt-1">Offer multiple ticket types with different pricing.</span>
-                            </Label>
-                        </RadioGroup>
-                        {form.formState.errors.eventType && <p className="text-sm font-medium text-destructive">{form.formState.errors.eventType.message}</p>}
-                    </div>
-                    <div className="flex justify-end pt-4">
-                        <Button type="button" onClick={handleNextStep} disabled={!eventType}>
-                            Next Step <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
-                        </Button>
-                    </div>
-                </div>
-              );
-        case 2:
-            return (
-                <div className="space-y-8">
-                     <div className="space-y-3">
-                        <h2 className="text-xl font-bold">Step 2: Choose Tiered Plan</h2>
-                        <RadioGroup 
-                            value={tieredSubType} 
-                            onValueChange={(value) => form.setValue('tieredSubType', value)}
-                            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-                        >
-                            {Object.entries(TIER_DESCRIPTIONS).map(([key, { name, fee, tickets }]) => (
-                                <Label key={key} className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground h-full cursor-pointer", tieredSubType === key && 'border-primary ring-2 ring-primary')}>
-                                    <RadioGroupItem value={key} className="sr-only" />
-                                    <span className="font-bold">{name}</span>
-                                    <span className="text-xl font-headline my-1">₦{fee.toLocaleString()}</span>
-                                    <span className="text-xs text-muted-foreground">{tickets} tickets max</span>
-                                </Label>
-                            ))}
-                        </RadioGroup>
-                        {form.formState.errors.tieredSubType && <p className="text-sm font-medium text-destructive">{form.formState.errors.tieredSubType.message}</p>}
-                    </div>
-                    <div className="flex justify-between pt-4">
-                        <Button type="button" variant="outline" onClick={() => setCurrentStep(1)}>
-                             <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                        </Button>
-                        <Button type="button" onClick={() => setCurrentStep(3)} disabled={!tieredSubType}>
-                            Next Step <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
-                        </Button>
-                    </div>
-                </div>
-            );
-        case 3:
-             const key = getTierKey();
-             const currentTierInfo = key ? TIER_FEES[key] : null;
+  const key = getTierKey();
+  const currentTierInfo = key ? TIER_FEES[key] : null;
 
-            return (
-                 <div className="space-y-8">
+  return (
+    <div className="bg-muted/30 min-h-screen">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-x-12 max-w-6xl mx-auto py-10 px-4">
+          
+          <div className="space-y-8">
+            {/* Step 1: Choose Event Type */}
+            <div className="space-y-3">
+                <h2 className="text-xl font-bold">Step 1: Choose Event Type</h2>
+                <RadioGroup 
+                    value={eventType} 
+                    onValueChange={(value) => {
+                        form.setValue('eventType', value as 'regular' | 'premium' | 'tiered');
+                        form.setValue('tieredSubType', undefined); // Reset tiered subtype when event type changes
+                    }}
+                    className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+                >
+                    <Label className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground h-full cursor-pointer", eventType === 'regular' && 'border-primary ring-2 ring-primary')}>
+                        <RadioGroupItem value="regular" className="sr-only" />
+                        <PartyPopper className="mb-3 h-8 w-8" />
+                        <span className="font-bold">Regular Event</span>
+                        <span className="text-xs text-muted-foreground text-center mt-1">₦{TIER_FEES.regular.fee.toLocaleString()} for {TIER_FEES.regular.maxTickets} tickets.</span>
+                    </Label>
+                    <Label className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground h-full cursor-pointer", eventType === 'premium' && 'border-primary ring-2 ring-primary')}>
+                        <RadioGroupItem value="premium" className="sr-only" />
+                        <Star className="mb-3 h-8 w-8" />
+                        <span className="font-bold">Premium Event</span>
+                        <span className="text-xs text-muted-foreground text-center mt-1">₦{TIER_FEES.premium.fee.toLocaleString()} for {TIER_FEES.premium.maxTickets} tickets with custom designs.</span>
+                    </Label>
+                    <Label className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground h-full cursor-pointer", eventType === 'tiered' && 'border-primary ring-2 ring-primary')}>
+                        <RadioGroupItem value="tiered" className="sr-only" />
+                        <Users className="mb-3 h-8 w-8" />
+                        <span className="font-bold">Tiered Event</span>
+                        <span className="text-xs text-muted-foreground text-center mt-1">Offer multiple ticket types with different pricing.</span>
+                    </Label>
+                </RadioGroup>
+                {form.formState.errors.eventType && <p className="text-sm font-medium text-destructive">{form.formState.errors.eventType.message}</p>}
+            </div>
+
+            {/* Step 2: Choose Tiered Plan (Conditional) */}
+            {eventType === 'tiered' && (
+                <div className="space-y-3">
+                    <h2 className="text-xl font-bold">Step 2: Choose Tiered Plan</h2>
+                     <RadioGroup 
+                        value={tieredSubType} 
+                        onValueChange={(value) => form.setValue('tieredSubType', value)}
+                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+                    >
+                        {Object.entries(TIER_DESCRIPTIONS).map(([key, { name, fee, tickets }]) => (
+                            <Label key={key} className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground h-full cursor-pointer", tieredSubType === key && 'border-primary ring-2 ring-primary')}>
+                                <RadioGroupItem value={key} className="sr-only" />
+                                <span className="font-bold">{name}</span>
+                                <span className="text-xl font-headline my-1">₦{fee.toLocaleString()}</span>
+                                <span className="text-xs text-muted-foreground">{tickets} tickets max</span>
+                            </Label>
+                        ))}
+                    </RadioGroup>
+                    {form.formState.errors.tieredSubType && <p className="text-sm font-medium text-destructive">{form.formState.errors.tieredSubType.message}</p>}
+                </div>
+            )}
+            
+            {/* Step 3: Event Details (Conditional) */}
+            {(eventType === 'regular' || eventType === 'premium' || (eventType === 'tiered' && tieredSubType)) && (
+                <div className="space-y-8 pt-8 border-t">
                     <div className="space-y-2">
-                        <h2 className="text-xl font-bold">Step 3: Add Your Event Details</h2>
+                        <h2 className="text-xl font-bold">Step {eventType === 'tiered' ? '3' : '2'}: Add Your Event Details</h2>
                          {currentTierInfo && (
                             <p className="text-muted-foreground">
                                 You are creating a <span className="font-bold text-primary">{eventType} {eventType === 'tiered' ? `(Tier ${tieredSubType})` : ''}</span> event.
@@ -455,11 +436,13 @@ export default function CreateEventPage() {
                                         <RefreshCw className="mr-2 h-4 w-4"/> Load More
                                     </Button>
                                     </div>
-                                    <FormControl>
+                                     <FormControl>
                                         <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-3 gap-4">
                                             {displayedBackgrounds.map((bg) => (
-                                                <Label key={bg.id} className={cn("flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground h-28 cursor-pointer", field.value === bg.url && 'border-primary ring-2 ring-primary')}>
-                                                    <RadioGroupItem value={bg.url} className="sr-only" />
+                                                <RadioGroupItem value={bg.url} key={bg.id} className="sr-only" id={bg.id}/>
+                                            ))}
+                                            {displayedBackgrounds.map((bg) => (
+                                                <Label key={`label-${bg.id}`} htmlFor={bg.id} className={cn("flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground h-28 cursor-pointer", field.value === bg.url && 'border-primary ring-2 ring-primary')}>
                                                     <Image src={bg.url} alt={`background ${bg.id}`} width={120} height={100} className="w-full h-full object-cover rounded-sm" />
                                                 </Label>
                                             ))}
@@ -495,26 +478,13 @@ export default function CreateEventPage() {
                         </div>
                     </div>
 
-                    <div className="flex justify-between pt-4 border-t">
-                        <Button type="button" variant="outline" onClick={() => setCurrentStep(eventType === 'tiered' ? 2 : 1)}>
-                             <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                        </Button>
+                    <div className="flex justify-end pt-4 border-t">
                         <Button type="submit" size="lg" disabled={form.formState.isSubmitting}>
                             {form.formState.isSubmitting ? 'Processing...' : `Pay ₦${getCurrentFee().toLocaleString()} and Publish`}
                         </Button>
                     </div>
                 </div>
-            )
-      }
-  }
-
-  return (
-    <div className="bg-muted/30 min-h-screen">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-x-12 max-w-6xl mx-auto py-10 px-4">
-          
-          <div className="space-y-8">
-            {renderStep()}
+            )}
           </div>
 
           <div className="hidden md:block sticky top-10 self-start">
@@ -534,3 +504,5 @@ export default function CreateEventPage() {
     </div>
   );
 }
+
+    
