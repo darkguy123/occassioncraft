@@ -8,6 +8,8 @@ import { NavigationEvents } from '@/components/shared/navigation-events';
 import { Suspense, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { usePathname } from 'next/navigation';
+import { LoaderProvider } from '@/context/loader-context';
+import { PageLoader } from './page-loader';
 
 function Favicon() {
     const [faviconUrl, setFaviconUrl] = useState<string | null>(null);
@@ -75,10 +77,12 @@ export function RootProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <>
-          <Suspense fallback={<link rel="icon" href="https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Ffavicon.png?alt=media&token=86504a79-54d9-4315-9923-388f8d662e07" />}>
+          <Suspense fallback={<link rel="icon" href="https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Ffavicon.png?alt=media&token=86504a79-54d-4315-9923-388f8d662e07" />}>
              <Favicon />
           </Suspense>
           <FirebaseClientProvider>
+            <LoaderProvider>
+              <PageLoader />
               <Header />
               <main className="flex-grow">
                 {hasMounted ? (
@@ -102,6 +106,7 @@ export function RootProvider({ children }: { children: React.ReactNode }) {
               <Suspense fallback={null}>
                 <NavigationEvents />
               </Suspense>
+            </LoaderProvider>
           </FirebaseClientProvider>
         </>
     );

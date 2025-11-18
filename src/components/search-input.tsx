@@ -12,11 +12,13 @@ import Link from 'next/link';
 import { collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useLoader } from '@/context/loader-context';
 
 export function SearchInput() {
   const router = useRouter();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { showLoader, hideLoader } = useLoader();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [locationTerm, setLocationTerm] = useState('');
@@ -38,6 +40,11 @@ export function SearchInput() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+  
+  // Hide loader on component unmount in case of navigation cancellation
+  useEffect(() => {
+    return () => hideLoader();
+  }, [hideLoader]);
 
   useEffect(() => {
     if (debouncedSearchTerm.length < 3) {
@@ -77,9 +84,10 @@ export function SearchInput() {
     const trimmedLocation = locationTerm.trim();
 
     if (trimmedSearch || trimmedLocation) {
-        const params = new URLSearchParams();
-        if (trimmedSearch) params.append('q', trimmedSearch);
-        if (trimmedLocation) params.append('loc', trimmedLocation);
+      showLoader();
+      const params = new URLSearchParams();
+      if (trimmedSearch) params.append('q', trimmedSearch);
+      if (trimmedLocation) params.append('loc', trimmedLocation);
       router.push(`/events?${params.toString()}`);
       setIsFocused(false);
     }
@@ -165,7 +173,10 @@ export function SearchInput() {
                   <Link
                     href={`/events/${event.id}`}
                     className="flex items-center gap-3 p-3 hover:bg-accent transition-colors"
-                    onClick={() => setIsFocused(false)}
+                    onClick={() => {
+                      showLoader();
+                      setIsFocused(false);
+                    }}
                   >
                     <Calendar className="h-5 w-5 text-muted-foreground" />
                     <span className="flex-grow font-medium truncate">{event.name}</span>
