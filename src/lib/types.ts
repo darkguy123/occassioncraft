@@ -38,6 +38,7 @@ export type UserTicket = {
   userId: string;
   event?: Event; // Denormalized event data
   isUsed?: boolean;
+  vendorId: string; // Denormalized for security rules
 };
 
 export type Vendor = {

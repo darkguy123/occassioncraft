@@ -52,13 +52,24 @@ service cloud.firestore {
       allow read, write: if isOwner(vendorId) || isAdmin();
     }
     
-    // Wallets are private to the user or an admin.
     match /wallets/{userId} {
+      // Wallets are private to the user or an admin.
       allow read, write: if isOwner(userId) || isAdmin();
     }
     
     match /wallets/{userId}/transactions/{transactionId} {
        allow read, write: if isOwner(userId) || isAdmin();
+    }
+    
+    match /tickets/{ticketId} {
+      // Admins can list all tickets
+      allow list: if isAdmin();
+      // A user can read a ticket if they are the owner, or if they are the vendor for that event
+      allow read: if (request.auth != null && resource.data.userId == request.auth.uid) || (request.auth != null && resource.data.vendorId == request.auth.uid) || isAdmin();
+      // Allow creation for any authenticated user
+      allow create: if request.auth != null;
+      // No updates or deletes from the client
+      allow update, delete: if false;
     }
     
     // Admin role definitions are readable and writable by other admins, or a user creating their own.

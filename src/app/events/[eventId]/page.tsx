@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react';
 import Image from 'next/image';
-import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import type { Event, Notification, UserTicket } from '@/lib/types';
 import { useParams, useRouter } from 'next/navigation';
@@ -56,14 +56,15 @@ export default function EventDetailsPage() {
             return;
         }
 
-        const ticketsCollectionRef = collection(firestore, `users/${user.uid}/tickets`);
-        const newTicketRef = doc(ticketsCollectionRef, ticketId);
+        const userTicketRef = doc(firestore, `users/${user.uid}/tickets`, ticketId);
+        const centralTicketRef = doc(firestore, 'tickets', ticketId);
         
-        const ticketData: Omit<UserTicket, 'event'> = {
+        const ticketData: UserTicket = {
             ticketId: ticketId,
             eventId: eventData.id,
             purchaseDate: new Date().toISOString(),
             userId: user.uid,
+            vendorId: eventData.vendorId, // Denormalize vendorId for rules
         };
 
         const notificationsCollectionRef = collection(firestore, `users/${user.uid}/notifications`);
@@ -76,9 +77,11 @@ export default function EventDetailsPage() {
             link: `/events/${eventData.id}/tickets/${ticketId}`,
         }
 
-        // Non-blocking writes to Firestore
-        addDocumentNonBlocking(newTicketRef, ticketData);
+        // Non-blocking writes to Firestore for both locations
+        setDocumentNonBlocking(userTicketRef, ticketData);
+        setDocumentNonBlocking(centralTicketRef, ticketData);
         addDocumentNonBlocking(notificationsCollectionRef, notificationData);
+
 
         toast({
             title: isFreeEvent ? 'Ticket Claimed!' : 'Payment Successful!',

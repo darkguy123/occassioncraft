@@ -8,10 +8,10 @@ import { BarChart2, Ticket, DollarSign, PlusCircle, QrCode, AlertTriangle, MoreH
 import Link from "next/link";
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, deleteDocumentNonBlocking } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
-import type { User, Event } from "@/lib/types";
+import type { User, Event, UserTicket } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from 'next/navigation';
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
     DropdownMenu,
@@ -42,7 +42,17 @@ export default function VendorDashboardPage() {
 
     const { data: vendorEvents, isLoading: areEventsLoading } = useCollection<Event>(vendorEventsQuery);
 
-    const isLoading = isUserLoading || isUserDataLoading || areEventsLoading;
+    const vendorEventIds = useMemo(() => vendorEvents?.map(e => e.id) || [], [vendorEvents]);
+
+    const ticketsQuery = useMemoFirebase(() => {
+        if (!firestore || vendorEventIds.length === 0) return null;
+        return query(collection(firestore, 'tickets'), where('eventId', 'in', vendorEventIds));
+    }, [firestore, vendorEventIds]);
+
+    const { data: tickets, isLoading: areTicketsLoading } = useCollection<UserTicket>(ticketsQuery);
+
+
+    const isLoading = isUserLoading || isUserDataLoading || areEventsLoading || areTicketsLoading;
     const isVendor = (userData?.roles || []).includes('vendor');
 
     useEffect(() => {
@@ -142,8 +152,8 @@ export default function VendorDashboardPage() {
             <Ticket className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+0</div>
-            <p className="text-xs text-muted-foreground">No tickets sold yet</p>
+            <div className="text-2xl font-bold">+{tickets?.length || 0}</div>
+            <p className="text-xs text-muted-foreground">Total tickets sold</p>
           </CardContent>
         </Card>
         <Card>
