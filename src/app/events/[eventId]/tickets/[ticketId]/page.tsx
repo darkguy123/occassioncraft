@@ -18,9 +18,17 @@ import { toPng, toJpeg } from 'html-to-image';
 import jsPDF from 'jspdf';
 
 
+const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Flogo.png?alt=media&token=1d01f9c3-5c82-4541-b819-25f0a7398a61';
+
 const TicketDesign = ({ eventData, ticketData, qrCodeUrl, user }: { eventData: Event, ticketData: UserTicket, qrCodeUrl: string, user: any }) => {
     const formattedDate = eventData.date ? format(new Date(eventData.date), "EEEE, MMM d, yyyy") : 'Date';
     const formattedTime = eventData.startTime || 'Time';
+    const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
+
+    useEffect(() => {
+        const savedLogo = localStorage.getItem('websiteLogo');
+        setLogoUrl(savedLogo || DEFAULT_LOGO_URL);
+    }, []);
     
     return (
         <Card id="ticket-to-download" className={cn(
@@ -80,8 +88,8 @@ const TicketDesign = ({ eventData, ticketData, qrCodeUrl, user }: { eventData: E
                     </div>
 
                     <div className="mt-8 border-t-2 border-dashed border-black/20 dark:border-white/20 pt-4 flex items-center justify-between gap-4 text-xs">
-                        <p className="text-black/60 dark:text-white/60">Ticket ID: {ticketData.ticketId}</p>
-                        <p className="text-black/60 dark:text-white/60">Purchased: {format(new Date(ticketData.purchaseDate), "PP")}</p>
+                        <Image src={logoUrl} alt="Logo" width={80} height={20} className="h-5 w-auto" />
+                        <p className="text-black/60 dark:text-white/60">ID: {ticketData.ticketId.substring(0, 13)}</p>
                     </div>
                 </div>
             </div>
