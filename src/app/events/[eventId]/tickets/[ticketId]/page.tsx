@@ -35,13 +35,13 @@ const TicketDesign = ({ eventData, ticketData, qrCodeUrl, user }: { eventData: E
             "w-full max-w-md rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br relative transition-all duration-300 from-slate-50 to-slate-200 dark:from-slate-800 dark:to-slate-900"
         )}>
             {eventData?.ticketImageUrl && (
-                <Image src={eventData.ticketImageUrl} alt="Ticket background" layout="fill" className="object-cover blur-md opacity-50" />
+                <Image src={eventData.ticketImageUrl} alt="Ticket background" fill className="object-cover blur-md opacity-50" />
             )}
 
             <div className="p-1 backdrop-blur-sm bg-white/10 rounded-2xl relative z-10">
                 {eventData?.ticketBrandingImageUrl && (
                     <div className="h-24 relative rounded-t-xl overflow-hidden mb-2">
-                        <Image src={eventData.ticketBrandingImageUrl} alt="Branding" layout="fill" className="object-cover" />
+                        <Image src={eventData.ticketBrandingImageUrl} alt="Branding" fill className="object-cover" />
                     </div>
                 )}
 
@@ -151,6 +151,7 @@ export default function TicketDetailsPage() {
             cacheBust: true,
             fetchRequestInit: {
                 mode: 'cors' as RequestMode,
+                credentials: 'omit' as RequestCredentials
             }
         };
 
