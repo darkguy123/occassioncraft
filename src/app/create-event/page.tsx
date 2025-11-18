@@ -25,6 +25,7 @@ import Image from "next/image"
 import { EventPreview } from "@/components/event-preview"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import backgroundsData from '@/lib/ticket-backgrounds.json';
+import { TicketStylePreview } from "@/components/ticket-style-preview";
 
 const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters.").default(""),
