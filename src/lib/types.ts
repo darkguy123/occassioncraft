@@ -32,11 +32,11 @@ export type Event = {
   vendorId: string;
   organizer?: string; // Can be denormalized
   category?: string; // Can be denormalized
-  price: number; // Simplified price, now default for regular/premium
+  price: number; // For non-tiered events, this is the ticket price
   status?: 'approved' | 'pending' | 'rejected';
   eventType: 'regular' | 'premium' | 'tiered';
-  premiumOption?: 'individual' | 'general';
   tiers?: EventTier[];
+  platformFee: number;
 };
 
 export type UserTicket = {
@@ -96,3 +96,5 @@ export type SupportTicket = {
     status: 'open' | 'in-progress' | 'closed';
     createdAt: string; // ISO 8601
 }
+
+    

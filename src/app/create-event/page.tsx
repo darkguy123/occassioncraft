@@ -26,6 +26,8 @@ import { EventPreview } from "@/components/event-preview"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import backgroundsData from '@/lib/ticket-backgrounds.json';
 import { TicketStylePreview } from "@/components/ticket-style-preview";
+import { usePaystackPayment } from "react-paystack";
+import { v4 as uuidv4 } from "uuid";
 
 const tierSchema = z.object({
   name: z.string().min(1, "Tier name is required."),
@@ -45,14 +47,19 @@ const eventFormSchema = z.object({
   bannerUrl: z.string().optional(),
   ticketImageUrl: z.string().optional(),
   ticketBrandingImageUrl: z.string().optional(),
-  price: z.coerce.number().min(0, "Price must be non-negative.").default(0),
-  premiumOption: z.enum(['individual', 'general']).optional(),
+  price: z.coerce.number().min(0, "Price must be non-negative.").default(0), // Kept for event ticket price, not platform fee
   tiers: z.array(tierSchema).optional(),
 });
 
 export type EventFormValues = z.infer<typeof eventFormSchema>;
 
 const allBackgrounds = backgroundsData.backgrounds;
+
+const EVENT_TYPE_FEES = {
+    regular: 70000,
+    premium: 90000,
+    tiered: 50000,
+};
 
 export default function CreateEventPage() {
   const { toast } = useToast();
@@ -89,6 +96,18 @@ export default function CreateEventPage() {
     },
     mode: "onChange",
   });
+  
+  const eventType = form.watch('eventType');
+
+  const paystackConfig = {
+    reference: uuidv4(),
+    email: user?.email || '',
+    amount: (eventType ? EVENT_TYPE_FEES[eventType] : 0) * 100, // Amount in kobo
+    currency: 'NGN',
+    publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
+  };
+  
+  const initializePayment = usePaystackPayment(paystackConfig);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -111,7 +130,6 @@ export default function CreateEventPage() {
 
   const isOnline = form.watch('isOnline');
   const watchedEventData = form.watch();
-  const eventType = form.watch('eventType');
 
   useEffect(() => {
     const isLoading = isUserLoading || isUserDataLoading;
@@ -143,20 +161,19 @@ export default function CreateEventPage() {
     }
   }, [isUserLoading, isUserDataLoading, user, userData, router, toast]);
 
-
-  const onSubmit = (data: EventFormValues) => {
+  const saveEventToDB = (data: EventFormValues) => {
     if (!user || !firestore) {
-        toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to create an event.' });
+        toast({ variant: 'destructive', title: 'Error', description: 'Authentication or database error.' });
         return;
     }
-
     const eventCollectionRef = collection(firestore, 'events');
     const eventData = {
         ...data,
         date: data.date.toISOString(),
         vendorId: user.uid,
         organizer: user.displayName, 
-        status: 'approved', 
+        status: 'approved',
+        platformFee: EVENT_TYPE_FEES[data.eventType] || 0,
     };
     
     addDocumentNonBlocking(eventCollectionRef, eventData);
@@ -168,6 +185,36 @@ export default function CreateEventPage() {
     
     const isAdmin = (userData?.roles || []).includes('admin');
     router.push(isAdmin ? '/admin/events' : '/vendor/dashboard');
+  }
+
+  const onPaymentSuccess = () => {
+    saveEventToDB(form.getValues());
+  };
+
+  const onPaymentClose = () => {
+    toast({
+      variant: 'destructive',
+      title: 'Payment Canceled',
+      description: 'The payment process was not completed.',
+    });
+  };
+
+  const onSubmit = (data: EventFormValues) => {
+    const fee = EVENT_TYPE_FEES[data.eventType];
+    if (fee > 0) {
+       if (!process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY.startsWith('pk_test_xxxx')) {
+            toast({
+                variant: 'destructive',
+                title: 'Setup Required',
+                description: 'The Paystack public key is not configured in the .env file.',
+            });
+            return;
+        }
+      initializePayment({onSuccess: onPaymentSuccess, onClose: onPaymentClose});
+    } else {
+      // If there's no fee (or for a free tier if you add one), save directly.
+      saveEventToDB(data);
+    }
   };
   
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, field: 'bannerUrl' | 'ticketBrandingImageUrl') => {
@@ -224,7 +271,7 @@ export default function CreateEventPage() {
                                     <FormLabel className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer h-full">
                                         <PartyPopper className="mb-3 h-8 w-8" />
                                         <span className="font-bold">Regular</span>
-                                        <span className="text-xs text-muted-foreground text-center mt-1">Simple, effective events with standard options.</span>
+                                        <span className="text-xs text-muted-foreground text-center mt-1">Simple events with standard options.</span>
                                     </FormLabel>
                                 </FormItem>
                                 <FormItem>
@@ -460,54 +507,27 @@ export default function CreateEventPage() {
                                 name="price"
                                 render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Price</FormLabel>
+                                    <FormLabel>Ticket Price</FormLabel>
                                     <FormControl><Input type="number" {...field} className="h-12" /></FormControl>
-                                    <FormDescription>Set to 70000 for 50 tickets as per Regular plan.</FormDescription>
+                                    <FormDescription>Set the price for a single ticket.</FormDescription>
                                     <FormMessage />
                                 </FormItem>
                                 )}
                             />
                         )}
                         {eventType === 'premium' && (
-                            <>
-                                <FormField
-                                    control={form.control}
-                                    name="premiumOption"
-                                    render={({ field }) => (
-                                        <FormItem className="space-y-3">
-                                        <FormLabel>Premium Options</FormLabel>
-                                        <FormControl>
-                                            <RadioGroup
-                                            onValueChange={field.onChange}
-                                            value={field.value}
-                                            className="flex flex-col space-y-1"
-                                            >
-                                                <FormItem className="flex items-center space-x-3 space-y-0">
-                                                    <FormControl><RadioGroupItem value="individual" /></FormControl>
-                                                    <FormLabel className="font-normal">Individual (₦10,000 / ticket)</FormLabel>
-                                                </FormItem>
-                                                <FormItem className="flex items-center space-x-3 space-y-0">
-                                                    <FormControl><RadioGroupItem value="general" /></FormControl>
-                                                    <FormLabel className="font-normal">General (₦90,000 / 50 tickets)</FormLabel>
-                                                </FormItem>
-                                            </RadioGroup>
-                                        </FormControl>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="price"
-                                    render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Price</FormLabel>
-                                        <FormControl><Input type="number" {...field} className="h-12" /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                    )}
-                                />
-                            </>
+                            <FormField
+                                control={form.control}
+                                name="price"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Ticket Price</FormLabel>
+                                    <FormControl><Input type="number" {...field} className="h-12" /></FormControl>
+                                    <FormDescription>Set the price for a single ticket.</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
                         )}
                         {eventType === 'tiered' && (
                            <div className="space-y-4">
@@ -517,17 +537,17 @@ export default function CreateEventPage() {
                                         <FormField
                                             control={form.control}
                                             name={`tiers.${index}.name`}
-                                            render={({ field }) => <FormItem className="col-span-4"><FormLabel>Tier Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>}
+                                            render={({ field }) => <FormItem className="col-span-4"><FormLabel>Tier Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}
                                         />
                                         <FormField
                                             control={form.control}
                                             name={`tiers.${index}.price`}
-                                            render={({ field }) => <FormItem className="col-span-3"><FormLabel>Price</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>}
+                                            render={({ field }) => <FormItem className="col-span-3"><FormLabel>Price</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>}
                                         />
                                         <FormField
                                             control={form.control}
                                             name={`tiers.${index}.quantity`}
-                                            render={({ field }) => <FormItem className="col-span-3"><FormLabel>Quantity</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>}
+                                            render={({ field }) => <FormItem className="col-span-3"><FormLabel>Quantity</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>}
                                         />
                                         <div className="col-span-2">
                                             <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button>
@@ -542,14 +562,19 @@ export default function CreateEventPage() {
                                 >
                                 Add Tier
                                 </Button>
-                                <FormDescription>Pricing: Tier 1 (50k/50), Tier 2 (60k/40), Tier 3 (70k/20), Tier 4 (10k/5), Tier 5 (20k/1). Names on Tiers 4 & 5.</FormDescription>
                             </div>
                         )}
+                         <div className="!mt-6 p-4 rounded-lg bg-primary/10 border border-primary/20">
+                            <h4 className="font-bold">Platform Fee</h4>
+                            <p className="text-sm text-muted-foreground">
+                                A one-time fee of <span className="font-bold text-primary">₦{EVENT_TYPE_FEES[eventType].toLocaleString()}</span> will be charged to publish this event.
+                            </p>
+                        </div>
                     </div>
                 </div>
 
                 <div className="flex justify-end pt-4 border-t">
-                    <Button type="submit" size="lg">Publish Event</Button>
+                    <Button type="submit" size="lg">Pay and Publish Event</Button>
                 </div>
                 </>
             )}
@@ -572,3 +597,5 @@ export default function CreateEventPage() {
     </div>
   );
 }
+
+    

@@ -53,10 +53,6 @@
           "type": "string",
           "enum": ["regular", "premium", "tiered"]
         },
-        "premiumOption": {
-            "type": "string",
-            "enum": ["individual", "general"]
-        },
         "tiers": {
             "type": "array",
             "items": {
@@ -68,6 +64,9 @@
                 },
                 "required": ["name", "price", "quantity"]
             }
+        },
+        "platformFee": {
+            "type": "number"
         }
       },
       "required": [
@@ -80,7 +79,8 @@
         "categoryId",
         "ticketTemplateId",
         "status",
-        "eventType"
+        "eventType",
+        "platformFee"
       ]
     },
     "Vendor": {
@@ -583,3 +583,5 @@
     "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, adhering to the core design principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). Authorization Independence is achieved through denormalization of authorization-related data, eliminating the need for `get()` calls in security rules. Structural Segregation is applied to ensure homogeneous security postures within collections.  Access Modeling follows consistent patterns for private and collaborative data.\n\nSpecifically:\n\n*   User data is stored under `/users/{userId}` allowing path based ownership.\n*   Vendor data is stored under `/vendors/{vendorId}`, enabling vendor-specific data access controls.\n*   Events are now stored in a root `/events/{eventId}` collection. This makes querying for all events much simpler (e.g., for the public homepage) without requiring complex collection group queries. Each event document contains a `vendorId` field to maintain the relationship and for use in security rules.\n*   Tickets are stored under `/users/{userId}/tickets/{ticketId}`, providing strong ownership and simplifies access control.\n*   Admin users are managed via the `/roles_admin/{uid}` collection. The existence of a document at this path grants admin privileges.\n*   User notifications are stored under `/users/{userId}/notifications/{notificationId}` to ensure privacy and ownership.\n*   Wallets are stored at `/wallets/{userId}` to associate them directly with a user.\n*   Transactions are a subcollection of a wallet at `/wallets/{userId}/transactions/{transactionId}` for clear ownership.\n\nThe structure facilitates secure list operations (QAPs) by ensuring that collections contain data with similar access control requirements. For example, anyone can list events from the `/events` collection, but only an owner or admin can write to a specific event document. The admin role can list all vendors and all events."
   }
 }
+
+    
