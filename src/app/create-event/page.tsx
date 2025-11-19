@@ -197,7 +197,18 @@ export default function CreateEventPage() {
             
             <FormField control={form.control} name="isOnline" render={({ field }) => ( <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-card"> <div className="space-y-0.5"> <FormLabel>Online event</FormLabel> </div> <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl> </FormItem> )}/>
             {!isOnline && (
-                <FormField control={form.control} name="location" render={({ field }) => ( <FormItem> <FormLabel>Location</FormLabel> <FormControl> <div className="relative"> <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" /> <Input placeholder="Add a venue or address" {...field} className="pl-10" /> </div> </FormControl> <FormMessage /> </FormItem> )}/>
+                <FormField control={form.control} name="location" render={({ field }) => ( 
+                    <FormItem> 
+                        <FormLabel>Location</FormLabel> 
+                        <div className="relative">
+                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" /> 
+                            <FormControl>
+                                <Input placeholder="Add a venue or address" {...field} className="pl-10" />
+                            </FormControl>
+                        </div>
+                        <FormMessage /> 
+                    </FormItem> 
+                )}/>
             )}
             
             <FormField control={form.control} name="description" render={({ field }) => ( <FormItem> <FormLabel>Description</FormLabel> <FormControl><Textarea placeholder="Add a description..." {...field} className="min-h-32" /></FormControl> <FormMessage /> </FormItem> )}/>
