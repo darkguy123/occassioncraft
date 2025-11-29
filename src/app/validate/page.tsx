@@ -9,8 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle, XCircle, AlertTriangle, Loader2, CameraOff, Search } from 'lucide-react';
-import { useFirestore } from '@/firebase';
+import { CheckCircle, XCircle, AlertTriangle, Loader2, CameraOff, Search, UserPlus } from 'lucide-react';
+import { useFirestore, useUser } from '@/firebase';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import type { Event, UserTicket, User } from '@/lib/types';
 import { format } from 'date-fns';
@@ -38,6 +38,7 @@ type ScanResult = {
 
 function TicketValidator() {
     const { toast } = useToast();
+    const { user: scannerUser } = useUser();
     const firestore = useFirestore();
     const videoRef = useRef<HTMLVideoElement>(null);
     const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
@@ -45,6 +46,16 @@ function TicketValidator() {
     const [validationStatus, setValidationStatus] = useState<ValidationStatus>('idle');
     const [scannedData, setScannedData] = useState<string | null>(null);
     const [manualTicketId, setManualTicketId] = useState('');
+
+    const getScannerInvitationLink = () => {
+        if (!scannerUser) return;
+        const link = `${window.location.origin}/validate?scannerId=${scannerUser.uid}`;
+        navigator.clipboard.writeText(link);
+        toast({
+            title: "Invitation Link Copied!",
+            description: "Share this link with anyone you want to authorize as a ticket scanner."
+        });
+    }
 
     const validateTicketById = async (ticketId: string) => {
         setValidationStatus('loading');
@@ -57,7 +68,7 @@ function TicketValidator() {
         try {
             // Find the ticket in the central collection
             const ticketsRef = collection(firestore, 'tickets');
-            const q = query(ticketsRef, where("ticketId", "==", ticketId));
+            const q = query(ticketsRef, where("id", "==", ticketId));
             const querySnapshot = await getDocs(q);
 
             if (querySnapshot.empty) {
@@ -69,8 +80,7 @@ function TicketValidator() {
             const ticketSnap = querySnapshot.docs[0];
             const ticket = ticketSnap.data() as UserTicket;
             
-            // Now that we have the ticket, we have the userId and eventId
-            await processValidation(ticket.ticketId, ticket.eventId, ticket.userId);
+            await processValidation(ticket.id, ticket.eventId, ticket.userId);
 
         } catch (error: any) {
             console.error("Validation Error:", error);
@@ -82,7 +92,7 @@ function TicketValidator() {
     const processValidation = async (ticketId: string, eventId: string, userId: string) => {
         if (!firestore) return;
 
-        const ticketRef = doc(firestore, `users/${userId}/tickets`, ticketId);
+        const ticketRef = doc(firestore, `tickets`, ticketId);
         const eventRef = doc(firestore, 'events', eventId);
         const userRef = doc(firestore, 'users', userId);
 
@@ -112,6 +122,20 @@ function TicketValidator() {
         const ticket = ticketSnap.data() as UserTicket;
         const event = eventSnap.data() as Event;
         const user = userSnap.data() as User;
+        
+        // This is a simplified check. A real app would check if scannerUser.uid is in event.authorizedScanners
+        const searchParams = new URLSearchParams(window.location.search);
+        const scannerId = searchParams.get('scannerId');
+        if (scannerId && event.vendorId !== scannerId) {
+             setScanResult({ status: 'error', message: `Unauthorized scanner for event "${event.name}".` });
+             setValidationStatus('error');
+             return;
+        }
+        if (!scannerId && event.vendorId !== scannerUser?.uid) {
+            setScanResult({ status: 'error', message: `You are not authorized to scan tickets for this event.` });
+            setValidationStatus('error');
+            return;
+        }
 
         if (ticket.eventId !== eventId) {
             setScanResult({ status: 'error', message: `This ticket is not for this event. It is for "${event.name}".` });
@@ -119,22 +143,21 @@ function TicketValidator() {
             return;
         }
         
-        if (ticket.isUsed) {
-            setScanResult({ status: 'error', message: 'This ticket has already been used.' });
+        if ((ticket.scans || 0) >= (ticket.maxScans || 1)) {
+            setScanResult({ status: 'error', message: 'This ticket has reached its maximum scan limit.' });
             setValidationStatus('error');
             return;
         }
 
         // All checks passed, ticket is valid.
-        // Uncomment this line in a real scenario to mark the ticket as used.
-        // await updateDoc(ticketRef, { isUsed: true });
+        await updateDoc(ticketRef, { scans: (ticket.scans || 0) + 1 });
 
         setScanResult({
             status: 'success',
             message: 'Ticket is valid. Welcome!',
             details: {
                 eventName: event.name,
-                attendeeName: `${user.firstName} ${user.lastName}`,
+                attendeeName: ticket.attendeeName || `${user.firstName} ${user.lastName}`,
                 attendeeAvatarUrl: user.profileImageUrl,
                 purchaseDate: format(new Date(ticket.purchaseDate), "PPP"),
             }
@@ -282,7 +305,7 @@ function TicketValidator() {
                     <CardDescription>Point your camera at a ticket's QR code or enter the Ticket ID below to validate it for event entry.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="aspect-video w-full bg-slate-900/80 rounded-lg overflow-hidden relative mb-6">
+                    <div className="aspect-video w-full bg-slate-900/80 rounded-lg overflow-hidden relative mb-4">
                          <video ref={videoRef} className="w-full aspect-video rounded-md" autoPlay muted playsInline />
                         
                         {(hasCameraPermission === false || validationStatus === 'unsupported') && (
@@ -364,6 +387,14 @@ function TicketValidator() {
                                 </Button>
                             </div>
                         </form>
+                    </div>
+
+                    <div className="mt-6 pt-6 border-t">
+                        <h3 className="font-medium mb-2">Scanner Management</h3>
+                        <p className="text-sm text-muted-foreground mb-4">Authorize others to scan tickets for your events by sharing a unique link.</p>
+                        <Button variant="outline" onClick={getScannerInvitationLink} disabled={!scannerUser}>
+                            <UserPlus className="mr-2 h-4 w-4" /> Copy Scanner Invitation Link
+                        </Button>
                     </div>
                 </CardContent>
             </Card>

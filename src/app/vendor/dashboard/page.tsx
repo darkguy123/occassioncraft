@@ -4,7 +4,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "@/components/ui/table";
-import { BarChart2, Ticket, DollarSign, PlusCircle, QrCode, AlertTriangle, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { BarChart2, Ticket, DollarSign, PlusCircle, QrCode, AlertTriangle, MoreHorizontal, Edit, Trash2, Palette } from "lucide-react";
 import Link from "next/link";
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, deleteDocumentNonBlocking } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
@@ -52,12 +52,9 @@ export default function VendorDashboardPage() {
     const { data: tickets, isLoading: areTicketsLoading } = useCollection<UserTicket>(ticketsQuery);
 
     const totalRevenue = useMemo(() => {
-        if (!tickets || !vendorEvents) return 0;
-        return tickets.reduce((acc, ticket) => {
-            const event = vendorEvents.find(e => e.id === ticket.eventId);
-            return acc + (event?.price || 0);
-        }, 0);
-    }, [tickets, vendorEvents]);
+        if (!tickets) return 0;
+        return tickets.reduce((acc, ticket) => acc + (ticket?.price || 0), 0);
+    }, [tickets]);
 
 
     const isLoading = isUserLoading || isUserDataLoading || areEventsLoading || (vendorEventIds.length > 0 && areTicketsLoading);
@@ -98,7 +95,6 @@ export default function VendorDashboardPage() {
         )
     }
     
-    // This check is a placeholder for a more robust vendor status check (e.g. from a 'vendors' collection)
     const vendorStatus = 'approved'; 
 
     if (vendorStatus === 'pending') {
@@ -125,19 +121,19 @@ export default function VendorDashboardPage() {
       <div className="flex items-center justify-between mb-8">
         <div className="space-y-2">
             <h1 className="text-4xl font-bold font-headline">Vendor Dashboard</h1>
-            <p className="text-muted-foreground">Manage your events, track sales, and engage with your attendees.</p>
+            <p className="text-muted-foreground">Manage your events, craft tickets, and track sales.</p>
         </div>
         <div className="flex gap-2">
             <Button asChild variant="outline">
-                <Link href="/validate">
-                    <QrCode className="mr-2 h-4 w-4" />
-                    Scan Ticket
-                </Link>
-            </Button>
-            <Button asChild>
                 <Link href="/create-event">
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Create Event
+                </Link>
+            </Button>
+            <Button asChild>
+                <Link href="/create-ticket">
+                    <Palette className="mr-2 h-4 w-4" />
+                    Craft Ticket
                 </Link>
             </Button>
         </div>
@@ -151,12 +147,12 @@ export default function VendorDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₦{totalRevenue.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">From all events</p>
+            <p className="text-xs text-muted-foreground">From all ticket sales</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tickets Sold</CardTitle>
+            <CardTitle className="text-sm font-medium">Tickets Crafted</CardTitle>
             <Ticket className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -179,7 +175,7 @@ export default function VendorDashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle>My Events</CardTitle>
-          <CardDescription>A list of your active and past events.</CardDescription>
+          <CardDescription>A list of your active and past events. Create tickets and link them to these events.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -187,14 +183,14 @@ export default function VendorDashboardPage() {
               <TableRow>
                 <TableHead>Event</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Price</TableHead>
+                <TableHead>Date</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {areEventsLoading && (
                 <TableRow>
-                    <TableCell colSpan={5}><Skeleton className="h-20" /></TableCell>
+                    <TableCell colSpan={4}><Skeleton className="h-20" /></TableCell>
                 </TableRow>
               )}
               {!areEventsLoading && vendorEvents && vendorEvents.length > 0 ? (
@@ -202,7 +198,7 @@ export default function VendorDashboardPage() {
                   <TableRow key={event.id}>
                     <TableCell className="font-medium">{event.name}</TableCell>
                     <TableCell><Badge variant="secondary">{event.status || 'Published'}</Badge></TableCell>
-                    <TableCell>₦{event.price.toFixed(2)}</TableCell>
+                    <TableCell>{new Date(event.date).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">
                        <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -229,7 +225,7 @@ export default function VendorDashboardPage() {
               ) : (
                  !areEventsLoading && (
                     <TableRow>
-                        <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
+                        <TableCell colSpan={4} className="py-12 text-center text-muted-foreground">
                         You haven't created any events yet.
                         </TableCell>
                     </TableRow>
@@ -242,5 +238,3 @@ export default function VendorDashboardPage() {
     </div>
   );
 }
-
-    
