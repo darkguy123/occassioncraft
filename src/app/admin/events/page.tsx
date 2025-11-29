@@ -55,7 +55,7 @@ export default function AdminEventsPage() {
       <div className="flex items-center justify-between">
         <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tight">Events</h1>
-            <p className="text-muted-foreground">Manage all events on the platform.</p>
+            <p className="text-muted-foreground">Manage all event shells on the platform.</p>
         </div>
         <Button asChild>
           <Link href="/create-event">
@@ -69,7 +69,7 @@ export default function AdminEventsPage() {
         <CardHeader>
           <CardTitle>All Events</CardTitle>
           <CardDescription>
-            A list of all events including their status and details.
+            A list of all events. Tickets are crafted and linked to these events separately.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -79,7 +79,7 @@ export default function AdminEventsPage() {
                 <TableHead>Event</TableHead>
                 <TableHead>Organizer</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Price</TableHead>
+                <TableHead>Date</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -87,9 +87,9 @@ export default function AdminEventsPage() {
               {isLoading && Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                     <TableCell><Skeleton className="h-5 w-32"/></TableCell>
-                    <TableCell><Skeleton className="h-5 w-40"/></TableCell>
+                    <TableCell><Skeleton className="h-5 w-24"/></TableCell>
                     <TableCell><Skeleton className="h-5 w-20"/></TableCell>
-                    <TableCell><Skeleton className="h-5 w-16"/></TableCell>
+                    <TableCell><Skeleton className="h-5 w-24"/></TableCell>
                     <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto"/></TableCell>
                 </TableRow>
               ))}
@@ -99,7 +99,7 @@ export default function AdminEventsPage() {
                     <TableCell className="font-medium">{event.name}</TableCell>
                     <TableCell>{event.organizer}</TableCell>
                     <TableCell><Badge variant="secondary">{event.status || 'Published'}</Badge></TableCell>
-                    <TableCell>₦{event.price.toFixed(2)}</TableCell>
+                    <TableCell>{new Date(event.date).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">
                        <DropdownMenu>
                             <DropdownMenuTrigger asChild>

@@ -24,14 +24,15 @@ import { Skeleton } from "@/components/ui/skeleton"
 import Image from "next/image"
 
 const eventFormSchema = z.object({
-  name: z.string().min(3, "Event name must be at least 3 characters.").default(""),
+  name: z.string().min(3, "Event name must be at least 3 characters."),
   date: z.date({ required_error: "An event date is required." }),
   startTime: z.string().min(1, "Start time is required."),
-  endTime: z.string().optional().default(""),
+  endTime: z.string().optional(),
   isOnline: z.boolean().default(false),
-  location: z.string().optional().default(""),
-  description: z.string().optional().default(""),
+  location: z.string().min(1, "Location is required."),
+  description: z.string().optional(),
   bannerUrl: z.string().optional(),
+  isPrivate: z.boolean().default(false),
 });
 
 export type EventFormValues = z.infer<typeof eventFormSchema>;
@@ -60,6 +61,7 @@ export default function CreateEventPage() {
       isOnline: false,
       location: "",
       description: "",
+      isPrivate: false,
     },
     mode: "onChange",
   });
@@ -294,6 +296,22 @@ export default function CreateEventPage() {
                 )}
               />
             )}
+            
+            <FormField
+              control={form.control}
+              name="isPrivate"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-card">
+                  <div className="space-y-0.5">
+                    <FormLabel>Private Event</FormLabel>
+                    <p className="text-xs text-muted-foreground">If checked, this event will not be listed publicly.</p>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

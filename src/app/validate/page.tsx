@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle, XCircle, AlertTriangle, Loader2, CameraOff, Search, UserPlus } from 'lucide-react';
 import { useFirestore, useUser } from '@/firebase';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import type { Event, UserTicket, User } from '@/lib/types';
+import type { Event, Ticket, User } from '@/lib/types';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
@@ -66,21 +66,18 @@ function TicketValidator() {
         }
 
         try {
-            // Find the ticket in the central collection
-            const ticketsRef = collection(firestore, 'tickets');
-            const q = query(ticketsRef, where("id", "==", ticketId));
-            const querySnapshot = await getDocs(q);
+            const ticketRef = doc(firestore, 'tickets', ticketId);
+            const ticketSnap = await getDoc(ticketRef);
 
-            if (querySnapshot.empty) {
+            if (!ticketSnap.exists()) {
                 setScanResult({ status: 'error', message: 'Ticket ID not found.' });
                 setValidationStatus('error');
                 return;
             }
 
-            const ticketSnap = querySnapshot.docs[0];
-            const ticket = ticketSnap.data() as UserTicket;
+            const ticket = ticketSnap.data() as Ticket;
             
-            await processValidation(ticket.id, ticket.eventId, ticket.userId);
+            await processValidation(ticketId, ticket.eventId, ticket.userId);
 
         } catch (error: any) {
             console.error("Validation Error:", error);
@@ -103,36 +100,34 @@ function TicketValidator() {
         ]);
 
         if (!ticketSnap.exists()) {
-            setScanResult({ status: 'error', message: 'Ticket not found for this user.' });
+            setScanResult({ status: 'error', message: 'Ticket not found.' });
             setValidationStatus('error');
             return;
         }
 
         if (!eventSnap.exists()) {
-            setScanResult({ status: 'error', message: 'Event not found.' });
+            setScanResult({ status: 'error', message: 'Event associated with this ticket not found.' });
             setValidationStatus('error');
             return;
         }
          if (!userSnap.exists()) {
-            setScanResult({ status: 'error', message: 'User not found.' });
+            setScanResult({ status: 'error', message: 'User associated with this ticket not found.' });
             setValidationStatus('error');
             return;
         }
 
-        const ticket = ticketSnap.data() as UserTicket;
+        const ticket = ticketSnap.data() as Ticket;
         const event = eventSnap.data() as Event;
         const user = userSnap.data() as User;
         
-        // This is a simplified check. A real app would check if scannerUser.uid is in event.authorizedScanners
+        // Check if the scanner is authorized
         const searchParams = new URLSearchParams(window.location.search);
-        const scannerId = searchParams.get('scannerId');
-        if (scannerId && event.vendorId !== scannerId) {
-             setScanResult({ status: 'error', message: `Unauthorized scanner for event "${event.name}".` });
-             setValidationStatus('error');
-             return;
-        }
-        if (!scannerId && event.vendorId !== scannerUser?.uid) {
-            setScanResult({ status: 'error', message: `You are not authorized to scan tickets for this event.` });
+        const scannerIdFromUrl = searchParams.get('scannerId');
+        const authorizedScanners = [event.vendorId, ...(event.authorizedScanners || [])];
+        const currentScannerId = scannerIdFromUrl || scannerUser?.uid;
+
+        if (!currentScannerId || !authorizedScanners.includes(currentScannerId)) {
+            setScanResult({ status: 'error', message: `You are not an authorized scanner for the event "${event.name}".` });
             setValidationStatus('error');
             return;
         }
@@ -143,8 +138,8 @@ function TicketValidator() {
             return;
         }
         
-        if ((ticket.scans || 0) >= (ticket.maxScans || 1)) {
-            setScanResult({ status: 'error', message: 'This ticket has reached its maximum scan limit.' });
+        if (ticket.scans >= ticket.maxScans) {
+            setScanResult({ status: 'error', message: `This ticket has already been scanned ${ticket.scans} time(s) (max: ${ticket.maxScans}).` });
             setValidationStatus('error');
             return;
         }

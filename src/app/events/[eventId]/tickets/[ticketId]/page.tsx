@@ -4,11 +4,11 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import type { Event, UserTicket } from '@/lib/types';
+import type { Event, Ticket, UserTicket } from '@/lib/types';
 import { useParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
-import { Ticket, MapPin, Calendar, User as UserIcon, AlertTriangle, Download, FileImage, FileText } from 'lucide-react';
+import { Ticket as TicketIcon, MapPin, Calendar, User as UserIcon, AlertTriangle, Download, FileImage, FileText } from 'lucide-react';
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -20,7 +20,7 @@ import jsPDF from 'jspdf';
 
 const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Flogo.png?alt=media&token=1d01f9c3-5c82-4541-b819-25f0a7398a61';
 
-const TicketDesign = ({ eventData, ticketData, qrCodeUrl, user }: { eventData: Event, ticketData: UserTicket, qrCodeUrl: string, user: any }) => {
+const TicketDesign = ({ eventData, ticketData, qrCodeUrl, user }: { eventData: Event, ticketData: Ticket, qrCodeUrl: string, user: any }) => {
     const formattedDate = eventData.date ? format(new Date(eventData.date), "EEEE, MMM d, yyyy") : 'Date';
     const formattedTime = eventData.startTime || 'Time';
     const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
@@ -34,25 +34,25 @@ const TicketDesign = ({ eventData, ticketData, qrCodeUrl, user }: { eventData: E
         <Card id="ticket-to-download" className={cn(
             "w-full max-w-md rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br relative transition-all duration-300 from-slate-50 to-slate-200 dark:from-slate-800 dark:to-slate-900"
         )}>
-            {eventData?.ticketImageUrl && (
-                <Image src={eventData.ticketImageUrl} alt="Ticket background" fill className="object-cover blur-md opacity-50" />
+            {ticketData?.ticketImageUrl && (
+                <Image src={ticketData.ticketImageUrl} alt="Ticket background" fill className="object-cover blur-md opacity-50" />
             )}
 
             <div className="p-1 backdrop-blur-sm bg-white/10 rounded-2xl relative z-10">
-                {eventData?.ticketBrandingImageUrl && (
+                {ticketData?.ticketBrandingImageUrl && (
                     <div className="h-24 relative rounded-t-xl overflow-hidden mb-2">
-                        <Image src={eventData.ticketBrandingImageUrl} alt="Branding" fill className="object-cover" />
+                        <Image src={ticketData.ticketBrandingImageUrl} alt="Branding" fill className="object-cover" />
                     </div>
                 )}
 
-                <div className={cn("p-6 md:p-8", eventData?.ticketBrandingImageUrl && "pt-2")}>
+                <div className={cn("p-6 md:p-8", ticketData?.ticketBrandingImageUrl && "pt-2")}>
 
                     <div className="flex justify-between items-start">
                         <div className="space-y-1">
                             <p className="text-xs uppercase tracking-widest text-black/60 dark:text-white/60">Event Ticket</p>
                             <h3 className="font-headline text-3xl font-bold leading-tight text-black dark:text-white">{eventData.name}</h3>
                         </div>
-                        <Ticket className="h-8 w-8 text-black/60 dark:text-white/60" />
+                        <TicketIcon className="h-8 w-8 text-black/60 dark:text-white/60" />
                     </div>
 
                     <div className="mt-8 space-y-4 text-sm">
@@ -66,8 +66,14 @@ const TicketDesign = ({ eventData, ticketData, qrCodeUrl, user }: { eventData: E
                         </div>
                         <div className="flex items-center gap-3">
                             <UserIcon className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
-                            <span className="truncate font-medium text-black dark:text-white">{user?.displayName || 'Ticket Holder'}</span>
+                            <span className="truncate font-medium text-black dark:text-white">{ticketData.attendeeName || user?.displayName || 'Ticket Holder'}</span>
                         </div>
+                         {ticketData.class && (
+                            <div className="flex items-center gap-3">
+                                <TicketIcon className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
+                                <span className="truncate font-medium text-black dark:text-white">{ticketData.class}</span>
+                            </div>
+                         )}
                     </div>
 
                     <div className="mt-8 text-center flex flex-col items-center justify-center">
@@ -89,7 +95,7 @@ const TicketDesign = ({ eventData, ticketData, qrCodeUrl, user }: { eventData: E
 
                     <div className="mt-8 border-t-2 border-dashed border-black/20 dark:border-white/20 pt-4 flex items-center justify-between gap-4 text-xs">
                         <Image src={logoUrl} alt="Logo" width={80} height={20} className="h-5 w-auto" />
-                        <p className="text-black/60 dark:text-white/60">ID: {ticketData.ticketId.substring(0, 13)}</p>
+                        <p className="text-black/60 dark:text-white/60">ID: {ticketData.id.substring(0, 13)}</p>
                     </div>
                 </div>
             </div>
@@ -108,25 +114,26 @@ export default function TicketDetailsPage() {
     const ticketRef = useRef<HTMLDivElement>(null);
 
     const ticketDocRef = useMemoFirebase(() => {
-        if (!user || !ticketId) return null;
-        return doc(firestore, `users/${user.uid}/tickets`, ticketId as string);
-    }, [firestore, user, ticketId]);
+        if (!firestore || !ticketId) return null;
+        // The definitive ticket data lives in the root /tickets collection
+        return doc(firestore, `tickets`, ticketId as string);
+    }, [firestore, ticketId]);
 
     const eventDocRef = useMemoFirebase(() => {
         if (!firestore || !eventId) return null;
         return doc(firestore, 'events', eventId as string);
     }, [firestore, eventId]);
 
-    const { data: ticketData, isLoading: isTicketLoading } = useDoc<UserTicket>(ticketDocRef);
+    const { data: ticketData, isLoading: isTicketLoading } = useDoc<Ticket>(ticketDocRef);
     const { data: eventData, isLoading: isEventLoading } = useDoc<Event>(eventDocRef);
 
     const isLoading = isTicketLoading || isEventLoading;
 
     useEffect(() => {
-        if (ticketId && eventId && user) {
+        if (ticketId && eventId && ticketData?.userId) {
             const generateQrCode = async () => {
                 try {
-                    const validationUrl = `${window.location.origin}/validate?ticketId=${ticketId}&eventId=${eventId}&userId=${user.uid}`;
+                    const validationUrl = `${window.location.origin}/validate?ticketId=${ticketId}&eventId=${eventId}&userId=${ticketData.userId}`;
                     const url = await QRCode.toDataURL(validationUrl, {
                         errorCorrectionLevel: 'H',
                         margin: 1,
@@ -140,7 +147,7 @@ export default function TicketDetailsPage() {
             };
             generateQrCode();
         }
-    }, [ticketId, eventId, user]);
+    }, [ticketId, eventId, ticketData]);
 
     const handleDownload = useCallback((format: 'jpg' | 'pdf') => {
         const node = document.getElementById('ticket-to-download');
@@ -200,6 +207,20 @@ export default function TicketDetailsPage() {
                     <h2 className="text-2xl font-bold text-destructive-foreground">Ticket Not Found</h2>
                     <p className="text-destructive-foreground/80 mt-2">
                         We couldn't find the ticket you're looking for. It may have been moved or deleted.
+                    </p>
+                 </Card>
+            </div>
+        )
+    }
+    
+    if (ticketData.userId !== user?.uid) {
+         return (
+            <div className="container mx-auto max-w-lg py-12 px-4">
+                 <Card className="p-8 text-center bg-destructive/10 border-destructive">
+                    <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+                    <h2 className="text-2xl font-bold text-destructive-foreground">Access Denied</h2>
+                    <p className="text-destructive-foreground/80 mt-2">
+                        You do not have permission to view this ticket.
                     </p>
                  </Card>
             </div>

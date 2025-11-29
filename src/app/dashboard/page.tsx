@@ -15,29 +15,37 @@ export default function UserDashboardPage() {
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
 
-    const ticketsQuery = useMemoFirebase(() => {
+    const userTicketsQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
+        // Query the subcollection that just stores the ticket IDs for the user
         return query(collection(firestore, `users/${user.uid}/tickets`));
     }, [user, firestore]);
 
-    const { data: tickets, isLoading: ticketsLoading } = useCollection<UserTicket>(ticketsQuery);
+    const { data: userTicketPointers, isLoading: ticketsLoading } = useCollection<UserTicket>(userTicketsQuery);
 
-    const eventIds = useMemo(() => tickets?.map(t => t.eventId) || [], [tickets]);
+    const eventIds = useMemo(() => {
+        if (!userTicketPointers) return [];
+        // Get unique event IDs from the user's tickets
+        const ids = userTicketPointers.map(t => t.eventId);
+        return [...new Set(ids)];
+    }, [userTicketPointers]);
     
     const eventsQuery = useMemoFirebase(() => {
         if (!firestore || eventIds.length === 0) return null;
+        // Fetch all the events the user has tickets for in a single query
         return query(collection(firestore, 'events'), where('__name__', 'in', eventIds));
     }, [firestore, eventIds]);
 
     const { data: events, isLoading: eventsLoading } = useCollection<Event>(eventsQuery);
     
     const myEvents = useMemo(() => {
-        if (!tickets || !events) return [];
-        return tickets.map(ticket => {
+        if (!userTicketPointers || !events) return [];
+        // Map the ticket pointers to their corresponding event data
+        return userTicketPointers.map(ticket => {
             const event = events.find(e => e.id === ticket.eventId);
             return { ...ticket, event };
         }).filter(item => item.event); // Filter out items where event was not found
-    }, [tickets, events]);
+    }, [userTicketPointers, events]);
     
     const isLoading = isUserLoading || ticketsLoading || (eventIds.length > 0 && eventsLoading);
 

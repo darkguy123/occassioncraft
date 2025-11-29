@@ -3,9 +3,9 @@
 
 import { useMemo } from 'react';
 import Image from 'next/image';
-import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
-import type { Event, Notification, UserTicket } from '@/lib/types';
+import type { Event, Notification, UserTicket, Ticket } from '@/lib/types';
 import { useParams, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
@@ -31,18 +31,21 @@ export default function EventDetailsPage() {
 
     const { data: eventData, isLoading: isEventLoading } = useDoc<Event>(eventDocRef);
     
-    const isFreeEvent = eventData?.price === 0;
+    // In this new model, we assume a single price for simplicity, or that it's a free event.
+    // The complex pricing is handled during ticket crafting. We will assume a price of 0 for public ticket claims.
+    const ticketPrice = 0;
+    const isFreeEvent = ticketPrice === 0;
 
     const paystackConfig = useMemo(() => {
         if (!eventData || !user?.email || isFreeEvent) return null;
         return {
             reference: uuidv4(),
             email: user.email,
-            amount: eventData.price * 100, // Amount in kobo
+            amount: ticketPrice * 100, // Amount in kobo
             currency: 'NGN',
             publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
         };
-    }, [eventData, user?.email, isFreeEvent]);
+    }, [eventData, user?.email, isFreeEvent, ticketPrice]);
 
     const initializePayment = usePaystackPayment(paystackConfig!);
 
@@ -59,13 +62,28 @@ export default function EventDetailsPage() {
         const userTicketRef = doc(firestore, `users/${user.uid}/tickets`, ticketId);
         const centralTicketRef = doc(firestore, 'tickets', ticketId);
         
-        const ticketData: UserTicket = {
+        // This is a simplified ticket. The full details would have been set during crafting.
+        // For a public claim, we create a basic ticket record.
+        const ticketData: Partial<Ticket> = {
+            id: ticketId,
+            eventId: eventData.id,
+            userId: user.uid,
+            vendorId: eventData.vendorId,
+            purchaseDate: new Date().toISOString(),
+            price: ticketPrice,
+            package: 'Regular', // Assume a default package for public claims
+            scans: 0,
+            maxScans: 1, // Default to 1 scan
+            isPrivate: false,
+        };
+
+        const userTicketPointer: Omit<UserTicket, 'event'> = {
             ticketId: ticketId,
             eventId: eventData.id,
             purchaseDate: new Date().toISOString(),
             userId: user.uid,
-            vendorId: eventData.vendorId, // Denormalize vendorId for rules
-        };
+            vendorId: eventData.vendorId,
+        }
 
         const notificationsCollectionRef = collection(firestore, `users/${user.uid}/notifications`);
         const notificationData: Omit<Notification, 'id'> = {
@@ -77,10 +95,9 @@ export default function EventDetailsPage() {
             link: `/events/${eventData.id}/tickets/${ticketId}`,
         }
 
-        // Non-blocking writes to Firestore for both locations
-        setDocumentNonBlocking(userTicketRef, ticketData);
+        setDocumentNonBlocking(userTicketRef, userTicketPointer);
         setDocumentNonBlocking(centralTicketRef, ticketData);
-        addDocumentNonBlocking(notificationsCollectionRef, notificationData);
+        setDocumentNonBlocking(notificationsCollectionRef, notificationData, { merge: true });
 
 
         toast({
@@ -88,7 +105,6 @@ export default function EventDetailsPage() {
             description: 'Your ticket has been secured.',
         });
 
-        // Redirect to the newly created ticket page
         router.push(`/events/${eventData.id}/tickets/${ticketId}`);
     }
 
@@ -104,7 +120,12 @@ export default function EventDetailsPage() {
         });
     };
 
-    const handleBuyTicket = () => {
+    const handleGetTicket = () => {
+        if (!user) {
+            router.push('/login');
+            return;
+        }
+
         if (isFreeEvent) {
             const ticketId = uuidv4();
             createTicketAndNotify(ticketId);
@@ -119,7 +140,7 @@ export default function EventDetailsPage() {
             });
             return;
         }
-        if (!process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY.startsWith('pk_test_xxxx')) {
+        if (!process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY.startsWith('pk_test_')) {
             toast({
                 variant: 'destructive',
                 title: 'Setup Required',
@@ -207,18 +228,12 @@ export default function EventDetailsPage() {
                                 </div>
                             </div>
                             <div className="my-6 text-center">
-                                {isFreeEvent ? (
-                                    <span className="font-bold text-4xl">Free</span>
-                                ) : (
-                                    <>
-                                        <span className="font-bold text-4xl">₦{eventData.price.toFixed(2)}</span>
-                                        <span className="text-muted-foreground">/ticket</span>
-                                    </>
-                                )}
+                                <span className="font-bold text-4xl">Free</span>
+                                <span className="text-muted-foreground">/ticket</span>
                             </div>
-                             <Button size="lg" className="w-full font-bold text-lg" onClick={handleBuyTicket}>
+                             <Button size="lg" className="w-full font-bold text-lg" onClick={handleGetTicket}>
                                 <TicketIcon className="mr-2 h-5 w-5" />
-                                {isFreeEvent ? 'Book Now' : 'Buy Ticket'}
+                                Get Ticket
                             </Button>
                         </Card>
                     </div>

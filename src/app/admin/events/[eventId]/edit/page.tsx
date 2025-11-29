@@ -15,7 +15,7 @@ import { format } from "date-fns"
 import { CalendarIcon, ArrowLeft, Plus } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
 import Image from "next/image"
 import type { Event } from "@/lib/types";
@@ -25,15 +25,14 @@ import { doc } from 'firebase/firestore';
 
 
 const eventFormSchema = z.object({
-  name: z.string().min(3, "Event name must be at least 3 characters.").default(""),
+  name: z.string().min(3, "Event name must be at least 3 characters."),
   date: z.date({ required_error: "An event date is required." }),
   startTime: z.string().min(1, "Start time is required."),
   endTime: z.string().optional(),
   isOnline: z.boolean().default(false),
-  location: z.string().optional().default(""),
-  description: z.string().optional().default(""),
+  location: z.string().min(1, "Location is required"),
+  description: z.string().optional(),
   bannerUrl: z.string().optional(),
-  price: z.coerce.number().min(0, "Price must be non-negative.").default(0),
 });
 
 export type EventFormValues = z.infer<typeof eventFormSchema>;
@@ -66,7 +65,6 @@ export default function AdminEditEventPage({ params }: { params: { eventId: stri
         location: eventData.location,
         description: eventData.description,
         bannerUrl: eventData.bannerUrl,
-        price: eventData.price,
       });
     }
   }, [eventData, form]);
@@ -238,18 +236,6 @@ export default function AdminEditEventPage({ params }: { params: { eventId: stri
                 <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl><Textarea placeholder="Add a description..." {...field} className="min-h-32" /></FormControl>
-                    <FormMessage />
-                </FormItem>
-                )}
-            />
-            
-            <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Price</FormLabel>
-                    <FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl>
                     <FormMessage />
                 </FormItem>
                 )}

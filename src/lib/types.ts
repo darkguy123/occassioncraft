@@ -25,8 +25,8 @@ export type Event = {
   vendorId: string;
   organizer?: string;
   status?: 'published' | 'draft';
-  isPrivate?: boolean; // New field
-  authorizedScanners?: string[]; // New field for scanner user IDs
+  isPrivate?: boolean; 
+  authorizedScanners?: string[]; 
 };
 
 export type Ticket = {
@@ -38,25 +38,26 @@ export type Ticket = {
   price: number;
   isPaid: boolean;
   
-  // Design & Type
+  // Design & Type from new ticket crafting flow
   package: 'Regular' | 'Premium Individual' | 'Premium General' | 'Tiered';
   tier?: 'Tier 1' | 'Tier 2' | 'Tier 3' | 'Tier 4' | 'Tier 5';
-  templateId: string; // Reference to a design template
+  templateId?: string; // Reference to a design template
+  ticketImageUrl?: string; // Background image for the ticket
+  ticketBrandingImageUrl?: string; // Branding image (e.g., logo on top)
   guestPhotoUrl?: string; // For Premium Individual
   class?: 'Regular' | 'VIP' | 'VVIP'; // For Premium Individual
 
   // Attendee Info
   attendeeName?: string; // For Premium Individual & Tier 4/5
   
-  // Validation
+  // Validation & Sharing
   isPrivate: boolean; // For Tier 4/5
   scans: number; // Number of times ticket has been scanned
   maxScans: number; // How many times it CAN be scanned
 };
 
 
-// This is the old UserTicket, which is now simplified into the main Ticket type
-// It is kept for reference but can be removed later.
+// This represents a ticket in a user's collection
 export type UserTicket = {
   ticketId: string;
   eventId: string;
@@ -65,8 +66,7 @@ export type UserTicket = {
   event?: Event; // Denormalized event data
   isUsed?: boolean;
   vendorId: string; // Denormalized for security rules
-  tier?: string; // For tiered events
-  attendeeName?: string; // For premium/tiered events
+  attendeeName?: string;
 };
 
 export type Vendor = {

@@ -5,7 +5,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Event",
       "type": "object",
-      "description": "Represents an event shell created by a vendor. Details like pricing and design are on the Ticket entity.",
+      "description": "Represents an event shell created by a vendor. All ticket and pricing logic is handled by the Ticket entity.",
       "properties": {
         "id": { "type": "string", "description": "Unique identifier for the event." },
         "vendorId": { "type": "string", "description": "ID of the vendor who created the event." },
@@ -24,18 +24,19 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Ticket",
       "type": "object",
-      "description": "Represents a single designed ticket, linked to an event.",
+      "description": "Represents a single crafted ticket, linked to an event, with all its design and validation rules.",
       "properties": {
         "id": { "type": "string", "description": "Unique identifier for the ticket." },
         "eventId": { "type": "string", "description": "ID of the event this ticket belongs to." },
         "vendorId": { "type": "string", "description": "ID of the vendor for authorization." },
-        "userId": { "type": "string", "description": "ID of the user who owns the ticket." },
+        "userId": { "type": "string", "description": "ID of the user who owns the ticket (can be assigned later)." },
         "purchaseDate": { "type": "string", "format": "date-time" },
-        "price": { "type": "number", "description": "Price paid for the ticket." },
-        "isPaid": { "type": "boolean" },
+        "price": { "type": "number", "description": "Price paid by the end-user for the ticket (can be 0 for free)." },
         "package": { "type": "string", "enum": ["Regular", "Premium Individual", "Premium General", "Tiered"] },
         "tier": { "type": "string", "enum": ["Tier 1", "Tier 2", "Tier 3", "Tier 4", "Tier 5"] },
         "templateId": { "type": "string" },
+        "ticketImageUrl": { "type": "string" },
+        "ticketBrandingImageUrl": { "type": "string" },
         "guestPhotoUrl": { "type": "string" },
         "class": { "type": "string", "enum": ["Regular", "VIP", "VVIP"] },
         "attendeeName": { "type": "string" },
@@ -43,7 +44,21 @@
         "scans": { "type": "number", "description": "How many times the ticket has been scanned." },
         "maxScans": { "type": "number", "description": "Maximum number of allowed scans." }
       },
-      "required": ["id", "eventId", "vendorId", "userId", "purchaseDate", "price", "package", "scans", "maxScans"]
+      "required": ["id", "eventId", "vendorId", "purchaseDate", "package", "scans", "maxScans"]
+    },
+    "UserTicket": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserTicket",
+      "type": "object",
+      "description": "A denormalized reference to a Ticket, stored under a user's collection for easy lookup.",
+      "properties": {
+          "ticketId": { "type": "string" },
+          "eventId": { "type": "string" },
+          "purchaseDate": { "type": "string", "format": "date-time" },
+          "userId": { "type": "string" },
+          "vendorId": { "type": "string" }
+      },
+      "required": ["ticketId", "eventId", "userId", "vendorId"]
     },
     "Vendor": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -51,10 +66,7 @@
       "type": "object",
       "description": "Represents a vendor who creates events and tickets.",
       "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "paystackRecipientId": { "type": "string" }
+        "id": { "type": "string" }, "name": { "type": "string" }, "email": { "type": "string", "format": "email" }
       },
       "required": ["id", "name", "email"]
     },
@@ -62,13 +74,8 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user who can own tickets and attend events.",
       "properties": {
-        "id": { "type": "string" },
-        "firstName": { "type": "string" },
-        "lastName": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "roles": { "type": "array", "items": { "type": "string", "enum": ["user", "vendor", "admin"] } }
+        "id": { "type": "string" }, "firstName": { "type": "string" }, "lastName": { "type": "string" }, "email": { "type": "string", "format": "email" }, "roles": { "type": "array", "items": { "type": "string", "enum": ["user", "vendor", "admin"] } }
       },
       "required": ["id", "firstName", "lastName", "email", "roles"]
     },
@@ -76,51 +83,14 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Admin",
       "type": "object",
-      "description": "Represents an administrator user.",
-      "properties": {
-        "id": { "type": "string" }, "username": { "type": "string" }, "email": { "type": "string", "format": "email" }
-      },
+      "properties": { "id": { "type": "string" }, "username": { "type": "string" }, "email": { "type": "string", "format": "email" } },
       "required": ["id", "username", "email"]
-    },
-    "TicketTemplate": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "TicketTemplate",
-      "type": "object",
-      "description": "Represents a design template for tickets.",
-      "properties": {
-        "id": { "type": "string" }, "name": { "type": "string" }, "design": { "type": "string", "description": "JSON for design elements." }
-      },
-      "required": ["id", "name", "design"]
     },
     "Notification": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Notification",
-      "type": "object",
-      "description": "A user notification.",
-      "properties": {
-        "id": { "type": "string" }, "userId": { "type": "string" }, "title": { "type": "string" }, "description": { "type": "string" }, "createdAt": { "type": "string", "format": "date-time" }, "read": { "type": "boolean" }, "link": { "type": "string" }
-      },
+      "properties": { "id": { "type": "string" }, "userId": { "type": "string" }, "title": { "type": "string" }, "description": { "type": "string" }, "createdAt": { "type": "string", "format": "date-time" }, "read": { "type": "boolean" }, "link": { "type": "string" } },
       "required": ["id", "userId", "title", "description", "createdAt", "read"]
-    },
-    "Wallet": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Wallet",
-      "type": "object",
-      "description": "A user's wallet.",
-      "properties": {
-        "id": { "type": "string" }, "balance": { "type": "number" }, "currency": { "type": "string", "default": "NGN" }
-      },
-      "required": ["id", "balance"]
-    },
-    "Transaction": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Transaction",
-      "type": "object",
-      "description": "A wallet transaction.",
-      "properties": {
-        "id": { "type": "string" }, "walletId": { "type": "string" }, "amount": { "type": "number" }, "type": { "type": "string", "enum": ["ticket-sale", "payout", "refund", "adjustment"] }, "date": { "type": "string", "format": "date-time" }, "description": { "type": "string" }, "relatedEntityId": { "type": "string" }
-      },
-      "required": ["id", "walletId", "amount", "type", "date", "description"]
     }
   },
   "auth": { "providers": ["password", "anonymous"] },
@@ -130,12 +100,10 @@
       { "path": "/vendors/{vendorId}", "definition": { "entityName": "Vendor", "schema": { "$ref": "#/backend/entities/Vendor" } } },
       { "path": "/events/{eventId}", "definition": { "entityName": "Event", "schema": { "$ref": "#/backend/entities/Event" } } },
       { "path": "/tickets/{ticketId}", "definition": { "entityName": "Ticket", "schema": { "$ref": "#/backend/entities/Ticket" } } },
-      { "path": "/ticket_templates/{templateId}", "definition": { "entityName": "TicketTemplate", "schema": { "$ref": "#/backend/entities/TicketTemplate" } } },
+      { "path": "/users/{userId}/tickets/{ticketId}", "definition": { "entityName": "UserTicket", "schema": { "$ref": "#/backend/entities/UserTicket" }, "description": "A subcollection for efficiently querying a user's tickets." } },
       { "path": "/roles_admin/{userId}", "definition": { "entityName": "Admin", "schema": { "$ref": "#/backend/entities/Admin" } } },
-      { "path": "/users/{userId}/notifications/{notificationId}", "definition": { "entityName": "Notification", "schema": { "$ref": "#/backend/entities/Notification" } } },
-      { "path": "/wallets/{userId}", "definition": { "entityName": "Wallet", "schema": { "$ref": "#/backend/entities/Wallet" } } },
-      { "path": "/wallets/{userId}/transactions/{transactionId}", "definition": { "entityName": "Transaction", "schema": { "$ref": "#/backend/entities/Transaction" } } }
+      { "path": "/users/{userId}/notifications/{notificationId}", "definition": { "entityName": "Notification", "schema": { "$ref": "#/backend/entities/Notification" } } }
     ],
-    "reasoning": "The data model is now ticket-centric. Events are simple shells. Tickets are now in a root collection `/tickets/{ticketId}` for easier querying by scanners and contain all design, pricing, and ownership info. This structure supports the new ticket crafting focus."
+    "reasoning": "The data model is now ticket-centric. Events are simple shells. A new root collection `/tickets/{ticketId}` holds all crafted ticket details, including design, pricing package, and validation rules. The `/users/{userId}/tickets` subcollection is a lightweight pointer to the main tickets for fast user-specific lookups."
   }
 }
