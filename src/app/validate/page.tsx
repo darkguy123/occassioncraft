@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle, XCircle, AlertTriangle, Loader2, CameraOff, Search, UserPlus } from 'lucide-react';
 import { useFirestore, useUser } from '@/firebase';
-import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, query, where, getDocs, increment } from 'firebase/firestore';
 import type { Event, Ticket, User } from '@/lib/types';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -145,7 +145,7 @@ function TicketValidator() {
         }
 
         // All checks passed, ticket is valid.
-        await updateDoc(ticketRef, { scans: (ticket.scans || 0) + 1 });
+        await updateDoc(ticketRef, { scans: increment(1) });
 
         setScanResult({
             status: 'success',

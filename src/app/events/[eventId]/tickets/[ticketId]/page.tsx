@@ -213,7 +213,11 @@ export default function TicketDetailsPage() {
         )
     }
     
-    if (ticketData.userId !== user?.uid) {
+    // Authorization check: User must own the ticket OR be the vendor for the event.
+    const isOwner = ticketData.userId === user?.uid;
+    const isVendor = eventData.vendorId === user?.uid;
+
+    if (!isOwner && !isVendor) {
          return (
             <div className="container mx-auto max-w-lg py-12 px-4">
                  <Card className="p-8 text-center bg-destructive/10 border-destructive">
