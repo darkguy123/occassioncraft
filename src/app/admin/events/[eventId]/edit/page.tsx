@@ -12,16 +12,18 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon, ArrowLeft, Plus } from "lucide-react"
+import { CalendarIcon, ArrowLeft, Plus, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
 import Image from "next/image"
 import type { Event } from "@/lib/types";
 import Link from "next/link";
-import { useFirestore, useDoc, updateDocumentNonBlocking, useMemoFirebase } from "@/firebase";
+import { useFirestore, useDoc, updateDocumentNonBlocking, useMemoFirebase, useUser } from "@/firebase";
 import { doc } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { v4 as uuidv4 } from 'uuid';
 
 
 const eventFormSchema = z.object({
@@ -40,7 +42,9 @@ export type EventFormValues = z.infer<typeof eventFormSchema>;
 export default function AdminEditEventPage({ params }: { params: { eventId: string } }) {
   const { toast } = useToast();
   const router = useRouter();
+  const { user } = useUser();
   const firestore = useFirestore();
+  const [isUploading, setIsUploading] = useState(false);
   
   const eventDocRef = useMemoFirebase(() => {
     if (!firestore || !params.eventId) return null;
@@ -56,9 +60,15 @@ export default function AdminEditEventPage({ params }: { params: { eventId: stri
   
   useEffect(() => {
     if (eventData) {
+      const date = new Date(eventData.date);
+      if (isNaN(date.getTime())) {
+          console.error("Invalid date from Firestore:", eventData.date);
+          // Handle invalid date, maybe set a default or show an error
+          return;
+      }
       form.reset({
         name: eventData.name,
-        date: new Date(eventData.date),
+        date: date,
         startTime: eventData.startTime,
         endTime: eventData.endTime,
         isOnline: eventData.isOnline,
@@ -72,10 +82,16 @@ export default function AdminEditEventPage({ params }: { params: { eventId: stri
   const onSubmit = (data: EventFormValues) => {
     if (!eventDocRef) return;
     
-    updateDocumentNonBlocking(eventDocRef, {
+    const updateData = {
       ...data,
       date: data.date.toISOString(),
-    });
+    };
+
+    if (!updateData.endTime) {
+      delete updateData.endTime;
+    }
+    
+    updateDocumentNonBlocking(eventDocRef, updateData);
     
     toast({
         title: "Event Updated",
@@ -84,19 +100,30 @@ export default function AdminEditEventPage({ params }: { params: { eventId: stri
     router.push('/admin/events');
   };
   
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-        if (file.size > 4 * 1024 * 1024) { // 4MB limit
-            toast({ variant: 'destructive', title: 'File too large', description: 'Image must be smaller than 4MB.' });
-            return;
-        }
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const result = reader.result as string;
-            form.setValue('bannerUrl', result, { shouldValidate: true });
-        };
-        reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (file.size > 4 * 1024 * 1024) { // 4MB limit
+        toast({ variant: 'destructive', title: 'File too large', description: 'Image must be smaller than 4MB.' });
+        return;
+    }
+
+    setIsUploading(true);
+    const storage = getStorage();
+    // Use the event ID in the path to associate the image with the event
+    const storageRef = ref(storage, `banners/${params.eventId}/${uuidv4()}-${file.name}`);
+
+    try {
+        await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(storageRef);
+        form.setValue('bannerUrl', downloadURL, { shouldValidate: true });
+        toast({ title: 'Banner Uploaded', description: 'Your new banner has been saved.' });
+    } catch (error) {
+        console.error("Error uploading file:", error);
+        toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload the banner image.' });
+    } finally {
+        setIsUploading(false);
     }
   };
 
@@ -146,13 +173,18 @@ export default function AdminEditEventPage({ params }: { params: { eventId: stri
                             <p className="mt-2 text-sm font-semibold">Add a cover photo</p>
                         </div>
                     )}
+                     {isUploading && (
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <Loader2 className="h-8 w-8 text-white animate-spin" />
+                        </div>
+                      )}
                 </div>
                  <Button asChild variant="outline" size="sm">
                     <label htmlFor="banner-upload" className="cursor-pointer">
                         <Plus className="mr-2 h-4 w-4"/> Upload New Banner
                     </label>
                 </Button>
-                <Input id="banner-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange}/>
+                <Input id="banner-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange} disabled={isUploading}/>
             </div>
             
             <FormField
@@ -242,7 +274,7 @@ export default function AdminEditEventPage({ params }: { params: { eventId: stri
             />
 
             <div className="flex justify-end pt-4 border-t">
-                <Button type="submit" size="lg">Save Changes</Button>
+                <Button type="submit" size="lg" disabled={form.formState.isSubmitting || isUploading}>Save Changes</Button>
             </div>
         </form>
       </Form>

@@ -12,18 +12,20 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon, Image as ImageIcon, MapPin, Plus, Save, PartyPopper } from "lucide-react"
+import { CalendarIcon, Image as ImageIcon, MapPin, Plus, Save, PartyPopper, Loader2 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
 import type { User as UserType, Event as EventType } from "@/lib/types";
 import { doc, collection, addDoc } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
 import Image from "next/image"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import Link from "next/link"
+import { v4 as uuidv4 } from 'uuid';
 
 const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters."),
@@ -48,6 +50,7 @@ export default function CreateEventPage() {
   const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [createdEvent, setCreatedEvent] = useState<EventType | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -77,7 +80,7 @@ export default function CreateEventPage() {
     }
     const eventCollectionRef = collection(firestore, 'events');
 
-    const eventData: Omit<EventType, 'id'> = {
+    const eventData: Omit<EventType, 'id'> & { bannerUrl?: string } = {
         ...data,
         date: data.date.toISOString(),
         vendorId: user.uid,
@@ -131,19 +134,29 @@ export default function CreateEventPage() {
     }
   }, [isUserLoading, isUserDataLoading, user, userData, router, toast]);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-        if (file.size > 4 * 1024 * 1024) {
-            toast({ variant: 'destructive', title: 'File too large', description: 'Image must be smaller than 4MB.' });
-            return;
-        }
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const result = reader.result as string;
-            form.setValue('bannerUrl', result, { shouldValidate: true });
-        };
-        reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (file.size > 4 * 1024 * 1024) { // 4MB limit
+        toast({ variant: 'destructive', title: 'File too large', description: 'Image must be smaller than 4MB.' });
+        return;
+    }
+
+    setIsUploading(true);
+    const storage = getStorage();
+    const storageRef = ref(storage, `banners/${user?.uid}/${uuidv4()}-${file.name}`);
+
+    try {
+        await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(storageRef);
+        form.setValue('bannerUrl', downloadURL, { shouldValidate: true });
+        toast({ title: 'Banner Uploaded', description: 'Your new banner has been saved.' });
+    } catch (error) {
+        console.error("Error uploading file:", error);
+        toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload the banner image.' });
+    } finally {
+        setIsUploading(false);
     }
   };
   
@@ -189,6 +202,11 @@ export default function CreateEventPage() {
                               <p className="text-xs">Recommended size: 1600x900px</p>
                           </div>
                       )}
+                      {isUploading && (
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <Loader2 className="h-8 w-8 text-white animate-spin" />
+                        </div>
+                      )}
                   </div>
                 </FormControl>
                 <Button asChild variant="outline" size="sm">
@@ -196,7 +214,7 @@ export default function CreateEventPage() {
                         <Plus className="mr-2 h-4 w-4"/> Upload Banner
                     </label>
                 </Button>
-                <Input id="banner-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange}/>
+                <Input id="banner-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange} disabled={isUploading} />
             </div>
 
             <FormField
@@ -347,7 +365,7 @@ export default function CreateEventPage() {
             />
 
             <div className="flex justify-end pt-4 border-t">
-                <Button type="submit" size="lg" disabled={form.formState.isSubmitting}>
+                <Button type="submit" size="lg" disabled={form.formState.isSubmitting || isUploading}>
                     {form.formState.isSubmitting ? 'Saving...' : <><Save className="mr-2 h-4 w-4" /> Save Event</>}
                 </Button>
             </div>
