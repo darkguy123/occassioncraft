@@ -52,15 +52,6 @@ service cloud.firestore {
       allow read, write: if isOwner(vendorId) || isAdmin();
     }
     
-    match /wallets/{userId} {
-      // Wallets are private to the user or an admin.
-      allow read, write: if isOwner(userId) || isAdmin();
-    }
-    
-    match /wallets/{userId}/transactions/{transactionId} {
-       allow read, write: if isOwner(userId) || isAdmin();
-    }
-    
     match /tickets/{ticketId} {
       // Admins can list all tickets
       allow list: if isAdmin();
