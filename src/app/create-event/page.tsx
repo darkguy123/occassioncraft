@@ -12,16 +12,18 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon, Image as ImageIcon, MapPin, Plus, Save } from "lucide-react"
+import { CalendarIcon, Image as ImageIcon, MapPin, Plus, Save, PartyPopper } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
-import type { User as UserType } from "@/lib/types";
-import { doc, collection } from "firebase/firestore";
+import type { User as UserType, Event as EventType } from "@/lib/types";
+import { doc, collection, addDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
 import Image from "next/image"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import Link from "next/link"
 
 const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters."),
@@ -43,14 +45,16 @@ export default function CreateEventPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   
+  const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
+  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
+  const [createdEvent, setCreatedEvent] = useState<EventType | null>(null);
+
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
   const { data: userData, isLoading: isUserDataLoading } = useDoc<UserType>(userDocRef);
-  
-  const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
@@ -66,18 +70,18 @@ export default function CreateEventPage() {
     mode: "onChange",
   });
   
-  const onSubmit = (data: EventFormValues) => {
+  const onSubmit = async (data: EventFormValues) => {
      if (!user || !firestore) {
         toast({ variant: 'destructive', title: 'Error', description: 'Authentication or database error.' });
         return;
     }
     const eventCollectionRef = collection(firestore, 'events');
 
-    const eventData: any = {
+    const eventData: Omit<EventType, 'id'> = {
         ...data,
         date: data.date.toISOString(),
         vendorId: user.uid,
-        organizer: user.displayName, 
+        organizer: user.displayName || 'Unnamed Organizer',
         status: 'published',
     };
     
@@ -85,15 +89,18 @@ export default function CreateEventPage() {
       delete eventData.endTime;
     }
 
-    addDocumentNonBlocking(eventCollectionRef, eventData);
-
-    toast({
-        title: "Event Created!",
-        description: `Your event "${data.name}" has been saved. You can now create tickets for it.`,
-    });
-    
-    const isAdmin = (userData?.roles || []).includes('admin');
-    router.push(isAdmin ? '/admin/events' : '/vendor/dashboard');
+    try {
+        const docRef = await addDoc(eventCollectionRef, eventData);
+        setCreatedEvent({ id: docRef.id, ...eventData });
+        setIsSuccessDialogOpen(true);
+    } catch (error: any) {
+        console.error("Error creating event: ", error);
+        toast({
+            variant: "destructive",
+            title: "Event Creation Failed",
+            description: error.message,
+        });
+    }
   }
 
   useEffect(() => {
@@ -140,6 +147,11 @@ export default function CreateEventPage() {
     }
   };
   
+  const handleCreateAnother = () => {
+      form.reset();
+      setCreatedEvent(null);
+      setIsSuccessDialogOpen(false);
+  }
 
   if (authStatus !== 'authorized') {
     return (
@@ -155,6 +167,7 @@ export default function CreateEventPage() {
   }
 
   return (
+    <>
     <div className="container max-w-2xl mx-auto py-10 px-4">
         <div className="space-y-2 mb-8">
             <h1 className="text-4xl font-bold font-headline">Create a New Event</h1>
@@ -341,5 +354,43 @@ export default function CreateEventPage() {
         </form>
       </Form>
     </div>
+
+    <AlertDialog open={isSuccessDialogOpen} onOpenChange={setIsSuccessDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader className="text-center items-center">
+                <PartyPopper className="h-12 w-12 text-primary" />
+                <AlertDialogTitle className="text-2xl">Event Created Successfully!</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Your event has been created. What would you like to do next?
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            
+            {createdEvent && (
+                <div className="my-4 rounded-lg border bg-secondary/50 p-4 space-y-2 text-sm">
+                    <h4 className="font-semibold">{createdEvent.name}</h4>
+                    <div className="flex items-center text-muted-foreground">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        <span>{format(new Date(createdEvent.date), 'PPP')}</span>
+                    </div>
+                     <div className="flex items-center text-muted-foreground">
+                        <MapPin className="mr-2 h-4 w-4" />
+                        <span>{createdEvent.location}</span>
+                    </div>
+                </div>
+            )}
+
+            <AlertDialogFooter className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button variant="outline" onClick={handleCreateAnother}>
+                    Create Another Event
+                </Button>
+                 <Button asChild>
+                    <Link href={`/create-ticket?eventId=${createdEvent?.id}`}>
+                        Craft Ticket for Event
+                    </Link>
+                </Button>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
