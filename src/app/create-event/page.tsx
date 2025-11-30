@@ -73,7 +73,7 @@ export default function CreateEventPage() {
     }
     const eventCollectionRef = collection(firestore, 'events');
 
-    const eventData = {
+    const eventData: any = {
         ...data,
         date: data.date.toISOString(),
         vendorId: user.uid,
@@ -81,6 +81,10 @@ export default function CreateEventPage() {
         status: 'published',
     };
     
+    if (!eventData.endTime) {
+      delete eventData.endTime;
+    }
+
     addDocumentNonBlocking(eventCollectionRef, eventData);
 
     toast({
@@ -286,9 +290,11 @@ export default function CreateEventPage() {
                   <FormItem>
                     <FormLabel>Location</FormLabel>
                     <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                       <FormControl>
-                        <Input placeholder="Add a venue or address" {...field} className="pl-10" />
+                        <div className="relative">
+                           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                           <Input placeholder="Add a venue or address" {...field} className="pl-10" />
+                        </div>
                       </FormControl>
                     </div>
                     <FormMessage />
