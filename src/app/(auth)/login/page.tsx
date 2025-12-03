@@ -75,19 +75,19 @@ export default function LoginPage() {
 
   return (
     <div className="relative flex items-center justify-center min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-4.5rem)] py-12 px-4" style={{ backgroundColor: '#3366ff' }}>
-      <Card className="mx-auto max-w-sm w-full">
-        <CardHeader className="text-center">
+      <Card className="mx-auto max-w-sm w-full shadow-2xl overflow-hidden">
+        <CardHeader className="text-center text-white p-6" style={{ backgroundColor: '#3366ff' }}>
             {isSiteSettingsLoading ? (
-              <div className="h-10 w-36 bg-gray-200 rounded-md animate-pulse mx-auto" />
+              <div className="h-10 w-36 bg-gray-200/50 rounded-md animate-pulse mx-auto" />
             ) : (
               <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={40} className="h-10 w-auto mx-auto" unoptimized/>
             )}
           <CardTitle className="text-2xl font-headline mt-4">Welcome Back</CardTitle>
-          <CardDescription>
+          <CardDescription className="text-white/80">
             Enter your email below to login to your account
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6 bg-card">
           <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
