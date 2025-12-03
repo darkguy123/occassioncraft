@@ -482,7 +482,7 @@ export default function CreateTicketPage() {
                                     type="number"
                                     {...field}
                                     onChange={e => field.onChange(parseInt(e.target.value, 10))}
-                                    value={field.value || 1}
+                                    value={field.value ?? 1}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -545,5 +545,3 @@ export default function CreateTicketPage() {
     </div>
   );
 }
-
-    
