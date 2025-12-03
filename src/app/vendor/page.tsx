@@ -186,16 +186,6 @@ export default function VendorLandingPage() {
             </div>
           </div>
         </section>
-
-        {/* Final CTA */}
-          <section className="py-20 bg-secondary">
-              <div className="container text-center">
-                  <Palette className="mx-auto h-12 w-12 text-primary mb-4" />
-                  <h2 className="text-3xl font-headline font-bold">Ready to start designing?</h2>
-                  <p className="mt-2 text-muted-foreground mb-6">Join hundreds of successful creators on our platform.</p>
-                  <CtaButton />
-              </div>
-          </section>
       </div>
     </>
   );
