@@ -65,7 +65,12 @@ export default function AdminSettingsPage() {
       console.error("Error uploading file:", error);
       toast({ variant: 'destructive', title: 'Upload Failed' });
     } finally {
-      setUploadingStatus(prev => ({ ...prev, [fieldName]: false }));
+      // Definitive fix: Create a new object and explicitly set the field to false
+      setUploadingStatus(prev => {
+        const newStatus = { ...prev };
+        delete newStatus[fieldName];
+        return newStatus;
+      });
     }
   };
 
