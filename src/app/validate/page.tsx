@@ -1,21 +1,21 @@
 
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle, XCircle, AlertTriangle, Loader2, Search } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Loader2, Camera, VideoOff } from 'lucide-react';
 import { useFirestore, useUser } from '@/firebase';
-import { doc, getDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import type { Event, Ticket, User } from '@/lib/types';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Input } from '@/components/ui/input';
+import jsQR from 'jsqr';
 
 type ValidationStatus = 'idle' | 'loading' | 'success' | 'error' | 'unauthorized';
 type ScanResult = {
@@ -33,13 +33,17 @@ function TicketValidator() {
     const { toast } = useToast();
     const { user: scannerUser, isUserLoading: isScannerLoading } = useUser();
     const firestore = useFirestore();
-    const searchParams = useSearchParams();
-
+    
     const [scanResult, setScanResult] = useState<ScanResult | null>(null);
     const [validationStatus, setValidationStatus] = useState<ValidationStatus>('idle');
-    const [manualTicketId, setManualTicketId] = useState('');
     const [authChecked, setAuthChecked] = useState(false);
     
+    const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [isScanning, setIsScanning] = useState(false);
+
+
     // Authorization check effect
     useEffect(() => {
         if (isScannerLoading) return;
@@ -50,6 +54,86 @@ function TicketValidator() {
         }
         setAuthChecked(true);
     }, [scannerUser, isScannerLoading]);
+    
+     // Get camera permission and start video stream
+    useEffect(() => {
+        if (validationStatus !== 'idle') return;
+
+        async function getCameraPermission() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                }
+                setHasCameraPermission(true);
+                setIsScanning(true);
+            } catch (err) {
+                console.error("Camera permission denied:", err);
+                setHasCameraPermission(false);
+                toast({
+                    variant: 'destructive',
+                    title: 'Camera Access Denied',
+                    description: 'Please enable camera permissions to scan QR codes.',
+                });
+            }
+        }
+        getCameraPermission();
+
+        // Cleanup: stop video stream when component unmounts
+        return () => {
+            if (videoRef.current && videoRef.current.srcObject) {
+                const stream = videoRef.current.srcObject as MediaStream;
+                stream.getTracks().forEach(track => track.stop());
+            }
+        }
+    }, [validationStatus, toast]);
+
+    const scanQrCode = useCallback(() => {
+        if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA && canvasRef.current) {
+            const video = videoRef.current;
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
+
+            if (ctx) {
+                canvas.height = video.videoHeight;
+                canvas.width = video.videoWidth;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: 'dontInvert',
+                });
+
+                if (code) {
+                    setIsScanning(false);
+                    const url = new URL(code.data);
+                    const ticketId = url.searchParams.get('ticketId');
+                    if (ticketId) {
+                        validateTicketById(ticketId);
+                    } else {
+                        setScanResult({ status: 'error', message: 'Invalid QR code. No ticket ID found.' });
+                        setValidationStatus('error');
+                    }
+                }
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        let animationFrameId: number;
+        if (isScanning && hasCameraPermission) {
+            const tick = () => {
+                scanQrCode();
+                animationFrameId = requestAnimationFrame(tick);
+            };
+            animationFrameId = requestAnimationFrame(tick);
+        }
+        return () => {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+        };
+    }, [isScanning, hasCameraPermission, scanQrCode]);
+
     
     const validateTicketById = async (ticketId: string) => {
         if (!scannerUser) {
@@ -147,8 +231,8 @@ function TicketValidator() {
 
     const resetScanner = () => {
         setScanResult(null);
-        setManualTicketId('');
         setValidationStatus('idle');
+        setIsScanning(true);
     }
     
     if (!authChecked) {
@@ -185,7 +269,7 @@ function TicketValidator() {
             <Card>
                 <CardHeader>
                     <CardTitle>Ticket Validator</CardTitle>
-                    <CardDescription>Enter a Ticket ID below to validate it for event entry.</CardDescription>
+                    <CardDescription>Point your camera at a ticket's QR code to validate it.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
@@ -218,27 +302,28 @@ function TicketValidator() {
                                 <Button onClick={resetScanner} className="mt-6">Scan Next Ticket</Button>
                             </div>
                         ) : (
-                             <form onSubmit={(e) => { e.preventDefault(); validateTicketById(manualTicketId); }} className="space-y-4">
-                                <div>
-                                    <label htmlFor="ticket-id" className="font-medium sr-only">Ticket ID</label>
-                                    <div className="flex gap-2">
-                                        <Input
-                                            id="ticket-id"
-                                            placeholder="Enter Ticket ID to validate..."
-                                            value={manualTicketId}
-                                            onChange={(e) => setManualTicketId(e.target.value)}
-                                            disabled={validationStatus === 'loading'}
-                                        />
-                                        <Button type="submit" disabled={!manualTicketId || validationStatus === 'loading'} className="w-40">
-                                            {validationStatus === 'loading' ? 
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 
-                                                <Search className="mr-2 h-4 w-4" />
-                                            }
-                                            Validate
-                                        </Button>
+                             <div className="w-full aspect-square bg-black rounded-lg overflow-hidden relative flex items-center justify-center">
+                                <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
+                                <canvas ref={canvasRef} className="hidden" />
+
+                                <div className="absolute inset-0 border-8 border-white/20 rounded-lg" style={{ clipPath: 'polygon(0% 0%, 0% 100%, 25% 100%, 25% 25%, 75% 25%, 75% 75%, 25% 75%, 25% 100%, 100% 100%, 100% 0%)' }} />
+
+                                {validationStatus === 'loading' && <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white"><Loader2 className="h-10 w-10 animate-spin mb-2" />Validating...</div>}
+
+                                {hasCameraPermission === false && (
+                                    <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-white p-4 text-center">
+                                        <VideoOff className="h-12 w-12 mb-4" />
+                                        <h3 className="font-bold text-lg">Camera Access Denied</h3>
+                                        <p className="text-sm">Please enable camera permissions in your browser settings to use the scanner.</p>
                                     </div>
-                                </div>
-                            </form>
+                                )}
+                                {hasCameraPermission === null && (
+                                     <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white">
+                                        <Loader2 className="h-10 w-10 animate-spin mb-2" />
+                                        <p>Requesting camera access...</p>
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
                 </CardContent>
