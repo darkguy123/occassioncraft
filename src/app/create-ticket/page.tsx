@@ -15,7 +15,7 @@ import type { User as UserType, Event as EventType, Ticket } from "@/lib/types";
 import { doc, collection, query, where } from "firebase/firestore";
 import { useEffect, useState, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
@@ -505,3 +505,5 @@ export default function CreateTicketPage() {
     </div>
   );
 }
+
+    
