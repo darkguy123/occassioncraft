@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -10,8 +9,9 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import type { User } from '@/lib/types';
 import { doc } from 'firebase/firestore';
 import { Notifications } from './notifications';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, ShoppingCart } from 'lucide-react';
 import { useLoader } from '@/context/loader-context';
+import { useCart } from '@/context/cart-context';
 
 const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Flogo.png?alt=media&token=1d01f9c3-5c82-4541-b819-25f0a7398a61';
 
@@ -21,6 +21,7 @@ export function Header() {
   const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
   const [hasMounted, setHasMounted] = useState(false);
   const { showLoader } = useLoader();
+  const { cart } = useCart();
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -80,12 +81,25 @@ export function Header() {
             (user ? (
               <>
                 {(isVendor || isAdmin) && (
-                   <Button asChild variant="outline" size="sm">
+                  <div className="flex items-center gap-2">
+                    <Button asChild variant="outline" size="sm">
                         <Link href="/create-event" onClick={handleLinkClick}>
                             <PlusCircle className="mr-2 h-4 w-4" />
                             Create Event
                         </Link>
                     </Button>
+                     <Button variant="ghost" size="icon" className="relative" asChild>
+                      <Link href="/vendor/checkout">
+                        <ShoppingCart className="h-5 w-5" />
+                        {cart.length > 0 && (
+                           <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
+                            {cart.length}
+                           </span>
+                        )}
+                        <span className="sr-only">View Cart</span>
+                      </Link>
+                    </Button>
+                  </div>
                 )}
                 <Notifications />
                 <UserNav />
