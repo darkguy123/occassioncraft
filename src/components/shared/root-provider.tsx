@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Header } from '@/components/shared/header';
@@ -13,40 +14,9 @@ import { PageLoader } from './page-loader';
 import { CartProvider } from '@/context/cart-context';
 
 function Favicon() {
-    const [faviconUrl, setFaviconUrl] = useState<string | null>(null);
-    const [hasMounted, setHasMounted] = useState(false);
-
-    useEffect(() => {
-        setHasMounted(true);
-    }, []);
-
-    useEffect(() => {
-        if (!hasMounted) return;
-
-        const loadFavicon = () => {
-            const savedFavicon = localStorage.getItem('websiteFavicon');
-            if (savedFavicon) {
-                setFaviconUrl(savedFavicon);
-            } else {
-                setFaviconUrl('https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Ffavicon.png?alt=media&token=e95cb4d3-18c7-48b8-93f8-656354e39a3f'); 
-            }
-        };
-
-        loadFavicon();
-
-        const handleStorageChange = () => {
-            loadFavicon();
-        };
-
-        window.addEventListener('storage', handleStorageChange);
-        return () => window.removeEventListener('storage', handleStorageChange);
-    }, [hasMounted]);
-
-    if (!hasMounted || !faviconUrl) {
-      // Render fallback on the server and during initial client render
-      return <link rel="icon" href="https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Ffavicon.png?alt=media&token=e95cb4d3-18c7-48b8-93f8-656354e39a3f" />;
-    }
-
+    // This component now simply renders the permanent favicon link.
+    // The dynamic loading has been removed to prevent hydration errors.
+    const faviconUrl = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Ffavicon.png?alt=media&token=e95cb4d3-18c7-48b8-93f8-656354e39a3f';
     return <link rel="icon" href={faviconUrl} />;
 }
 
