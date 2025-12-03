@@ -20,7 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import Image from "next/image"
 import type { Event } from "@/lib/types";
 import Link from "next/link";
-import { useFirestore, useDoc, updateDocumentNonBlocking, useMemoFirebase, useUser } from "@/firebase";
+import { useFirestore, useDoc, updateDocumentNonBlocking, useMemoFirebase } from "@/firebase";
 import { doc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
