@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -9,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
-import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import type { User as UserType, Event as EventType, Ticket } from "@/lib/types";
 import { doc, collection, query, where } from "firebase/firestore";
 import { useEffect, useState, useMemo } from "react";
@@ -433,3 +434,5 @@ export default function CreateTicketPage() {
     </div>
   );
 }
+
+    
