@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
@@ -18,7 +17,7 @@ import { toPng, toJpeg } from 'html-to-image';
 import jsPDF from 'jspdf';
 
 
-const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Flogo.png?alt=media&token=1d01f9c3-5c82-4541-b819-25f0a7398a61';
+const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Flogo.png?alt=media&token=42592398-356a-4934-8c89-9831b3294317';
 
 const TicketDesign = ({ eventData, ticketData, qrCodeUrl, user }: { eventData: Event, ticketData: Ticket, qrCodeUrl: string, user: any }) => {
     const formattedDate = eventData.date ? format(new Date(eventData.date), "EEEE, MMM d, yyyy") : 'Date';

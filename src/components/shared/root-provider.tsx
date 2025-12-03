@@ -28,7 +28,7 @@ function Favicon() {
             if (savedFavicon) {
                 setFaviconUrl(savedFavicon);
             } else {
-                setFaviconUrl('https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Ffavicon.png?alt=media&token=86504a79-54d9-4315-9923-388f8d662e07'); 
+                setFaviconUrl('https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Ffavicon.png?alt=media&token=e95cb4d3-18c7-48b8-93f8-656354e39a3f'); 
             }
         };
 
@@ -44,7 +44,7 @@ function Favicon() {
 
     if (!hasMounted || !faviconUrl) {
       // Render fallback on the server and during initial client render
-      return <link rel="icon" href="https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Ffavicon.png?alt=media&token=86504a79-54d9-4315-9923-388f8d662e07" />;
+      return <link rel="icon" href="https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Ffavicon.png?alt=media&token=e95cb4d3-18c7-48b8-93f8-656354e39a3f" />;
     }
 
     return <link rel="icon" href={faviconUrl} />;
@@ -78,7 +78,7 @@ export function RootProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <>
-          <Suspense fallback={<link rel="icon" href="https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Ffavicon.png?alt=media&token=86504a79-54d9-4315-9923-388f8d662e07" />}>
+          <Suspense fallback={<link rel="icon" href="https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Ffavicon.png?alt=media&token=e95cb4d3-18c7-48b8-93f8-656354e39a3f" />}>
              <Favicon />
           </Suspense>
           <FirebaseClientProvider>
