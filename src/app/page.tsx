@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -13,6 +14,7 @@ import EventCard from '@/components/event-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { SearchInput } from '@/components/search-input';
+import { useEffect, useState } from 'react';
 
 const categoryIcons = {
   All: Globe,
@@ -25,27 +27,57 @@ const categoryIcons = {
 
 const categories = ['All', 'Music', 'Arts', 'Tech', 'Food', 'Sports'] as const;
 
+const defaultHero = {
+  imageUrl: 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2F67e206b7d52d22580e4ec0d8_890.jpg?alt=media&token=c0a35579-2cdf-4d20-9aa9-6163ff95eddf',
+  imageHint: 'concert stage lights'
+};
+
 export default function Home() {
   const firestore = useFirestore();
   const eventsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'events') : null, [firestore]);
   const { data: events, isLoading } = useCollection<Event>(eventsCollection);
 
-  const defaultHeroImage = {
-      imageUrl: 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2F67e206b7d52d22580e4ec0d8_890.jpg?alt=media&token=c0a35579-2cdf-4d20-9aa9-6163ff95eddf',
-      imageHint: 'concert stage lights'
-  };
+  const [heroImage, setHeroImage] = useState(defaultHero);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if(hasMounted) {
+      const loadHero = () => {
+        const savedHero = localStorage.getItem('heroBannerImage');
+        if (savedHero) {
+          setHeroImage({ imageUrl: savedHero, imageHint: 'custom banner' });
+        } else {
+          setHeroImage(defaultHero);
+        }
+      }
+      loadHero();
+
+      window.addEventListener('storage', loadHero);
+      return () => {
+        window.removeEventListener('storage', loadHero);
+      }
+    }
+  }, [hasMounted]);
 
   return (
     <div className="flex flex-col min-h-screen">
       <section className="relative w-full h-[80vh] text-white">
-        <Image
-          src={defaultHeroImage.imageUrl}
-          alt="Hero Banner"
-          fill
-          className="object-cover"
-          data-ai-hint={defaultHeroImage.imageHint}
-          priority
-        />
+        {hasMounted ? (
+            <Image
+              src={heroImage.imageUrl}
+              alt="Hero Banner"
+              fill
+              className="object-cover"
+              data-ai-hint={heroImage.imageHint}
+              priority
+            />
+        ) : (
+          <div className="absolute inset-0 bg-secondary" />
+        )}
         <div className="absolute inset-0 bg-black/70" />
         <div className="relative z-10 flex flex-col items-center justify-center h-full text-center px-4">
           <motion.h1 

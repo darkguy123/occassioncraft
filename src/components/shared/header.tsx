@@ -21,6 +21,27 @@ export function Header() {
   const firestore = useFirestore();
   const { showLoader } = useLoader();
   const { cart } = useCart();
+  const [logoUrl, setLogoUrl] = useState(DEFAULT_LOGO_URL);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasMounted) return;
+
+    const loadLogo = () => {
+      const savedLogo = localStorage.getItem('logoImage');
+      setLogoUrl(savedLogo || DEFAULT_LOGO_URL);
+    };
+
+    loadLogo();
+    window.addEventListener('storage', loadLogo);
+    return () => {
+      window.removeEventListener('storage', loadLogo);
+    };
+  }, [hasMounted]);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -43,7 +64,7 @@ export function Header() {
       <div className="container flex h-16 items-center">
         <div className="mr-4 flex">
            <Link href="/" className="mr-6 flex items-center space-x-2" onClick={handleLinkClick}>
-            <Image src={DEFAULT_LOGO_URL} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" priority />
+            <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" priority />
           </Link>
           <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
             <Link href="/events" className="transition-colors hover:text-foreground/80 text-foreground/60" onClick={handleLinkClick}>

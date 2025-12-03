@@ -19,8 +19,8 @@ const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Fremove-photos-background-removed%20(1).png?alt=media&token=e95cb4d3-18c7-48b8-93f8-656354e39a3f';
 
-
 export function Footer() {
+  const [logoUrl, setLogoUrl] = useState(DEFAULT_LOGO_URL);
   const [socials, setSocials] = useState({ twitter: '#', facebook: '#', instagram: '#' });
   const [hasMounted, setHasMounted] = useState(false);
 
@@ -28,11 +28,13 @@ export function Footer() {
     setHasMounted(true);
   }, []);
 
-
   useEffect(() => {
     if (!hasMounted) return;
     
     const loadSettings = () => {
+      const savedLogo = localStorage.getItem('logoImage');
+      setLogoUrl(savedLogo || DEFAULT_LOGO_URL);
+
       const twitter = localStorage.getItem('social-twitter') || '#';
       const facebook = localStorage.getItem('social-facebook') || '#';
       const instagram = localStorage.getItem('social-instagram') || '#';
@@ -54,7 +56,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
             <Link href="/" className="flex items-center space-x-2">
-              <Image src={DEFAULT_LOGO_URL} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" />
+              <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" />
             </Link>
             <p className="text-sm">Create, discover, and celebrate events with OccasionCraft.</p>
             <div className="flex space-x-4">

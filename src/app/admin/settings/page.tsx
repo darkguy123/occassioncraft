@@ -21,6 +21,7 @@ export default function AdminSettingsPage() {
   const { toast } = useToast();
 
   const [logo, setLogo] = useState<FileUploadState>({ file: null, preview: null });
+  const [favicon, setFavicon] = useState<FileUploadState>({ file: null, preview: null });
   const [heroBanner, setHeroBanner] = useState<FileUploadState>({ file: null, preview: null });
 
   const [primaryColor, setPrimaryColor] = useState('#74c0fc');
@@ -35,12 +36,13 @@ export default function AdminSettingsPage() {
   const [facebookUrl, setFacebookUrl] = useState('');
   const [instagramUrl, setInstagramUrl] = useState('');
 
-  // The favicon state is no longer needed as it's hardcoded
-  // const [favicon, setFavicon] = useState<FileUploadState>({ file: null, preview: null });
-
   useEffect(() => {
     const loadSettings = () => {
-      // The logo and favicon are now hardcoded, so we don't need to load them from localStorage.
+      const savedLogo = localStorage.getItem('logoImage');
+      if (savedLogo) setLogo(prev => ({...prev, preview: savedLogo }));
+      
+      const savedFavicon = localStorage.getItem('faviconImage');
+      if (savedFavicon) setFavicon(prev => ({...prev, preview: savedFavicon }));
       
       const savedHeroBanner = localStorage.getItem('heroBannerImage');
       if (savedHeroBanner) setHeroBanner(prev => ({...prev, preview: savedHeroBanner }));
@@ -72,7 +74,7 @@ export default function AdminSettingsPage() {
     loadSettings();
   }, []);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'hero') => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'hero' | 'favicon') => {
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) { // 2MB limit
@@ -89,16 +91,25 @@ export default function AdminSettingsPage() {
         const fileState = { file, preview: result };
         if (type === 'logo') setLogo(fileState);
         if (type === 'hero') setHeroBanner(fileState);
+        if (type === 'favicon') setFavicon(fileState);
       };
       reader.readAsDataURL(file);
     }
   };
 
   const handleSaveBranding = () => {
+    if (logo.preview) {
+        localStorage.setItem('logoImage', logo.preview);
+    }
+    if (favicon.preview) {
+        localStorage.setItem('faviconImage', favicon.preview);
+    }
     toast({
-        title: 'Branding is Now Static',
-        description: 'The logo and favicon are now hardcoded for stability. This feature is disabled.',
+        title: 'Branding Saved',
+        description: 'Your logo and favicon have been saved to local storage.',
     });
+    // Dispatch a storage event to notify other components (like header/footer) of the change
+    window.dispatchEvent(new Event('storage'));
   };
 
   const handleSaveAppearance = () => {
@@ -193,7 +204,7 @@ export default function AdminSettingsPage() {
             <Card>
                 <CardHeader>
                 <CardTitle>Branding</CardTitle>
-                <CardDescription>Manage your website logo. The favicon is now hardcoded for stability.</CardDescription>
+                <CardDescription>Manage your website logo and favicon.</CardDescription>
                 </CardHeader>
                 <CardContent>
                 <div className="grid gap-8">
@@ -215,21 +226,29 @@ export default function AdminSettingsPage() {
                       </div>
                     </div>
 
-                    <div className="grid gap-2 opacity-50">
+                    <div className="grid gap-2">
                       <Label htmlFor="favicon-upload">Favicon Image</Label>
                        <div className="flex items-center gap-4">
-                            <label htmlFor="favicon-upload" className="flex items-center justify-center w-24 h-24 border-2 border-dashed rounded-lg cursor-not-allowed bg-card/50 relative">
-                               <p className="text-xs text-muted-foreground text-center p-2">Favicon is now static</p>
+                            <label htmlFor="favicon-upload" className="flex items-center justify-center w-24 h-24 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
+                                {favicon.preview ? (
+                                    <img src={favicon.preview} alt="Favicon preview" className="h-12 w-12 object-contain" />
+                                ) : (
+                                   <div className="flex flex-col items-center justify-center text-center p-2">
+                                        <Upload className="w-6 h-6 mb-1 text-muted-foreground" />
+                                        <p className="text-xs text-muted-foreground">Upload .ico, .png, .svg</p>
+                                    </div>
+                                )}
+                                <Input id="favicon-upload" type="file" className="hidden" accept="image/x-icon, image/png, image/svg+xml" onChange={(e) => handleFileChange(e, 'favicon')} />
                             </label>
                             <div>
-                                <p className="text-sm text-muted-foreground">The favicon is permanently set.</p>
-                                <p className="text-xs text-muted-foreground">This can only be changed in the codebase.</p>
+                                <p className="text-sm text-muted-foreground">Upload a new favicon.</p>
+                                <p className="text-xs text-muted-foreground">This will appear in the browser tab.</p>
                             </div>
                         </div>
                     </div>
 
                     <div className="flex justify-end">
-                    <Button onClick={handleSaveBranding} disabled>Save Changes</Button>
+                    <Button onClick={handleSaveBranding}>Save Changes</Button>
                     </div>
                 </div>
                 </CardContent>
@@ -375,5 +394,3 @@ export default function AdminSettingsPage() {
     </div>
   );
 }
-
-    

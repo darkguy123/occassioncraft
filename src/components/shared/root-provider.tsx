@@ -14,11 +14,39 @@ import { PageLoader } from './page-loader';
 import { CartProvider } from '@/context/cart-context';
 
 function Favicon() {
-    // This component now simply renders the permanent favicon link.
-    // The dynamic loading has been removed to prevent hydration errors.
-    const faviconUrl = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Fremove-photos-background-removed%20(1).png?alt=media&token=e95cb4d3-18c7-48b8-93f8-656354e39a3f';
+    const [faviconUrl, setFaviconUrl] = useState('https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Fremove-photos-background-removed%20(1).png?alt=media&token=e95cb4d3-18c7-48b8-93f8-656354e39a3f');
+    const [hasMounted, setHasMounted] = useState(false);
+
+    useEffect(() => {
+        setHasMounted(true);
+    }, []);
+
+    useEffect(() => {
+        if (hasMounted) {
+            const loadFavicon = () => {
+                const savedFavicon = localStorage.getItem('faviconImage');
+                if (savedFavicon) {
+                    setFaviconUrl(savedFavicon);
+                }
+            };
+
+            loadFavicon();
+            window.addEventListener('storage', loadFavicon);
+
+            return () => {
+                window.removeEventListener('storage', loadFavicon);
+            };
+        }
+    }, [hasMounted]);
+
+    if (!hasMounted) {
+        // Render a default on the server and initial client render
+        return <link rel="icon" href="https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Fremove-photos-background-removed%20(1).png?alt=media&token=e95cb4d3-18c7-48b8-93f8-656354e39a3f" />;
+    }
+
     return <link rel="icon" href={faviconUrl} />;
 }
+
 
 export function RootProvider({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
