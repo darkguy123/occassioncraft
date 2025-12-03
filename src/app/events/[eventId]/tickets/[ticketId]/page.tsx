@@ -22,12 +22,6 @@ const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-856
 const TicketDesign = ({ eventData, ticketData, qrCodeUrl, user }: { eventData: Event, ticketData: Ticket, qrCodeUrl: string, user: any }) => {
     const formattedDate = eventData.date ? format(new Date(eventData.date), "EEEE, MMM d, yyyy") : 'Date';
     const formattedTime = eventData.startTime || 'Time';
-    const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
-
-    useEffect(() => {
-        const savedLogo = localStorage.getItem('websiteLogo');
-        setLogoUrl(savedLogo || DEFAULT_LOGO_URL);
-    }, []);
     
     return (
         <Card id="ticket-to-download" className={cn(
@@ -93,7 +87,7 @@ const TicketDesign = ({ eventData, ticketData, qrCodeUrl, user }: { eventData: E
                     </div>
 
                     <div className="mt-8 border-t-2 border-dashed border-black/20 dark:border-white/20 pt-4 flex items-center justify-between gap-4 text-xs">
-                        <Image src={logoUrl} alt="Logo" width={80} height={20} className="h-5 w-auto" />
+                        <Image src={DEFAULT_LOGO_URL} alt="Logo" width={80} height={20} className="h-5 w-auto" />
                         <p className="text-black/60 dark:text-white/60">ID: {ticketData.id.substring(0, 13)}</p>
                     </div>
                 </div>
