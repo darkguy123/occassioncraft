@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { TicketFormValues } from '@/app/create-ticket/page';
@@ -15,89 +14,75 @@ interface TicketStylePreviewProps {
     eventData: Partial<TicketFormValues>;
 }
 
-const BrutalistTicketTemplate = ({ eventData, qrCodeUrl }: { eventData: Partial<TicketFormValues>, qrCodeUrl: string }) => {
-    const { name, date, ticketBrandingImageUrl, attendeeName } = eventData;
-    const formattedDate = date ? format(date, "dd.MM.yy") : '24.09.24';
-    const formattedMonth = date ? format(date, "MMMM").toUpperCase() : 'SEPTEMBER';
-    const price = eventData.price ? `$${eventData.price}` : '25$';
+const GeometricTicketTemplate = ({ eventData, qrCodeUrl }: { eventData: Partial<TicketFormValues>, qrCodeUrl: string }) => {
+    const { name, date, startTime, location, attendeeName } = eventData;
+    const formattedDate = date ? format(date, "MMM dd, yyyy") : 'Jan 01, 2025';
+    const formattedTime = startTime || '8:00 PM';
+
+    const Barcode = () => (
+        <div className="flex flex-col items-center space-y-[2px] w-8">
+            <div className="h-12 w-full bg-white" style={{
+                clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 90%, 5% 90%, 5% 85%, 0% 85%, 0% 75%, 10% 75%, 10% 70%, 0% 70%, 0% 60%, 5% 60%, 5% 55%, 0% 55%, 0% 45%, 10% 45%, 10% 40%, 0% 40%, 0% 30%, 5% 30%, 5% 25%, 0% 25%, 0% 15%, 10% 15%, 10% 10%, 0% 10%)'
+            }}></div>
+            <p className="text-white text-[8px] tracking-[2px]">12345678</p>
+        </div>
+    );
+    
+    const ScallopedEdge = () => (
+        <div className="absolute inset-y-0 -left-3 w-6 bg-transparent">
+            <div className="h-full w-full" style={{
+                backgroundImage: 'radial-gradient(circle at 100% 50%, transparent 8px, #0f172a 9px)',
+                backgroundSize: '100% 20px',
+            }}></div>
+        </div>
+    )
 
     return (
-        <div className="w-full max-w-2xl mx-auto rounded-lg overflow-hidden shadow-2xl bg-[#101828] text-white font-sans">
-            <div className="flex">
-                {/* Left Stub */}
-                <div className="w-1/4 bg-white text-black p-4 flex flex-col justify-between items-center relative">
-                    <div className="absolute top-4 left-0 right-0 px-2">
-                        {/* Barcode simulation */}
-                        <div className="flex justify-between items-end h-8">
-                            <div className="w-1 bg-black h-full"></div>
-                            <div className="w-0.5 bg-black h-3/4"></div>
-                            <div className="w-1 bg-black h-full"></div>
-                            <div className="w-1 bg-black h-1/2"></div>
-                            <div className="w-0.5 bg-black h-full"></div>
-                            <div className="w-0.5 bg-black h-3/4"></div>
-                            <div className="w-1 bg-black h-full"></div>
-                             <div className="w-0.5 bg-black h-1/2"></div>
-                            <div className="w-1 bg-black h-full"></div>
-                            <div className="w-1 bg-black h-3/4"></div>
-                        </div>
-                        <p className="text-[5px] leading-tight mt-1 text-gray-600">
-                            Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy.
-                        </p>
-                    </div>
+        <div className="w-full max-w-lg mx-auto rounded-lg shadow-2xl bg-slate-900 text-white font-sans relative overflow-hidden aspect-[2/1]">
+            <div className="absolute -right-2 top-0 h-full w-4 bg-slate-900 z-20"></div>
+            <div className="absolute -left-2 top-0 h-full w-4 bg-slate-900 z-20"></div>
+            
+            {/* Scalloped Edges */}
+            <div className="absolute inset-y-0 -left-3 w-6 bg-transparent z-10">
+                <div className="h-full w-full" style={{ backgroundImage: 'radial-gradient(circle at 100% 50%, transparent 9px, #0f172a 10px)', backgroundSize: '100% 24px' }}></div>
+            </div>
+             <div className="absolute inset-y-0 -right-3 w-6 bg-transparent z-10">
+                <div className="h-full w-full" style={{ backgroundImage: 'radial-gradient(circle at 0% 50%, transparent 9px, #0f172a 10px)', backgroundSize: '100% 24px' }}></div>
+            </div>
 
-                    <div className="font-bold text-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                        <p className="text-lg">{formattedDate}</p>
-                        <p className="text-xs tracking-widest">{formattedMonth}</p>
-                    </div>
 
-                    <div className="w-full flex justify-between items-end absolute bottom-4 px-4">
-                        <p className="font-bold text-5xl [writing-mode:vertical-rl] rotate-180">TICKET</p>
-                        <p className="font-bold text-lg">{price}</p>
-                    </div>
+            {/* Geometric Pattern */}
+            <div className="absolute top-0 right-0 h-2/3 w-1/2 opacity-80 z-0">
+                <div className="absolute top-0 right-12 w-24 h-24 rounded-full bg-blue-500/30"></div>
+                <div className="absolute top-8 right-0 w-20 h-20 rounded-tl-full bg-purple-500/40"></div>
+                <div className="absolute top-16 right-16 w-16 h-16 bg-sky-400/50" style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }}></div>
+                <div className="absolute top-4 right-20 w-8 h-8 border-2 border-purple-400"></div>
+            </div>
 
+            <div className="relative z-10 p-6 h-full flex flex-col justify-between">
+                <div>
+                    <h3 className="font-bold text-2xl tracking-wide">{name || 'Your Event Name'}</h3>
+                    <p className="text-white/70">{attendeeName || 'Ticket Holder'}</p>
                 </div>
-
-                {/* Main Body */}
-                <div className="w-3/4 p-6 flex flex-col justify-between">
-                    <div>
-                        <div className="flex justify-between items-center">
-                            {/* Geometric shapes */}
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center">
-                                    <div className="w-4 h-4 rounded-full border border-white flex items-center justify-center">
-                                         <div className="w-1 h-1 rounded-full bg-white"></div>
-                                    </div>
-                                </div>
-                                <div className="w-2 h-2 rounded-full bg-white"></div>
-                                <div className="w-2 h-2 bg-white transform rotate-45"></div>
-                                <div className="w-2 h-2 bg-white transform rotate-45"></div>
-                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 0L7.854 4.146L12 6L7.854 7.854L6 12L4.146 7.854L0 6L4.146 4.146L6 0Z" fill="white"/></svg>
-                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 0L7.854 4.146L12 6L7.854 7.854L6 12L4.146 7.854L0 6L4.146 4.146L6 0Z" fill="white"/></svg>
-                            </div>
-                            {/* QR Code */}
-                            {qrCodeUrl && (
-                                <div className="bg-white p-1 rounded-md shadow-lg">
-                                    <Image src={qrCodeUrl} alt="QR Code" width={64} height={64} />
-                                </div>
-                            )}
-                        </div>
-                        <div className="mt-4">
-                             <h2 className="text-xl font-semibold tracking-wider">
-                                {name || "ART SUNSET FEST"}
-                             </h2>
-                            <h1 className="text-6xl font-extrabold text-pink-500 -ml-1">
-                                {attendeeName || "BRUTALISM"}
-                            </h1>
-                        </div>
+                <div className="flex justify-between items-end">
+                    <div className="text-sm">
+                        <p className="font-semibold">{formattedDate}</p>
+                        <p className="text-white/70">{formattedTime} &bull; {location || 'Venue'}</p>
                     </div>
-                     <div className="flex items-center gap-2 font-bold text-2xl text-white/80 self-end">
-                        <span>&gt;</span><span>&gt;</span><span>&gt;</span><span>&gt;</span><span>&gt;</span><span>&gt;</span>
+                     <div className="flex items-center gap-4">
+                        {qrCodeUrl ? (
+                            <div className="bg-white p-1 rounded-md">
+                                <Image src={qrCodeUrl} alt="QR Code" width={72} height={72} />
+                            </div>
+                        ) : (
+                            <Skeleton className="w-[80px] h-[80px]" />
+                        )}
                     </div>
                 </div>
             </div>
         </div>
     );
-}
+};
 
 
 const ModernTicketTemplate = ({ eventData, qrCodeUrl }: { eventData: Partial<TicketFormValues>, qrCodeUrl: string }) => {
@@ -178,7 +163,7 @@ export function TicketStylePreview({ eventData }: TicketStylePreviewProps) {
     
     const renderContent = () => {
         const props = { eventData, qrCodeUrl };
-         if (templateId === 'classic') return <BrutalistTicketTemplate {...props} />;
+         if (templateId === 'classic') return <GeometricTicketTemplate {...props} />;
          if (templateId === 'modern') return <ModernTicketTemplate {...props} />;
          if (templateId === 'minimal') return <MinimalTicketTemplate {...props} />;
 
