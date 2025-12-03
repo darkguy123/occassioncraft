@@ -1,5 +1,4 @@
 
-
 export type UserRole = 'user' | 'vendor' | 'admin';
 
 export type User = {
@@ -68,6 +67,11 @@ export type UserTicket = {
   isUsed?: boolean;
   vendorId: string; // Denormalized for security rules
   attendeeName?: string;
+  package?: string;
+  tier?: string;
+  scans?: number;
+  maxScans?: number;
+  lastScannedAt?: string;
 };
 
 export type Vendor = {

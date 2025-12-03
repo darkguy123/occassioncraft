@@ -8,7 +8,7 @@ import { BarChart2, Ticket, DollarSign, PlusCircle, QrCode, AlertTriangle, MoreH
 import Link from "next/link";
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, deleteDocumentNonBlocking } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
-import type { User, Event, UserTicket } from "@/lib/types";
+import type { User, Event, Ticket as TicketType } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo } from "react";
@@ -19,6 +19,7 @@ import {
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuTrigger,
+    DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge";
 
@@ -49,7 +50,7 @@ export default function VendorDashboardPage() {
         return query(collection(firestore, 'tickets'), where('eventId', 'in', vendorEventIds));
     }, [firestore, vendorEventIds]);
 
-    const { data: tickets, isLoading: areTicketsLoading } = useCollection<UserTicket>(ticketsQuery);
+    const { data: tickets, isLoading: areTicketsLoading } = useCollection<TicketType>(ticketsQuery);
 
     const totalRevenue = useMemo(() => {
         if (!tickets) return 0;
@@ -124,6 +125,12 @@ export default function VendorDashboardPage() {
             <p className="text-muted-foreground">Manage your events, craft tickets, and track sales.</p>
         </div>
         <div className="flex gap-2">
+            <Button asChild variant="secondary">
+                <Link href="/validate">
+                    <QrCode className="mr-2 h-4 w-4" />
+                    Scan Tickets
+                </Link>
+            </Button>
             <Button asChild variant="outline">
                 <Link href="/create-event">
                     <PlusCircle className="mr-2 h-4 w-4" />
@@ -209,8 +216,14 @@ export default function VendorDashboardPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                 <DropdownMenuItem asChild>
+                                    <Link href={`/vendor/events/${event.id}/report`}>
+                                        <BarChart2 className="mr-2 h-4 w-4" /> View Report
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem asChild>
-                                    <Link href={`/admin/events/${event.id}/edit`}>
+                                    <Link href={`/vendor/events/${event.id}/edit`}>
                                         <Edit className="mr-2 h-4 w-4" /> Edit
                                     </Link>
                                 </DropdownMenuItem>
