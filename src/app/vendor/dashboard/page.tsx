@@ -11,7 +11,7 @@ import { doc, collection, query, where } from "firebase/firestore";
 import type { User, Event, Ticket as TicketType } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
     DropdownMenu,
@@ -28,6 +28,7 @@ export default function VendorDashboardPage() {
     const firestore = useFirestore();
     const router = useRouter();
     const { toast } = useToast();
+    const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
 
     const userDocRef = useMemoFirebase(() => {
         if (!user) return null;
@@ -59,18 +60,24 @@ export default function VendorDashboardPage() {
 
 
     const isLoading = isUserLoading || isUserDataLoading || areEventsLoading || (vendorEventIds.length > 0 && areTicketsLoading);
-    const isVendor = (userData?.roles || []).includes('vendor');
-
+    
     useEffect(() => {
-        if (isUserLoading || isUserDataLoading) return;
-        if (!user) {
-            router.push('/login');
+        if (isUserLoading || isUserDataLoading) {
+            setAuthStatus('loading');
             return;
         }
-        if (!isVendor) {
-            router.push('/vendor');
+        if (!user) {
+            router.push('/login');
+            setAuthStatus('unauthorized');
+            return;
         }
-    }, [isUserLoading, isUserDataLoading, user, isVendor, router]);
+        if (!(userData?.roles || []).includes('vendor')) {
+             setAuthStatus('unauthorized');
+             router.push('/vendor');
+        } else {
+             setAuthStatus('authorized');
+        }
+    }, [isUserLoading, isUserDataLoading, user, userData, router]);
     
     const handleDelete = (eventId: string, eventName: string) => {
         if (!firestore) return;
@@ -82,7 +89,7 @@ export default function VendorDashboardPage() {
         });
     }
 
-    if (isLoading) {
+    if (authStatus !== 'authorized') {
         return (
              <div className="container mx-auto py-12 px-4 space-y-8">
                 <Skeleton className="h-12 w-1/2" />
@@ -195,12 +202,12 @@ export default function VendorDashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {areEventsLoading && (
+              {isLoading && (
                 <TableRow>
                     <TableCell colSpan={4}><Skeleton className="h-20" /></TableCell>
                 </TableRow>
               )}
-              {!areEventsLoading && vendorEvents && vendorEvents.length > 0 ? (
+              {!isLoading && vendorEvents && vendorEvents.length > 0 ? (
                 vendorEvents.map(event => (
                   <TableRow key={event.id}>
                     <TableCell className="font-medium">{event.name}</TableCell>
@@ -236,7 +243,7 @@ export default function VendorDashboardPage() {
                   </TableRow>
                 ))
               ) : (
-                 !areEventsLoading && (
+                 !isLoading && (
                     <TableRow>
                         <TableCell colSpan={4} className="py-12 text-center text-muted-foreground">
                         You haven't created any events yet.

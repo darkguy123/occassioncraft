@@ -28,6 +28,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
 import { useCart } from "@/context/cart-context"
 import Link from "next/link";
+import { Switch } from "@/components/ui/switch";
 
 const ticketFormSchema = z.object({
   eventId: z.string().min(1, "Please select an event to link this ticket to."),
@@ -90,6 +91,7 @@ export default function CreateTicketPage() {
     defaultValues: {
       package: 'Regular',
       maxScans: 1,
+      isPrivate: false,
     },
     mode: "onChange",
   });
@@ -111,7 +113,14 @@ export default function CreateTicketPage() {
   const onSubmit = (data: TicketFormValues) => {
     if (!user) return;
     const linkedEvent = vendorEvents?.find(e => e.id === data.eventId);
-    if (!linkedEvent) return;
+    if (!linkedEvent) {
+      toast({
+        variant: "destructive",
+        title: "Event Not Selected",
+        description: "You must link this ticket to an event.",
+      });
+      return;
+    }
 
     const cartItem = {
       id: uuidv4(),
@@ -189,6 +198,10 @@ export default function CreateTicketPage() {
   if (authStatus !== 'authorized' || areEventsLoading) {
     return (
         <div className="container max-w-6xl mx-auto py-10 px-4">
+           <div className="space-y-2 mb-8">
+            <Skeleton className="h-10 w-1/2" />
+            <Skeleton className="h-6 w-1/3" />
+          </div>
           <div className="grid md:grid-cols-2 gap-12">
             <div><Skeleton className="h-[600px] w-full" /></div>
             <div><Skeleton className="h-[400px] w-full" /></div>
@@ -388,7 +401,7 @@ export default function CreateTicketPage() {
                                     <FormLabel>Private Ticket</FormLabel>
                                     <FormDescription className="text-xs">If checked, this ticket will not be publicly listed.</FormDescription>
                                 </div>
-                                <FormControl><input type="checkbox" checked={field.value} onChange={field.onChange} className="toggle-switch" /></FormControl>
+                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                                 </FormItem>
                             )}
                         />
@@ -435,5 +448,3 @@ export default function CreateTicketPage() {
     </div>
   );
 }
-
-    

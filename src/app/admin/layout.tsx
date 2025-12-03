@@ -36,6 +36,7 @@ export default function AdminLayout({
   const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
 
   useEffect(() => {
+    // This now waits for ALL data to finish loading.
     const isLoading = isUserLoading || isUserDataLoading || isAdminRoleLoading;
 
     if (isLoading) {
