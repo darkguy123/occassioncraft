@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { CalendarIcon, ArrowLeft, Plus, Loader2, UserPlus, Trash2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
 import Image from "next/image"
@@ -41,13 +41,15 @@ const eventFormSchema = z.object({
 
 export type EventFormValues = z.infer<typeof eventFormSchema>;
 
-export default function AdminEditEventPage({ params }: { params: { eventId: string } }) {
+export default function AdminEditEventPage() {
   const { toast } = useToast();
   const router = useRouter();
   const firestore = useFirestore();
+  const params = useParams();
+  const eventId = params.eventId as string;
+
   const [isUploading, setIsUploading] = useState(false);
   const [newScannerId, setNewScannerId] = useState('');
-  const { eventId } = params;
   
   const eventDocRef = useMemoFirebase(() => {
     if (!firestore || !eventId) return null;
