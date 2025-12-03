@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -21,7 +22,6 @@ const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-856
 
 export function Footer() {
   const [socials, setSocials] = useState({ twitter: '#', facebook: '#', instagram: '#' });
-  const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
   const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
@@ -37,9 +37,6 @@ export function Footer() {
       const facebook = localStorage.getItem('social-facebook') || '#';
       const instagram = localStorage.getItem('social-instagram') || '#';
       setSocials({ twitter, facebook, instagram });
-
-      const savedLogo = localStorage.getItem('websiteLogo');
-      setLogoUrl(savedLogo || DEFAULT_LOGO_URL);
     };
 
     loadSettings();
@@ -57,7 +54,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
             <Link href="/" className="flex items-center space-x-2">
-              <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" />
+              <Image src={DEFAULT_LOGO_URL} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" />
             </Link>
             <p className="text-sm">Create, discover, and celebrate events with OccasionCraft.</p>
             <div className="flex space-x-4">
@@ -104,5 +101,3 @@ export function Footer() {
     </footer>
   );
 }
-
-    

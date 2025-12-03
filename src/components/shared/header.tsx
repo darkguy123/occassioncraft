@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -18,8 +19,6 @@ const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-856
 export function Header() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
-  const [hasMounted, setHasMounted] = useState(false);
   const { showLoader } = useLoader();
   const { cart } = useCart();
 
@@ -30,33 +29,12 @@ export function Header() {
 
   const { data: userData } = useDoc<User>(userDocRef);
 
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hasMounted) return;
-    
-    const updateLogo = () => {
-      const savedLogo = localStorage.getItem('websiteLogo');
-      setLogoUrl(savedLogo || DEFAULT_LOGO_URL);
-    };
-
-    updateLogo();
-
-    window.addEventListener('storage', updateLogo);
-
-    return () => {
-      window.removeEventListener('storage', updateLogo);
-    };
-  }, [hasMounted]);
-
   const handleLinkClick = () => {
     showLoader();
   };
 
-  const isVendor = hasMounted && userData && (userData.roles || []).includes('vendor');
-  const isAdmin = hasMounted && userData && (userData.roles || []).includes('admin');
+  const isVendor = userData && (userData.roles || []).includes('vendor');
+  const isAdmin = userData && (userData.roles || []).includes('admin');
   const vendorLinkHref = isVendor ? "/vendor/dashboard" : "/vendor";
   const vendorLinkText = isVendor ? "My Dashboard" : "Host Your Event";
 
@@ -65,7 +43,7 @@ export function Header() {
       <div className="container flex h-16 items-center">
         <div className="mr-4 flex">
            <Link href="/" className="mr-6 flex items-center space-x-2" onClick={handleLinkClick}>
-            <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" priority />
+            <Image src={DEFAULT_LOGO_URL} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" priority />
           </Link>
           <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
             <Link href="/events" className="transition-colors hover:text-foreground/80 text-foreground/60" onClick={handleLinkClick}>
