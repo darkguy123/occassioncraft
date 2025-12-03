@@ -17,7 +17,7 @@ import { Ticket, Eye, EyeOff } from "lucide-react"
 import { useForm, SubmitHandler } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { useAuth } from "@/firebase";
+import { useAuth, useFirebase } from "@/firebase";
 import { initiateEmailSignIn } from "@/firebase/non-blocking-login";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -33,8 +33,11 @@ const loginSchema = z.object({
 
 type LoginSchema = z.infer<typeof loginSchema>;
 
+const DEFAULT_LOGO_URL = '/default-logo.png';
+
 export default function LoginPage() {
   const auth = useAuth();
+  const { siteSettings, isSiteSettingsLoading } = useFirebase();
   const { toast } = useToast();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
@@ -67,23 +70,19 @@ export default function LoginPage() {
       });
     }
   };
-
+  
+  const logoUrl = siteSettings?.logoUrl || DEFAULT_LOGO_URL;
 
   return (
-    <div className="relative flex items-center justify-center min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-4.5rem)] py-12 px-4">
-       <Image
-          src='https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2F67e206b7d52d22580e4ec0d8_890.jpg?alt=media&token=c0a35579-2cdf-4d20-9aa9-6163ff95eddf'
-          alt="Hero Banner"
-          fill
-          className="object-cover -z-10"
-          data-ai-hint='concert stage lights'
-        />
-        <div className="absolute inset-0 bg-black/70 -z-10" />
-
+    <div className="relative flex items-center justify-center min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-4.5rem)] py-12 px-4" style={{ backgroundColor: '#3366ff' }}>
       <Card className="mx-auto max-w-sm w-full">
         <CardHeader className="text-center">
-            <Ticket className="mx-auto h-8 w-8 text-primary" />
-          <CardTitle className="text-2xl font-headline">Welcome Back</CardTitle>
+            {isSiteSettingsLoading ? (
+              <div className="h-10 w-36 bg-gray-200 rounded-md animate-pulse mx-auto" />
+            ) : (
+              <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={40} className="h-10 w-auto mx-auto" unoptimized/>
+            )}
+          <CardTitle className="text-2xl font-headline mt-4">Welcome Back</CardTitle>
           <CardDescription>
             Enter your email below to login to your account
           </CardDescription>
