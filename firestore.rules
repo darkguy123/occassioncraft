@@ -68,5 +68,11 @@ service cloud.firestore {
     	allow read: if isAdmin();
       allow write: if isAdmin() || isOwner(userId);
     }
+    
+    // Site settings are publicly readable, but only writable by admins.
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }
