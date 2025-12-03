@@ -21,7 +21,7 @@ import Image from 'next/image';
 export default function AdminSettingsPage() {
   const { toast } = useToast();
   const firestore = useFirestore();
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadingStatus, setUploadingStatus] = useState<Record<string, boolean>>({});
 
   const settingsDocRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -52,7 +52,7 @@ export default function AdminSettingsPage() {
       return;
     }
 
-    setIsUploading(true);
+    setUploadingStatus(prev => ({ ...prev, [fieldName]: true }));
     const storage = getStorage();
     const storageRef = ref(storage, `site-settings/${uuidv4()}-${file.name}`);
 
@@ -65,7 +65,7 @@ export default function AdminSettingsPage() {
       console.error("Error uploading file:", error);
       toast({ variant: 'destructive', title: 'Upload Failed' });
     } finally {
-      setIsUploading(false);
+      setUploadingStatus(prev => ({ ...prev, [fieldName]: false }));
     }
   };
 
@@ -80,6 +80,8 @@ export default function AdminSettingsPage() {
       description: `Your ${section.toLowerCase()} settings have been saved.`,
     });
   };
+
+  const isAnyFieldUploading = Object.values(uploadingStatus).some(status => status);
   
   if (isSettingsLoading) {
     return (
@@ -120,7 +122,7 @@ export default function AdminSettingsPage() {
                       <Label htmlFor="logoUrl">Logo Image</Label>
                       <div className="flex items-center justify-center w-full">
                           <label htmlFor="logoUrl-upload" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
-                                {isUploading ? <Loader2 className="h-8 w-8 animate-spin" /> :
+                                {uploadingStatus['logoUrl'] ? <Loader2 className="h-8 w-8 animate-spin" /> :
                                  formData.logoUrl ? (
                                     <Image src={formData.logoUrl} alt="Logo preview" className="h-24 w-auto object-contain" width={200} height={96} />
                                 ) : (
@@ -131,7 +133,7 @@ export default function AdminSettingsPage() {
                                     </div>
                                 )}
                           </label>
-                          <Input id="logoUrl-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/svg+xml, image/webp" onChange={(e) => handleFileChange(e, 'logoUrl')} disabled={isUploading}/>
+                          <Input id="logoUrl-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/svg+xml, image/webp" onChange={(e) => handleFileChange(e, 'logoUrl')} disabled={uploadingStatus['logoUrl']}/>
                       </div>
                     </div>
 
@@ -139,7 +141,7 @@ export default function AdminSettingsPage() {
                       <Label htmlFor="faviconUrl">Favicon Image</Label>
                        <div className="flex items-center gap-4">
                             <label htmlFor="faviconUrl-upload" className="flex items-center justify-center w-24 h-24 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
-                                {isUploading ? <Loader2 className="h-6 w-6 animate-spin" /> :
+                                {uploadingStatus['faviconUrl'] ? <Loader2 className="h-6 w-6 animate-spin" /> :
                                  formData.faviconUrl ? (
                                     <Image src={formData.faviconUrl} alt="Favicon preview" className="h-12 w-12 object-contain" width={48} height={48} />
                                 ) : (
@@ -149,7 +151,7 @@ export default function AdminSettingsPage() {
                                     </div>
                                 )}
                             </label>
-                            <Input id="faviconUrl-upload" type="file" className="hidden" accept="image/x-icon, image/png, image/svg+xml" onChange={(e) => handleFileChange(e, 'faviconUrl')} disabled={isUploading}/>
+                            <Input id="faviconUrl-upload" type="file" className="hidden" accept="image/x-icon, image/png, image/svg+xml" onChange={(e) => handleFileChange(e, 'faviconUrl')} disabled={uploadingStatus['faviconUrl']}/>
                             <div>
                                 <p className="text-sm text-muted-foreground">Upload a new favicon.</p>
                                 <p className="text-xs text-muted-foreground">This will appear in the browser tab.</p>
@@ -158,7 +160,7 @@ export default function AdminSettingsPage() {
                     </div>
 
                     <div className="flex justify-end">
-                        <Button onClick={() => handleSave('Branding')} disabled={isUploading}>Save Changes</Button>
+                        <Button onClick={() => handleSave('Branding')} disabled={isAnyFieldUploading}>Save Changes</Button>
                     </div>
                 </CardContent>
             </Card>
@@ -191,7 +193,7 @@ export default function AdminSettingsPage() {
                 <Label htmlFor="heroBannerUrl">Homepage Banner Image</Label>
                 <div className="flex items-center justify-center w-full">
                   <label htmlFor="heroBannerUrl-upload" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
-                    {isUploading ? <Loader2 className="h-8 w-8 animate-spin" /> :
+                    {uploadingStatus['heroBannerUrl'] ? <Loader2 className="h-8 w-8 animate-spin" /> :
                      formData.heroBannerUrl ? (
                       <Image src={formData.heroBannerUrl} alt="Hero banner preview" className="h-full w-full object-cover" layout="fill" />
                     ) : (
@@ -202,12 +204,12 @@ export default function AdminSettingsPage() {
                       </div>
                     )}
                   </label>
-                   <Input id="heroBannerUrl-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/webp" onChange={(e) => handleFileChange(e, 'heroBannerUrl')} disabled={isUploading}/>
+                   <Input id="heroBannerUrl-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/webp" onChange={(e) => handleFileChange(e, 'heroBannerUrl')} disabled={uploadingStatus['heroBannerUrl']}/>
                 </div>
               </div>
 
               <div className="flex justify-end">
-                 <Button onClick={() => handleSave('Appearance')} disabled={isUploading}>Save Appearance</Button>
+                 <Button onClick={() => handleSave('Appearance')} disabled={isAnyFieldUploading}>Save Appearance</Button>
               </div>
             </CardContent>
           </Card>
