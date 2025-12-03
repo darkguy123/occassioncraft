@@ -16,6 +16,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import type { SiteSettings } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import Image from 'next/image';
 
 export default function AdminSettingsPage() {
   const { toast } = useToast();
@@ -119,18 +120,18 @@ export default function AdminSettingsPage() {
                       <Label htmlFor="logoUrl">Logo Image</Label>
                       <div className="flex items-center justify-center w-full">
                           <label htmlFor="logoUrl-upload" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
-                                {isUploading && <Loader2 className="h-8 w-8 animate-spin" />}
-                                {!isUploading && formData.logoUrl ? (
-                                    <img src={formData.logoUrl} alt="Logo preview" className="h-24 w-auto object-contain" />
-                                ) : !isUploading && (
+                                {isUploading ? <Loader2 className="h-8 w-8 animate-spin" /> :
+                                 formData.logoUrl ? (
+                                    <Image src={formData.logoUrl} alt="Logo preview" className="h-24 w-auto object-contain" width={200} height={96} />
+                                ) : (
                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                         <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
                                         <p className="text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
                                         <p className="text-xs text-muted-foreground">PNG, JPG, SVG (MAX. 2MB)</p>
                                     </div>
                                 )}
-                                <Input id="logoUrl-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/svg+xml, image/webp" onChange={(e) => handleFileChange(e, 'logoUrl')} disabled={isUploading}/>
                           </label>
+                          <Input id="logoUrl-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/svg+xml, image/webp" onChange={(e) => handleFileChange(e, 'logoUrl')} disabled={isUploading}/>
                       </div>
                     </div>
 
@@ -138,17 +139,17 @@ export default function AdminSettingsPage() {
                       <Label htmlFor="faviconUrl">Favicon Image</Label>
                        <div className="flex items-center gap-4">
                             <label htmlFor="faviconUrl-upload" className="flex items-center justify-center w-24 h-24 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
-                                {isUploading && <Loader2 className="h-6 w-6 animate-spin" />}
-                                {!isUploading && formData.faviconUrl ? (
-                                    <img src={formData.faviconUrl} alt="Favicon preview" className="h-12 w-12 object-contain" />
-                                ) : !isUploading && (
+                                {isUploading ? <Loader2 className="h-6 w-6 animate-spin" /> :
+                                 formData.faviconUrl ? (
+                                    <Image src={formData.faviconUrl} alt="Favicon preview" className="h-12 w-12 object-contain" width={48} height={48} />
+                                ) : (
                                    <div className="flex flex-col items-center justify-center text-center p-2">
                                         <Upload className="w-6 h-6 mb-1 text-muted-foreground" />
                                         <p className="text-xs text-muted-foreground">Upload .ico, .png, .svg</p>
                                     </div>
                                 )}
-                                <Input id="faviconUrl-upload" type="file" className="hidden" accept="image/x-icon, image/png, image/svg+xml" onChange={(e) => handleFileChange(e, 'faviconUrl')} disabled={isUploading}/>
                             </label>
+                            <Input id="faviconUrl-upload" type="file" className="hidden" accept="image/x-icon, image/png, image/svg+xml" onChange={(e) => handleFileChange(e, 'faviconUrl')} disabled={isUploading}/>
                             <div>
                                 <p className="text-sm text-muted-foreground">Upload a new favicon.</p>
                                 <p className="text-xs text-muted-foreground">This will appear in the browser tab.</p>
@@ -190,18 +191,18 @@ export default function AdminSettingsPage() {
                 <Label htmlFor="heroBannerUrl">Homepage Banner Image</Label>
                 <div className="flex items-center justify-center w-full">
                   <label htmlFor="heroBannerUrl-upload" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
-                    {isUploading && <Loader2 className="h-8 w-8 animate-spin" />}
-                    {!isUploading && formData.heroBannerUrl ? (
-                      <img src={formData.heroBannerUrl} alt="Hero banner preview" className="h-full w-full object-cover" />
-                    ) : !isUploading && (
+                    {isUploading ? <Loader2 className="h-8 w-8 animate-spin" /> :
+                     formData.heroBannerUrl ? (
+                      <Image src={formData.heroBannerUrl} alt="Hero banner preview" className="h-full w-full object-cover" layout="fill" />
+                    ) : (
                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
                         <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
                         <p className="text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
                         <p className="text-xs text-muted-foreground">PNG, JPG, WEBP (MAX. 2MB)</p>
                       </div>
                     )}
-                    <Input id="heroBannerUrl-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/webp" onChange={(e) => handleFileChange(e, 'heroBannerUrl')} disabled={isUploading}/>
                   </label>
+                   <Input id="heroBannerUrl-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/webp" onChange={(e) => handleFileChange(e, 'heroBannerUrl')} disabled={isUploading}/>
                 </div>
               </div>
 
@@ -303,5 +304,3 @@ export default function AdminSettingsPage() {
     </div>
   );
 }
-
-    
