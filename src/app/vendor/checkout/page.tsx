@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from "@/context/cart-context";
@@ -6,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { usePaystackPayment } from 'react-paystack';
 import { useToast } from "@/hooks/use-toast";
-import { useUser, useFirestore, addDocumentNonBlocking } from "@/firebase";
+import { useUser, useFirestore } from "@/firebase";
 import { collection, doc, writeBatch } from "firebase/firestore";
 import Link from "next/link";
 import { v4 as uuidv4 } from 'uuid';
-import { AlertCircle, ShoppingCart, Trash2 } from "lucide-react";
+import { ShoppingCart, Trash2 } from "lucide-react";
 import type { Ticket } from "@/lib/types";
 
 export default function CheckoutPage() {
@@ -97,7 +98,7 @@ export default function CheckoutPage() {
             toast({ variant: 'destructive', title: 'Your cart is empty!' });
             return;
         }
-        if (!process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY) {
+        if (!process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY.startsWith('pk_test_')) {
             toast({
                 variant: 'destructive',
                 title: 'Setup Required',
@@ -109,9 +110,9 @@ export default function CheckoutPage() {
     }
 
     return (
-        <div className="container max-w-4xl mx-auto py-12 px-4">
+        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <div className="space-y-2 mb-8">
-                <h1 className="text-4xl font-bold font-headline">My Cart</h1>
+                <h1 className="text-3xl font-bold tracking-tight">My Cart</h1>
                 <p className="text-muted-foreground">Review your ticket batches and proceed to payment.</p>
             </div>
             

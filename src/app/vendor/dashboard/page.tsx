@@ -6,12 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "@/components/ui/table";
 import { BarChart2, Ticket, DollarSign, PlusCircle, QrCode, AlertTriangle, MoreHorizontal, Edit, Trash2, Palette } from "lucide-react";
 import Link from "next/link";
-import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, deleteDocumentNonBlocking } from "@/firebase";
+import { useUser, useFirestore, useMemoFirebase, useCollection, deleteDocumentNonBlocking } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
-import type { User, Event, Ticket as TicketType } from "@/lib/types";
+import type { Event, Ticket as TicketType } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
     DropdownMenu,
@@ -24,18 +23,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 export default function VendorDashboardPage() {
-    const { user, isUserLoading } = useUser();
+    const { user } = useUser();
     const firestore = useFirestore();
-    const router = useRouter();
     const { toast } = useToast();
-    const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
-
-    const userDocRef = useMemoFirebase(() => {
-        if (!user) return null;
-        return doc(firestore, 'users', user.uid);
-    }, [firestore, user]);
-
-    const { data: userData, isLoading: isUserDataLoading } = useDoc<User>(userDocRef);
 
     const vendorEventsQuery = useMemoFirebase(() => {
         if (!user) return null;
@@ -59,25 +49,7 @@ export default function VendorDashboardPage() {
     }, [tickets]);
 
 
-    const isLoading = isUserLoading || isUserDataLoading || areEventsLoading || (vendorEventIds.length > 0 && areTicketsLoading);
-    
-    useEffect(() => {
-        if (isUserLoading || isUserDataLoading) {
-            setAuthStatus('loading');
-            return;
-        }
-        if (!user) {
-            router.push('/login');
-            setAuthStatus('unauthorized');
-            return;
-        }
-        if (!(userData?.roles || []).includes('vendor')) {
-             setAuthStatus('unauthorized');
-             router.push('/vendor');
-        } else {
-             setAuthStatus('authorized');
-        }
-    }, [isUserLoading, isUserDataLoading, user, userData, router]);
+    const isLoading = areEventsLoading || (vendorEventIds.length > 0 && areTicketsLoading);
     
     const handleDelete = (eventId: string, eventName: string) => {
         if (!firestore) return;
@@ -89,61 +61,14 @@ export default function VendorDashboardPage() {
         });
     }
 
-    if (authStatus !== 'authorized') {
-        return (
-             <div className="container mx-auto py-12 px-4 space-y-8">
-                <Skeleton className="h-12 w-1/2" />
-                <div className="grid gap-4 md:grid-cols-3">
-                    <Skeleton className="h-28" />
-                    <Skeleton className="h-28" />
-                    <Skeleton className="h-28" />
-                </div>
-                <Skeleton className="h-96" />
-            </div>
-        )
-    }
-    
-    const vendorStatus = 'approved'; 
-
-    if (vendorStatus === 'pending') {
-         return (
-             <div className="container mx-auto py-12 px-4 text-center">
-                 <Card className="max-w-lg mx-auto">
-                     <CardHeader>
-                        <AlertTriangle className="mx-auto h-12 w-12 text-amber-500" />
-                         <CardTitle className="text-2xl">Application Pending</CardTitle>
-                         <CardDescription>
-                            Your vendor application is currently under review.
-                         </CardDescription>
-                     </CardHeader>
-                     <CardContent>
-                         <p>You will be notified once your application has been approved. Thank you for your patience.</p>
-                     </CardContent>
-                 </Card>
-            </div>
-         );
-    }
-    
   return (
-    <div className="container mx-auto py-12 px-4">
-      <div className="flex items-center justify-between mb-8">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+      <div className="flex items-center justify-between">
         <div className="space-y-2">
-            <h1 className="text-4xl font-bold font-headline">Vendor Dashboard</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Vendor Dashboard</h1>
             <p className="text-muted-foreground">Manage your events, craft tickets, and track sales.</p>
         </div>
         <div className="flex gap-2">
-            <Button asChild variant="secondary">
-                <Link href="/validate">
-                    <QrCode className="mr-2 h-4 w-4" />
-                    Scan Tickets
-                </Link>
-            </Button>
-            <Button asChild variant="outline">
-                <Link href="/create-event">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Create Event
-                </Link>
-            </Button>
             <Button asChild>
                 <Link href="/create-ticket">
                     <Palette className="mr-2 h-4 w-4" />
@@ -153,7 +78,7 @@ export default function VendorDashboardPage() {
         </div>
       </div>
       
-      <div className="grid gap-4 md:grid-cols-3 mb-8">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
