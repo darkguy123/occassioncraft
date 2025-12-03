@@ -16,7 +16,7 @@ import { CartProvider } from '@/context/cart-context';
 function Favicon() {
     // This component now simply renders the permanent favicon link.
     // The dynamic loading has been removed to prevent hydration errors.
-    const faviconUrl = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Ffavicon.png?alt=media&token=e95cb4d3-18c7-48b8-93f8-656354e39a3f';
+    const faviconUrl = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Fremove-photos-background-removed%20(1).png?alt=media&token=e95cb4d3-18c7-48b8-93f8-656354e39a3f';
     return <link rel="icon" href={faviconUrl} />;
 }
 
@@ -48,7 +48,7 @@ export function RootProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <>
-          <Suspense fallback={<link rel="icon" href="https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Ffavicon.png?alt=media&token=e95cb4d3-18c7-48b8-93f8-656354e39a3f" />}>
+          <Suspense fallback={<link rel="icon" href="https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Fremove-photos-background-removed%20(1).png?alt=media&token=e95cb4d3-18c7-48b8-93f8-656354e39a3f" />}>
              <Favicon />
           </Suspense>
           <FirebaseClientProvider>

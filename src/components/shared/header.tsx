@@ -14,7 +14,7 @@ import { PlusCircle, ShoppingCart } from 'lucide-react';
 import { useLoader } from '@/context/loader-context';
 import { useCart } from '@/context/cart-context';
 
-const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Flogo.png?alt=media&token=42592398-356a-4934-8c89-9831b3294317';
+const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Fremove-photos-background-removed%20(1).png?alt=media&token=e95cb4d3-18c7-48b8-93f8-656354e39a3f';
 
 export function Header() {
   const { user, isUserLoading } = useUser();
