@@ -72,7 +72,7 @@ export default function AdminSettingsPage() {
     loadSettings();
   }, []);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'hero') => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'hero') => {
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) { // 2MB limit
@@ -87,6 +87,7 @@ export default function AdminSettingsPage() {
       reader.onloadend = () => {
         const result = reader.result as string;
         const fileState = { file, preview: result };
+        if (type === 'logo') setLogo(fileState);
         if (type === 'hero') setHeroBanner(fileState);
       };
       reader.readAsDataURL(file);
@@ -192,20 +193,29 @@ export default function AdminSettingsPage() {
             <Card>
                 <CardHeader>
                 <CardTitle>Branding</CardTitle>
-                <CardDescription>The website logo and favicon are now hardcoded for stability. This section is disabled.</CardDescription>
+                <CardDescription>Manage your website logo. The favicon is now hardcoded for stability.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                <div className="grid gap-8 opacity-50">
+                <div className="grid gap-8">
                     <div className="grid gap-2">
                       <Label htmlFor="logo-upload">Logo Image</Label>
                       <div className="flex items-center justify-center w-full">
-                          <label htmlFor="logo-upload" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-not-allowed bg-card/50 relative">
-                                <p className="text-sm text-muted-foreground">Logo is now static</p>
+                          <label htmlFor="logo-upload" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
+                                {logo.preview ? (
+                                    <img src={logo.preview} alt="Logo preview" className="h-24 w-auto object-contain" />
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
+                                        <p className="text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                        <p className="text-xs text-muted-foreground">PNG, JPG, SVG (MAX. 2MB)</p>
+                                    </div>
+                                )}
+                                <Input id="logo-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/svg+xml, image/webp" onChange={(e) => handleFileChange(e, 'logo')} />
                           </label>
                       </div>
                     </div>
 
-                    <div className="grid gap-2">
+                    <div className="grid gap-2 opacity-50">
                       <Label htmlFor="favicon-upload">Favicon Image</Label>
                        <div className="flex items-center gap-4">
                             <label htmlFor="favicon-upload" className="flex items-center justify-center w-24 h-24 border-2 border-dashed rounded-lg cursor-not-allowed bg-card/50 relative">
@@ -365,3 +375,5 @@ export default function AdminSettingsPage() {
     </div>
   );
 }
+
+    
