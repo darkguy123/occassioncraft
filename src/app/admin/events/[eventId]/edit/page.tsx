@@ -74,7 +74,7 @@ export default function AdminEditEventPage() {
         name: eventData.name,
         date: date,
         startTime: eventData.startTime,
-        endTime: eventData.endTime,
+        endTime: eventData.endTime || '',
         isOnline: eventData.isOnline,
         location: eventData.location,
         description: eventData.description,

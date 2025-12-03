@@ -65,6 +65,7 @@ export default function CreateEventPage() {
       name: "",
       date: new Date(),
       startTime: format(new Date(), "HH:mm"),
+      endTime: "",
       isOnline: false,
       location: "",
       description: "",

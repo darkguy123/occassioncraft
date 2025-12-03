@@ -43,7 +43,7 @@ const ticketFormSchema = z.object({
   // Design fields
   templateId: z.string().default('classic'),
   ticketImageUrl: z.string().optional(),
-  ticketBrandingImageUrl: z.string().optional(),
+  ticketBrandingImageUrl: zstring().optional(),
 });
 
 export type TicketFormValues = z.infer<typeof ticketFormSchema>;
@@ -90,10 +90,17 @@ export default function CreateTicketPage() {
   const form = useForm<TicketFormValues>({
     resolver: zodResolver(ticketFormSchema),
     defaultValues: {
+      eventId: '',
       package: 'Regular',
+      tier: '',
+      class: '',
+      attendeeName: '',
+      guestPhotoUrl: '',
       maxScans: 1,
       isPrivate: false,
       templateId: 'classic',
+      ticketImageUrl: '',
+      ticketBrandingImageUrl: '',
     },
     mode: "onChange",
   });
