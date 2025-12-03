@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon, ArrowLeft, Plus, Loader2 } from "lucide-react"
+import { CalendarIcon, ArrowLeft, Plus, Loader2, UserPlus, Trash2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react";
@@ -21,9 +21,11 @@ import Image from "next/image"
 import type { Event } from "@/lib/types";
 import Link from "next/link";
 import { useFirestore, useDoc, updateDocumentNonBlocking, useMemoFirebase, useUser } from "@/firebase";
-import { doc } from 'firebase/firestore';
+import { doc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 
 
 const eventFormSchema = z.object({
@@ -42,9 +44,9 @@ export type EventFormValues = z.infer<typeof eventFormSchema>;
 export default function AdminEditEventPage({ params }: { params: { eventId: string } }) {
   const { toast } = useToast();
   const router = useRouter();
-  const { user } = useUser();
   const firestore = useFirestore();
   const [isUploading, setIsUploading] = useState(false);
+  const [newScannerId, setNewScannerId] = useState('');
   
   const eventDocRef = useMemoFirebase(() => {
     if (!firestore || !params.eventId) return null;
@@ -63,7 +65,6 @@ export default function AdminEditEventPage({ params }: { params: { eventId: stri
       const date = new Date(eventData.date);
       if (isNaN(date.getTime())) {
           console.error("Invalid date from Firestore:", eventData.date);
-          // Handle invalid date, maybe set a default or show an error
           return;
       }
       form.reset({
@@ -82,7 +83,7 @@ export default function AdminEditEventPage({ params }: { params: { eventId: stri
   const onSubmit = (data: EventFormValues) => {
     if (!eventDocRef) return;
     
-    const updateData = {
+    const updateData: Partial<Event> = {
       ...data,
       date: data.date.toISOString(),
     };
@@ -111,7 +112,6 @@ export default function AdminEditEventPage({ params }: { params: { eventId: stri
 
     setIsUploading(true);
     const storage = getStorage();
-    // Use the event ID in the path to associate the image with the event
     const storageRef = ref(storage, `banners/${params.eventId}/${uuidv4()}-${file.name}`);
 
     try {
@@ -126,6 +126,24 @@ export default function AdminEditEventPage({ params }: { params: { eventId: stri
         setIsUploading(false);
     }
   };
+
+  const handleAddScanner = () => {
+    if (!newScannerId.trim() || !eventDocRef) return;
+    updateDocumentNonBlocking(eventDocRef, {
+      authorizedScanners: arrayUnion(newScannerId.trim())
+    });
+    toast({ title: "Scanner Added", description: "The user can now scan tickets for this event." });
+    setNewScannerId('');
+  };
+
+  const handleRemoveScanner = (scannerId: string) => {
+    if (!eventDocRef) return;
+    updateDocumentNonBlocking(eventDocRef, {
+      authorizedScanners: arrayRemove(scannerId)
+    });
+    toast({ title: "Scanner Removed" });
+  };
+
 
   if (isLoading) {
     return (
@@ -278,6 +296,42 @@ export default function AdminEditEventPage({ params }: { params: { eventId: stri
             </div>
         </form>
       </Form>
+
+       <Card>
+        <CardHeader>
+          <CardTitle>Ticket Scanners</CardTitle>
+          <CardDescription>Authorize users to scan tickets for this event by adding their User ID.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Enter User ID to add scanner"
+                value={newScannerId}
+                onChange={(e) => setNewScannerId(e.target.value)}
+              />
+              <Button onClick={handleAddScanner}><UserPlus className="mr-2 h-4 w-4" /> Add Scanner</Button>
+            </div>
+            <div className="space-y-2">
+              <Label>Authorized Scanners</Label>
+              {eventData?.authorizedScanners && eventData.authorizedScanners.length > 0 ? (
+                <ul className="divide-y rounded-md border">
+                  {eventData.authorizedScanners.map(id => (
+                    <li key={id} className="flex items-center justify-between p-2">
+                      <span className="font-mono text-sm">{id}</span>
+                      <Button variant="ghost" size="icon" onClick={() => handleRemoveScanner(id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">No scanners authorized yet.</p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

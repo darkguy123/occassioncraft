@@ -10,7 +10,7 @@ import {
   TableHead,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Edit, Trash2, BarChart2 } from 'lucide-react';
 import Link from 'next/link';
 import {
   Card,
@@ -25,6 +25,7 @@ import {
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuTrigger,
+    DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from '@/components/ui/badge';
 import { useFirestore, useCollection, deleteDocumentNonBlocking, useMemoFirebase } from '@/firebase';
@@ -111,12 +112,18 @@ export default function AdminEventsPage() {
                             <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                 <DropdownMenuItem asChild>
+                                    <Link href={`/admin/events/${event.id}/tickets`}>
+                                        <BarChart2 className="mr-2 h-4 w-4" /> View Report
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem asChild>
                                     <Link href={`/admin/events/${event.id}/edit`}>
-                                        <Edit className="mr-2 h-4 w-4" /> Edit
+                                        <Edit className="mr-2 h-4 w-4" /> Edit Event
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(event.id, event.name)}>
-                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete Event
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>

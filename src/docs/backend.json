@@ -42,7 +42,8 @@
         "attendeeName": { "type": "string" },
         "isPrivate": { "type": "boolean" },
         "scans": { "type": "number", "description": "How many times the ticket has been scanned." },
-        "maxScans": { "type": "number", "description": "Maximum number of allowed scans." }
+        "maxScans": { "type": "number", "description": "Maximum number of allowed scans." },
+        "lastScannedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "eventId", "vendorId", "purchaseDate", "package", "scans", "maxScans"]
     },

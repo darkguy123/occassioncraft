@@ -1,60 +1,103 @@
 
 'use client';
 
+import { useMemo } from 'react';
 import {
   Table,
   TableBody,
   TableCell,
   TableHeader,
   TableRow,
+  TableHead,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
+import { ArrowLeft, CheckCircle, Ticket, XCircle } from 'lucide-react';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import type { Ticket as TicketType } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
+import { format, parseISO } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
 
 export default function ManageTicketsPage({ params }: { params: { eventId: string } }) {
-  
+  const firestore = useFirestore();
+
+  const ticketsQuery = useMemoFirebase(() => {
+    if (!firestore || !params.eventId) return null;
+    return query(collection(firestore, 'tickets'), where('eventId', '==', params.eventId));
+  }, [firestore, params.eventId]);
+
+  const { data: tickets, isLoading } = useCollection<TicketType>(ticketsQuery);
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
        <div className="space-y-2">
          <Button variant="ghost" asChild>
-            <Link href="/admin/events">&larr; Back to Events</Link>
+            <Link href="/admin/events"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Events</Link>
          </Button>
-        <h1 className="text-3xl font-bold tracking-tight">Manage Tickets</h1>
-        <p className="text-muted-foreground">This page is a placeholder. The database has been reset.</p>
+        <h1 className="text-3xl font-bold tracking-tight">Event Ticket Report</h1>
+        <p className="text-muted-foreground">A live report of all tickets for this event and their scan status.</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Pending Approval</CardTitle>
-          <CardDescription>This functionality is disabled because the project backend was reset.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-center text-muted-foreground py-8">No tickets are pending approval.</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>All Approved Tickets</CardTitle>
-          <CardDescription>A list of all confirmed tickets for this event.</CardDescription>
+          <CardTitle>All Tickets for Event</CardTitle>
+          <CardDescription>A list of all tickets crafted for this event.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableCell>Ticket ID</TableCell>
-                <TableCell>Event</TableCell>
-                <TableCell>Purchase Date</TableCell>
-                <TableCell className="text-right">Actions</TableCell>
+                <TableHead>Ticket ID</TableHead>
+                <TableHead>Attendee</TableHead>
+                <TableHead>Package</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Last Scanned</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground py-12">
-                   No approved tickets for this event yet.
-                </TableCell>
-              </TableRow>
+              {isLoading && Array.from({length: 5}).map((_, i) => (
+                <TableRow key={i}>
+                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                </TableRow>
+              ))}
+              {!isLoading && tickets && tickets.length > 0 ? (
+                tickets.map(ticket => (
+                    <TableRow key={ticket.id}>
+                        <TableCell className="font-mono text-xs">{ticket.id}</TableCell>
+                        <TableCell>{ticket.attendeeName || 'N/A'}</TableCell>
+                        <TableCell><Badge variant="outline">{ticket.package} {ticket.tier || ''}</Badge></TableCell>
+                        <TableCell>
+                            {ticket.scans > 0 ? (
+                                <Badge variant="secondary" className="text-green-600 border-green-600">
+                                    <CheckCircle className="mr-1 h-3 w-3"/>
+                                    Checked In ({ticket.scans}/{ticket.maxScans})
+                                </Badge>
+                            ) : (
+                                <Badge variant="outline">Not Checked In</Badge>
+                            )}
+                        </TableCell>
+                         <TableCell>
+                            {ticket.lastScannedAt ? format(parseISO(ticket.lastScannedAt), 'Pp') : 'N/A'}
+                        </TableCell>
+                    </TableRow>
+                ))
+              ) : (
+                !isLoading && (
+                     <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground py-12">
+                           <Ticket className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+                           No tickets found for this event yet.
+                        </TableCell>
+                    </TableRow>
+                )
+              )}
             </TableBody>
           </Table>
         </CardContent>

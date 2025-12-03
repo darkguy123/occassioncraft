@@ -36,7 +36,7 @@ export type Ticket = {
   userId: string; // The user who bought/owns the ticket
   purchaseDate: string; // ISO 8601 string
   price: number;
-  isPaid: boolean;
+  isPaid?: boolean;
   
   // Design & Type from new ticket crafting flow
   package: 'Regular' | 'Premium Individual' | 'Premium General' | 'Tiered';
@@ -54,6 +54,7 @@ export type Ticket = {
   isPrivate: boolean; // For Tier 4/5
   scans: number; // Number of times ticket has been scanned
   maxScans: number; // How many times it CAN be scanned
+  lastScannedAt?: string; // ISO 8601 string of the last scan
 };
 
 
