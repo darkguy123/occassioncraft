@@ -1,11 +1,11 @@
 
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useAuth, useFirestore, setDocumentNonBlocking } from "@/firebase";
+import { useAuth, useFirestore, setDocumentNonBlocking, useFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -27,6 +27,7 @@ import {
   AlertDialogFooter,
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { AnimatePresence, motion } from "framer-motion";
 
 const signupSchema = z.object({
   fullName: z.string().min(3, { message: "Full name must be at least 3 characters." }),
@@ -39,13 +40,24 @@ const signupSchema = z.object({
 
 export type SignupSchema = z.infer<typeof signupSchema>;
 
+const DEFAULT_LOGO_URL = '/default-logo.png';
+const features = [
+  "Design custom tickets",
+  "Manage event sales",
+  "Discover new experiences",
+  "Scan tickets seamlessly",
+  "Engage with your audience",
+];
+
 export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
   const [showEmailExistsDialog, setShowEmailExistsDialog] = useState(false);
-  
+  const [currentFeatureIndex, setCurrentFeatureIndex] = useState(0);
+
   const auth = useAuth();
   const firestore = useFirestore();
+  const { siteSettings, isSiteSettingsLoading } = useFirebase();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -59,6 +71,13 @@ export default function SignupPage() {
     },
     mode: "onChange",
   });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentFeatureIndex((prevIndex) => (prevIndex + 1) % features.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   const onSubmit = async (data: SignupSchema) => {
     if (!auth || !firestore) return;
@@ -111,24 +130,56 @@ export default function SignupPage() {
         }
     }
   };
+  
+  const logoUrl = siteSettings?.logoUrl || DEFAULT_LOGO_URL;
 
   return (
     <>
-      <div className="relative flex items-center justify-center min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-4.5rem)] py-12 px-4">
-        <Image
-          src='https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2F67e206b7d52d22580e4ec0d8_890.jpg?alt=media&token=c0a35579-2cdf-4d20-9aa9-6163ff95eddf'
-          alt="Hero Banner"
-          fill
-          className="object-cover -z-10"
-          data-ai-hint='concert stage lights'
-        />
-        <div className="absolute inset-0 bg-black/70 -z-10" />
-
-        <Card className="mx-auto max-w-sm w-full">
+      <div className="w-full min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-4.5rem)] grid grid-cols-1 md:grid-cols-2">
+         <div className="hidden md:block relative">
+            <Image
+            src="https://picsum.photos/seed/signup-bg/1200/1600"
+            alt="Signup background"
+            data-ai-hint="event excitement fun"
+            fill
+            className="object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/80 via-black/60 to-black/80" />
+            <div className="relative z-10 flex flex-col justify-between h-full p-8 text-white">
+                <div>
+                    {isSiteSettingsLoading ? (
+                        <div className="h-10 w-36 bg-gray-200/50 rounded-md animate-pulse" />
+                    ) : (
+                        <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={40} className="h-10 w-auto" unoptimized/>
+                    )}
+                    <h1 className="text-4xl font-bold font-headline mt-8">Create Your Account</h1>
+                    <p className="text-white/80 mt-2">Join the ultimate platform for event creation and discovery.</p>
+                </div>
+                
+                <div className="h-20">
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={currentFeatureIndex}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.5 }}
+                            className="flex items-center gap-3 text-lg font-medium"
+                        >
+                            <Ticket className="h-6 w-6 text-accent" />
+                            <span>{features[currentFeatureIndex]}</span>
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
+            </div>
+      </div>
+      
+      <div className="flex items-center justify-center p-4 sm:p-8 bg-secondary/30">
+        <Card className="mx-auto max-w-sm w-full shadow-2xl">
           <CardHeader className="text-center">
               <Ticket className="mx-auto h-8 w-8 text-primary" />
-              <CardTitle className="text-2xl font-headline">Create an Account</CardTitle>
-              <CardDescription>Join our platform to discover and attend events.</CardDescription>
+              <CardTitle className="text-2xl font-headline">Get Started</CardTitle>
+              <CardDescription>Enter your details to create your account.</CardDescription>
           </CardHeader>
           <CardContent>
               <Form {...form}>
@@ -212,6 +263,7 @@ export default function SignupPage() {
             </div>
           </CardContent>
         </Card>
+      </div>
       </div>
 
       <AlertDialog open={showWelcomeDialog}>
