@@ -387,7 +387,14 @@ export default function CreateTicketPage() {
                             render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Maximum Scans Per Ticket</FormLabel>
-                                <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} /></FormControl>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    {...field}
+                                    value={field.value ?? 1}
+                                    onChange={e => field.onChange(parseInt(e.target.value, 10) || 1)}
+                                  />
+                                </FormControl>
                                 <FormMessage />
                             </FormItem>
                             )}
@@ -448,3 +455,5 @@ export default function CreateTicketPage() {
     </div>
   );
 }
+
+    
