@@ -23,12 +23,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { TicketStylePreview } from "@/components/ticket-style-preview"
 import Image from "next/image"
 import { generateTicketImage } from "@/ai/flows/generate-ticket-image-flow"
-import { Loader2, Wand2, Info, Plus, Upload, ShoppingCart } from "lucide-react"
+import { Loader2, Wand2, Info, Plus, Upload, ShoppingCart, Check } from "lucide-react"
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
 import { useCart } from "@/context/cart-context"
 import Link from "next/link";
 import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 
 const ticketFormSchema = z.object({
   eventId: z.string().min(1, "Please select an event to link this ticket to."),
@@ -41,7 +42,7 @@ const ticketFormSchema = z.object({
   maxScans: z.number().min(1).default(1),
   
   // Design fields
-  templateId: z.string().optional(),
+  templateId: z.string().default('classic'),
   ticketImageUrl: z.string().optional(),
   ticketBrandingImageUrl: z.string().optional(),
 });
@@ -60,6 +61,13 @@ const packages = {
     "Tier 5": { price: 20000, tickets: 1 },
   }
 };
+
+const ticketTemplates = [
+    { id: 'classic', name: 'Classic', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Ftemplate-classic.png?alt=media&token=c1995573-ac6b-4e48-963d-4c3116d82d49' },
+    { id: 'modern', name: 'Modern', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Ftemplate-modern.png?alt=media&token=e9e63e26-f435-4927-a066-681ca7a73f9f' },
+    { id: 'minimal', name: 'Minimal', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Ftemplate-minimal.png?alt=media&token=6a182746-b333-4f93-b6d3-2e061803704d' },
+];
+
 
 export default function CreateTicketPage() {
   const { toast } = useToast();
@@ -92,12 +100,14 @@ export default function CreateTicketPage() {
       package: 'Regular',
       maxScans: 1,
       isPrivate: false,
+      templateId: 'classic',
     },
     mode: "onChange",
   });
   
   const selectedPackage = form.watch('package');
   const selectedTier = form.watch('tier');
+  const selectedTemplate = form.watch('templateId');
 
   const currentPriceDetails = useMemo(() => {
     if (selectedPackage === 'Tiered') {
@@ -210,6 +220,8 @@ export default function CreateTicketPage() {
     );
   }
 
+  const isPremiumPackage = selectedPackage.startsWith('Premium');
+
   return (
     <div className="container max-w-6xl mx-auto py-10 px-4">
         <div className="space-y-2 mb-8">
@@ -318,6 +330,44 @@ export default function CreateTicketPage() {
                   </Card>
                 )}
 
+                 {isPremiumPackage && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Choose Ticket Style</CardTitle>
+                            <CardDescription>Select a base design for your premium tickets.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <FormField
+                                control={form.control}
+                                name="templateId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormControl>
+                                            <div className="grid grid-cols-3 gap-4">
+                                                {ticketTemplates.map((template) => (
+                                                    <div key={template.id} onClick={() => field.onChange(template.id)} className="cursor-pointer">
+                                                        <div className={cn(
+                                                            "rounded-lg border-2 transition-all",
+                                                            selectedTemplate === template.id ? 'border-primary shadow-lg' : 'border-transparent hover:border-primary/50'
+                                                        )}>
+                                                            <Image src={template.imageUrl} alt={`${template.name} template preview`} width={150} height={225} className="rounded-md" />
+                                                        </div>
+                                                        <div className="flex items-center justify-center mt-2">
+                                                            {selectedTemplate === template.id && <Check className="h-4 w-4 text-primary mr-1" />}
+                                                            <span className={cn("text-sm font-medium", selectedTemplate === template.id ? "text-primary" : "text-muted-foreground")}>{template.name}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </CardContent>
+                    </Card>
+                 )}
+
                 {/* Premium Individual Options */}
                 {selectedPackage === 'Premium Individual' && (
                     <Card>
@@ -391,7 +441,7 @@ export default function CreateTicketPage() {
                                   <Input
                                     type="number"
                                     {...field}
-                                    value={field.value ?? 1}
+                                    value={field.value || 1}
                                     onChange={e => field.onChange(parseInt(e.target.value, 10) || 1)}
                                   />
                                 </FormControl>
@@ -455,5 +505,3 @@ export default function CreateTicketPage() {
     </div>
   );
 }
-
-    
