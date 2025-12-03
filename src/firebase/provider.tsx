@@ -1,10 +1,13 @@
+
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore } from 'firebase/firestore';
+import { Firestore, doc } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
+import { SiteSettings } from '@/lib/types';
+import { useDoc } from './firestore/use-doc';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -26,6 +29,8 @@ export interface FirebaseContextState {
   firebaseApp: FirebaseApp | null;
   firestore: Firestore | null;
   auth: Auth | null; // The Auth service instance
+  siteSettings: SiteSettings | null;
+  isSiteSettingsLoading: boolean;
   // User authentication state
   user: User | null;
   isUserLoading: boolean; // True during initial auth check
@@ -37,6 +42,8 @@ export interface FirebaseServicesAndUser {
   firebaseApp: FirebaseApp;
   firestore: Firestore;
   auth: Auth;
+  siteSettings: SiteSettings | null;
+  isSiteSettingsLoading: boolean;
   user: User | null;
   isUserLoading: boolean;
   userError: Error | null;
@@ -66,6 +73,14 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     isUserLoading: true, // Start loading until first auth event
     userError: null,
   });
+
+  const settingsDocRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'settings', 'site');
+  }, [firestore]);
+
+  const { data: siteSettings, isLoading: isSiteSettingsLoading } = useDoc<SiteSettings>(settingsDocRef);
+
 
   // Effect to subscribe to Firebase auth state changes
   useEffect(() => {
@@ -97,11 +112,13 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       firebaseApp: servicesAvailable ? firebaseApp : null,
       firestore: servicesAvailable ? firestore : null,
       auth: servicesAvailable ? auth : null,
+      siteSettings,
+      isSiteSettingsLoading,
       user: userAuthState.user,
       isUserLoading: userAuthState.isUserLoading,
       userError: userAuthState.userError,
     };
-  }, [firebaseApp, firestore, auth, userAuthState]);
+  }, [firebaseApp, firestore, auth, userAuthState, siteSettings, isSiteSettingsLoading]);
 
   return (
     <FirebaseContext.Provider value={contextValue}>
@@ -130,6 +147,8 @@ export const useFirebase = (): FirebaseServicesAndUser => {
     firebaseApp: context.firebaseApp,
     firestore: context.firestore,
     auth: context.auth,
+    siteSettings: context.siteSettings,
+    isSiteSettingsLoading: context.isSiteSettingsLoading,
     user: context.user,
     isUserLoading: context.isUserLoading,
     userError: context.userError,

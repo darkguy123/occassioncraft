@@ -7,183 +7,91 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, BookText, FileText, Info, Image as ImageIcon, Palette, Link as LinkIcon, Twitter, Facebook, Instagram, DollarSign } from 'lucide-react';
+import { Upload, BookText, FileText, Info, Palette, Twitter, Facebook, Instagram, DollarSign, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-
-// Type to hold file data and preview
-type FileUploadState = {
-  file: File | null;
-  preview: string | null;
-};
+import { useFirestore, useDoc, setDocumentNonBlocking, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { v4 as uuidv4 } from 'uuid';
+import type { SiteSettings } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminSettingsPage() {
   const { toast } = useToast();
+  const firestore = useFirestore();
+  const [isUploading, setIsUploading] = useState<Record<string, boolean>>({});
 
-  const [logo, setLogo] = useState<FileUploadState>({ file: null, preview: null });
-  const [favicon, setFavicon] = useState<FileUploadState>({ file: null, preview: null });
-  const [heroBanner, setHeroBanner] = useState<FileUploadState>({ file: null, preview: null });
+  const settingsDocRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'settings', 'site');
+  }, [firestore]);
 
-  const [primaryColor, setPrimaryColor] = useState('#74c0fc');
-  const [backgroundColor, setBackgroundColor] = useState('#f7faff');
-  const [accentColor, setAccentColor] = useState('#8ce99a');
-
-  const [privacyPolicy, setPrivacyPolicy] = useState('');
-  const [terms, setTerms] = useState('');
-  const [aboutUs, setAboutUs] = useState('');
+  const { data: siteSettings, isLoading: isSettingsLoading } = useDoc<SiteSettings>(settingsDocRef);
   
-  const [twitterUrl, setTwitterUrl] = useState('');
-  const [facebookUrl, setFacebookUrl] = useState('');
-  const [instagramUrl, setInstagramUrl] = useState('');
-
+  const [formData, setFormData] = useState<Partial<SiteSettings>>({});
+  
   useEffect(() => {
-    const loadSettings = () => {
-      const savedLogo = localStorage.getItem('logoImage');
-      if (savedLogo) setLogo(prev => ({...prev, preview: savedLogo }));
-      
-      const savedFavicon = localStorage.getItem('faviconImage');
-      if (savedFavicon) setFavicon(prev => ({...prev, preview: savedFavicon }));
-      
-      const savedHeroBanner = localStorage.getItem('heroBannerImage');
-      if (savedHeroBanner) setHeroBanner(prev => ({...prev, preview: savedHeroBanner }));
+    if (siteSettings) {
+      setFormData(siteSettings);
+    }
+  }, [siteSettings]);
 
-      const savedPrimary = localStorage.getItem('theme-primary-hex');
-      if (savedPrimary) setPrimaryColor(savedPrimary);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({ ...prev, [id]: value }));
+  };
 
-      const savedBackground = localStorage.getItem('theme-background-hex');
-      if (savedBackground) setBackgroundColor(savedBackground);
-      
-      const savedAccent = localStorage.getItem('theme-accent-hex');
-      if (savedAccent) setAccentColor(savedAccent);
-      
-      const savedTwitter = localStorage.getItem('social-twitter');
-      if (savedTwitter) setTwitterUrl(savedTwitter);
-      const savedFacebook = localStorage.getItem('social-facebook');
-      if (savedFacebook) setFacebookUrl(savedFacebook);
-      const savedInstagram = localStorage.getItem('social-instagram');
-      if (savedInstagram) setInstagramUrl(savedInstagram);
-      
-      const savedPrivacy = localStorage.getItem('privacyPolicy');
-      if (savedPrivacy) setPrivacyPolicy(savedPrivacy);
-      const savedTerms = localStorage.getItem('termsAndConditions');
-      if (savedTerms) setTerms(savedTerms);
-      const savedAbout = localStorage.getItem('aboutUs');
-      if (savedAbout) setAboutUs(savedAbout);
-    };
-    
-    loadSettings();
-  }, []);
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'hero' | 'favicon') => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, fieldName: keyof SiteSettings) => {
     const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) { // 2MB limit
-        toast({
-          variant: 'destructive',
-          title: 'File too large',
-          description: 'Please select an image smaller than 2MB.',
-        });
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        const fileState = { file, preview: result };
-        if (type === 'logo') setLogo(fileState);
-        if (type === 'hero') setHeroBanner(fileState);
-        if (type === 'favicon') setFavicon(fileState);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) { // 2MB limit
+      toast({ variant: 'destructive', title: 'File too large', description: 'Image must be smaller than 2MB.' });
+      return;
+    }
+
+    setIsUploading(prev => ({ ...prev, [fieldName]: true }));
+    const storage = getStorage();
+    const storageRef = ref(storage, `site-settings/${uuidv4()}-${file.name}`);
+
+    try {
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+      setFormData(prev => ({ ...prev, [fieldName]: downloadURL }));
+      toast({ title: 'Image Uploaded', description: 'Your image has been uploaded. Save changes to apply.' });
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast({ variant: 'destructive', title: 'Upload Failed' });
+    } finally {
+      setIsUploading(prev => ({ ...prev, [fieldName]: false }));
     }
   };
 
-  const handleSaveBranding = () => {
-    if (logo.preview) {
-        localStorage.setItem('logoImage', logo.preview);
+  const handleSave = (section: string) => {
+    if (!settingsDocRef) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Database not available.' });
+      return;
     }
-    if (favicon.preview) {
-        localStorage.setItem('faviconImage', favicon.preview);
-    }
+    setDocumentNonBlocking(settingsDocRef, formData, { merge: true });
     toast({
-        title: 'Branding Saved',
-        description: 'Your logo and favicon have been saved to local storage.',
+      title: `${section} Saved`,
+      description: `Your ${section.toLowerCase()} settings have been saved.`,
     });
-    // Dispatch a storage event to notify other components (like header/footer) of the change
-    window.dispatchEvent(new Event('storage'));
-  };
-
-  const handleSaveAppearance = () => {
-    // Function to convert hex to HSL string "H S% L%"
-    const hexToHslString = (hex: string): string => {
-        let r = 0, g = 0, b = 0;
-        if (hex.length === 4) {
-            r = parseInt(hex[1] + hex[1], 16);
-            g = parseInt(hex[2] + hex[2], 16);
-            b = parseInt(hex[3] + hex[3], 16);
-        } else if (hex.length === 7) {
-            r = parseInt(hex[1] + hex[2], 16);
-            g = parseInt(hex[3] + hex[4], 16);
-            b = parseInt(hex[5] + hex[6], 16);
-        }
-        r /= 255; g /= 255; b /= 255;
-        const max = Math.max(r, g, b), min = Math.min(r, g, b);
-        let h = 0, s = 0, l = (max + min) / 2;
-        if (max !== min) {
-            const d = max - min;
-            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-            switch (max) {
-                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-                case g: h = (b - r) / d + 2; break;
-                case b: h = (r - g) / d + 4; break;
-            }
-            h /= 6;
-        }
-        h = Math.round(h * 360);
-        s = Math.round(s * 100);
-        l = Math.round(l * 100);
-        return `${h} ${s}% ${l}%`;
-    };
-
-    localStorage.setItem('theme-primary-hex', primaryColor);
-    localStorage.setItem('theme-background-hex', backgroundColor);
-    localStorage.setItem('theme-accent-hex', accentColor);
-    
-    localStorage.setItem('theme-primary', hexToHslString(primaryColor));
-    localStorage.setItem('theme-background', hexToHslString(backgroundColor));
-    localStorage.setItem('theme-accent', hexToHslString(accentColor));
-    
-    if (heroBanner.preview) {
-        localStorage.setItem('heroBannerImage', heroBanner.preview);
-    }
-    
-    toast({
-        title: 'Appearance Saved',
-        description: 'Your new theme settings have been saved. The theme will update dynamically.',
-    });
-    window.dispatchEvent(new Event('storage'));
   };
   
-  const handleSaveContent = () => {
-    localStorage.setItem('privacyPolicy', privacyPolicy);
-    localStorage.setItem('termsAndConditions', terms);
-    localStorage.setItem('aboutUs', aboutUs);
-    toast({
-        title: 'Content Saved',
-        description: 'Your website content has been updated.',
-    });
-    window.dispatchEvent(new Event('storage'));
-  };
-
-  const handleSaveSocials = () => {
-    localStorage.setItem('social-twitter', twitterUrl);
-    localStorage.setItem('social-facebook', facebookUrl);
-    localStorage.setItem('social-instagram', instagramUrl);
-    toast({
-      title: 'Social Links Saved',
-      description: 'Your footer social media links have been updated.',
-    });
-    window.dispatchEvent(new Event('storage'));
-  };
+  if (isSettingsLoading) {
+    return (
+        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+            <Skeleton className="h-10 w-1/4" />
+            <Skeleton className="h-6 w-1/3" />
+            <Card>
+                <CardHeader><Skeleton className="h-10 w-32" /></CardHeader>
+                <CardContent><Skeleton className="h-64 w-full" /></CardContent>
+            </Card>
+        </div>
+    )
+  }
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -206,39 +114,40 @@ export default function AdminSettingsPage() {
                 <CardTitle>Branding</CardTitle>
                 <CardDescription>Manage your website logo and favicon.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                <div className="grid gap-8">
+                <CardContent className="space-y-8">
                     <div className="grid gap-2">
-                      <Label htmlFor="logo-upload">Logo Image</Label>
+                      <Label htmlFor="logoUrl">Logo Image</Label>
                       <div className="flex items-center justify-center w-full">
-                          <label htmlFor="logo-upload" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
-                                {logo.preview ? (
-                                    <img src={logo.preview} alt="Logo preview" className="h-24 w-auto object-contain" />
-                                ) : (
+                          <label htmlFor="logoUrl-upload" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
+                                {isUploading.logoUrl && <Loader2 className="h-8 w-8 animate-spin" />}
+                                {!isUploading.logoUrl && formData.logoUrl ? (
+                                    <img src={formData.logoUrl} alt="Logo preview" className="h-24 w-auto object-contain" />
+                                ) : !isUploading.logoUrl && (
                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                         <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
                                         <p className="text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
                                         <p className="text-xs text-muted-foreground">PNG, JPG, SVG (MAX. 2MB)</p>
                                     </div>
                                 )}
-                                <Input id="logo-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/svg+xml, image/webp" onChange={(e) => handleFileChange(e, 'logo')} />
+                                <Input id="logoUrl-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/svg+xml, image/webp" onChange={(e) => handleFileChange(e, 'logoUrl')} />
                           </label>
                       </div>
                     </div>
 
                     <div className="grid gap-2">
-                      <Label htmlFor="favicon-upload">Favicon Image</Label>
+                      <Label htmlFor="faviconUrl">Favicon Image</Label>
                        <div className="flex items-center gap-4">
-                            <label htmlFor="favicon-upload" className="flex items-center justify-center w-24 h-24 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
-                                {favicon.preview ? (
-                                    <img src={favicon.preview} alt="Favicon preview" className="h-12 w-12 object-contain" />
-                                ) : (
+                            <label htmlFor="faviconUrl-upload" className="flex items-center justify-center w-24 h-24 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
+                                {isUploading.faviconUrl && <Loader2 className="h-6 w-6 animate-spin" />}
+                                {!isUploading.faviconUrl && formData.faviconUrl ? (
+                                    <img src={formData.faviconUrl} alt="Favicon preview" className="h-12 w-12 object-contain" />
+                                ) : !isUploading.faviconUrl && (
                                    <div className="flex flex-col items-center justify-center text-center p-2">
                                         <Upload className="w-6 h-6 mb-1 text-muted-foreground" />
                                         <p className="text-xs text-muted-foreground">Upload .ico, .png, .svg</p>
                                     </div>
                                 )}
-                                <Input id="favicon-upload" type="file" className="hidden" accept="image/x-icon, image/png, image/svg+xml" onChange={(e) => handleFileChange(e, 'favicon')} />
+                                <Input id="faviconUrl-upload" type="file" className="hidden" accept="image/x-icon, image/png, image/svg+xml" onChange={(e) => handleFileChange(e, 'faviconUrl')} />
                             </label>
                             <div>
                                 <p className="text-sm text-muted-foreground">Upload a new favicon.</p>
@@ -248,9 +157,8 @@ export default function AdminSettingsPage() {
                     </div>
 
                     <div className="flex justify-end">
-                    <Button onClick={handleSaveBranding}>Save Changes</Button>
+                        <Button onClick={() => handleSave('Branding')}>Save Changes</Button>
                     </div>
-                </div>
                 </CardContent>
             </Card>
         </TabsContent>
@@ -265,39 +173,40 @@ export default function AdminSettingsPage() {
                 <Label className="flex items-center gap-2 mb-2"><Palette className="h-4 w-4" /> Theme Colors</Label>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="primary-color">Primary</Label>
-                    <Input id="primary-color" type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="h-10 p-1" />
+                    <Label htmlFor="primaryColor">Primary</Label>
+                    <Input id="primaryColor" type="color" value={formData.primaryColor || '#000000'} onChange={handleInputChange} className="h-10 p-1" />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="background-color">Background</Label>
-                    <Input id="background-color" type="color" value={backgroundColor} onChange={(e) => setBackgroundColor(e.target.value)} className="h-10 p-1" />
+                    <Label htmlFor="backgroundColor">Background</Label>
+                    <Input id="backgroundColor" type="color" value={formData.backgroundColor || '#ffffff'} onChange={handleInputChange} className="h-10 p-1" />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="accent-color">Accent</Label>
-                    <Input id="accent-color" type="color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="h-10 p-1" />
+                    <Label htmlFor="accentColor">Accent</Label>
+                    <Input id="accentColor" type="color" value={formData.accentColor || '#f0f0f0'} onChange={handleInputChange} className="h-10 p-1" />
                   </div>
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="hero-banner-upload">Homepage Banner Image</Label>
+                <Label htmlFor="heroBannerUrl">Homepage Banner Image</Label>
                 <div className="flex items-center justify-center w-full">
-                  <label htmlFor="hero-banner-upload" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
-                    {heroBanner.preview ? (
-                      <img src={heroBanner.preview} alt="Hero banner preview" className="h-full w-full object-cover" />
-                    ) : (
+                  <label htmlFor="heroBannerUrl-upload" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
+                    {isUploading.heroBannerUrl && <Loader2 className="h-8 w-8 animate-spin" />}
+                    {!isUploading.heroBannerUrl && formData.heroBannerUrl ? (
+                      <img src={formData.heroBannerUrl} alt="Hero banner preview" className="h-full w-full object-cover" />
+                    ) : !isUploading.heroBannerUrl && (
                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
                         <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
                         <p className="text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
                         <p className="text-xs text-muted-foreground">PNG, JPG, WEBP (MAX. 2MB)</p>
                       </div>
                     )}
-                    <Input id="hero-banner-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/webp" onChange={(e) => handleFileChange(e, 'hero')} />
+                    <Input id="heroBannerUrl-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/webp" onChange={(e) => handleFileChange(e, 'heroBannerUrl')} />
                   </label>
                 </div>
               </div>
 
               <div className="flex justify-end">
-                <Button onClick={handleSaveAppearance}>Save Appearance</Button>
+                 <Button onClick={() => handleSave('Appearance')}>Save Appearance</Button>
               </div>
             </CardContent>
           </Card>
@@ -310,19 +219,19 @@ export default function AdminSettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="grid gap-2">
-                        <Label htmlFor="privacy-policy" className="flex items-center gap-2"><FileText className="h-4 w-4" /> Privacy Policy</Label>
-                        <Textarea id="privacy-policy" placeholder="Enter your privacy policy..." className="min-h-40" value={privacyPolicy} onChange={(e) => setPrivacyPolicy(e.target.value)} />
+                        <Label htmlFor="privacyPolicy" className="flex items-center gap-2"><FileText className="h-4 w-4" /> Privacy Policy</Label>
+                        <Textarea id="privacyPolicy" placeholder="Enter your privacy policy..." className="min-h-40" value={formData.privacyPolicy || ''} onChange={handleInputChange} />
                     </div>
                      <div className="grid gap-2">
-                        <Label htmlFor="terms-conditions" className="flex items-center gap-2"><BookText className="h-4 w-4" /> Terms & Conditions</Label>
-                        <Textarea id="terms-conditions" placeholder="Enter your terms and conditions..." className="min-h-40" value={terms} onChange={(e) => setTerms(e.target.value)} />
+                        <Label htmlFor="termsAndConditions" className="flex items-center gap-2"><BookText className="h-4 w-4" /> Terms & Conditions</Label>
+                        <Textarea id="termsAndConditions" placeholder="Enter your terms and conditions..." className="min-h-40" value={formData.termsAndConditions || ''} onChange={handleInputChange} />
                     </div>
                      <div className="grid gap-2">
-                        <Label htmlFor="about-us" className="flex items-center gap-2"><Info className="h-4 w-4" /> About Us</Label>
-                        <Textarea id="about-us" placeholder="Enter your about us content..." className="min-h-40" value={aboutUs} onChange={(e) => setAboutUs(e.target.value)} />
+                        <Label htmlFor="aboutUs" className="flex items-center gap-2"><Info className="h-4 w-4" /> About Us</Label>
+                        <Textarea id="aboutUs" placeholder="Enter your about us content..." className="min-h-40" value={formData.aboutUs || ''} onChange={handleInputChange} />
                     </div>
                     <div className="flex justify-end">
-                        <Button onClick={handleSaveContent}>Save Content</Button>
+                        <Button onClick={() => handleSave('Content')}>Save Content</Button>
                     </div>
                 </CardContent>
             </Card>
@@ -337,34 +246,34 @@ export default function AdminSettingsPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="twitter-url" className="flex items-center gap-2"><Twitter className="h-4 w-4 text-[#1DA1F2]" /> Twitter</Label>
+                <Label htmlFor="twitterUrl" className="flex items-center gap-2"><Twitter className="h-4 w-4 text-[#1DA1F2]" /> Twitter</Label>
                 <Input
-                  id="twitter-url"
+                  id="twitterUrl"
                   placeholder="https://twitter.com/your-profile"
-                  value={twitterUrl}
-                  onChange={(e) => setTwitterUrl(e.target.value)}
+                  value={formData.twitterUrl || ''}
+                  onChange={handleInputChange}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="facebook-url" className="flex items-center gap-2"><Facebook className="h-4 w-4 text-[#1877F2]" /> Facebook</Label>
+                <Label htmlFor="facebookUrl" className="flex items-center gap-2"><Facebook className="h-4 w-4 text-[#1877F2]" /> Facebook</Label>
                 <Input
-                  id="facebook-url"
+                  id="facebookUrl"
                   placeholder="https://facebook.com/your-profile"
-                  value={facebookUrl}
-                  onChange={(e) => setFacebookUrl(e.target.value)}
+                  value={formData.facebookUrl || ''}
+                  onChange={handleInputChange}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="instagram-url" className="flex items-center gap-2"><Instagram className="h-4 w-4 text-[#E4405F]" /> Instagram</Label>
+                <Label htmlFor="instagramUrl" className="flex items-center gap-2"><Instagram className="h-4 w-4 text-[#E4405F]" /> Instagram</Label>
                 <Input
-                  id="instagram-url"
+                  id="instagramUrl"
                   placeholder="https://instagram.com/your-profile"
-                  value={instagramUrl}
-                  onChange={(e) => setInstagramUrl(e.target.value)}
+                  value={formData.instagramUrl || ''}
+                  onChange={handleInputChange}
                 />
               </div>
               <div className="flex justify-end">
-                <Button onClick={handleSaveSocials}>Save Socials</Button>
+                <Button onClick={() => handleSave('Socials')}>Save Socials</Button>
               </div>
             </CardContent>
           </Card>

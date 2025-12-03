@@ -7,14 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Globe, Music, Palette, Code, Utensils, Award } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion } from 'framer-motion';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { Event } from '@/lib/types';
 import EventCard from '@/components/event-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { SearchInput } from '@/components/search-input';
-import { useEffect, useState } from 'react';
 
 const categoryIcons = {
   All: Globe,
@@ -34,39 +33,22 @@ const defaultHero = {
 
 export default function Home() {
   const firestore = useFirestore();
+  const { siteSettings, isSiteSettingsLoading } = useFirebase();
+
   const eventsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'events') : null, [firestore]);
   const { data: events, isLoading } = useCollection<Event>(eventsCollection);
 
-  const [heroImage, setHeroImage] = useState(defaultHero);
-  const [hasMounted, setHasMounted] = useState(false);
-
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if(hasMounted) {
-      const loadHero = () => {
-        const savedHero = localStorage.getItem('heroBannerImage');
-        if (savedHero) {
-          setHeroImage({ imageUrl: savedHero, imageHint: 'custom banner' });
-        } else {
-          setHeroImage(defaultHero);
-        }
-      }
-      loadHero();
-
-      window.addEventListener('storage', loadHero);
-      return () => {
-        window.removeEventListener('storage', loadHero);
-      }
-    }
-  }, [hasMounted]);
+  const heroImage = {
+    imageUrl: siteSettings?.heroBannerUrl || defaultHero.imageUrl,
+    imageHint: 'hero banner'
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
       <section className="relative w-full h-[80vh] text-white">
-        {hasMounted ? (
+        {isSiteSettingsLoading ? (
+          <div className="absolute inset-0 bg-secondary" />
+        ) : (
             <Image
               src={heroImage.imageUrl}
               alt="Hero Banner"
@@ -75,8 +57,6 @@ export default function Home() {
               data-ai-hint={heroImage.imageHint}
               priority
             />
-        ) : (
-          <div className="absolute inset-0 bg-secondary" />
         )}
         <div className="absolute inset-0 bg-black/70" />
         <div className="relative z-10 flex flex-col items-center justify-center h-full text-center px-4">

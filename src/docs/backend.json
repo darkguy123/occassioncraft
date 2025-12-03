@@ -92,6 +92,26 @@
       "title": "Notification",
       "properties": { "id": { "type": "string" }, "userId": { "type": "string" }, "title": { "type": "string" }, "description": { "type": "string" }, "createdAt": { "type": "string", "format": "date-time" }, "read": { "type": "boolean" }, "link": { "type": "string" } },
       "required": ["id", "userId", "title", "description", "createdAt", "read"]
+    },
+    "SiteSettings": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SiteSettings",
+      "type": "object",
+      "description": "Global settings for the website, like branding and content.",
+      "properties": {
+        "logoUrl": { "type": "string" },
+        "faviconUrl": { "type": "string" },
+        "heroBannerUrl": { "type": "string" },
+        "primaryColor": { "type": "string" },
+        "backgroundColor": { "type": "string" },
+        "accentColor": { "type": "string" },
+        "twitterUrl": { "type": "string" },
+        "facebookUrl": { "type": "string" },
+        "instagramUrl": { "type": "string" },
+        "privacyPolicy": { "type": "string" },
+        "termsAndConditions": { "type": "string" },
+        "aboutUs": { "type": "string" }
+      }
     }
   },
   "auth": { "providers": ["password", "anonymous"] },
@@ -103,8 +123,9 @@
       { "path": "/tickets/{ticketId}", "definition": { "entityName": "Ticket", "schema": { "$ref": "#/backend/entities/Ticket" } } },
       { "path": "/users/{userId}/tickets/{ticketId}", "definition": { "entityName": "UserTicket", "schema": { "$ref": "#/backend/entities/UserTicket" }, "description": "A subcollection for efficiently querying a user's tickets." } },
       { "path": "/roles_admin/{userId}", "definition": { "entityName": "Admin", "schema": { "$ref": "#/backend/entities/Admin" } } },
-      { "path": "/users/{userId}/notifications/{notificationId}", "definition": { "entityName": "Notification", "schema": { "$ref": "#/backend/entities/Notification" } } }
+      { "path": "/users/{userId}/notifications/{notificationId}", "definition": { "entityName": "Notification", "schema": { "$ref": "#/backend/entities/Notification" } } },
+      { "path": "/settings/site", "definition": { "entityName": "SiteSettings", "schema": { "$ref": "#/backend/entities/SiteSettings" }, "description": "A single document holding all global site settings." } }
     ],
-    "reasoning": "The data model is now ticket-centric. Events are simple shells. A new root collection `/tickets/{ticketId}` holds all crafted ticket details, including design, pricing package, and validation rules. The `/users/{userId}/tickets` subcollection is a lightweight pointer to the main tickets for fast user-specific lookups."
+    "reasoning": "The data model is now ticket-centric. Events are simple shells. A new root collection `/tickets/{ticketId}` holds all crafted ticket details, including design, pricing package, and validation rules. The `/users/{userId}/tickets` subcollection is a lightweight pointer to the main tickets for fast user-specific lookups. A new `/settings/site` document is added to store global configuration."
   }
 }

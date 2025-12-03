@@ -4,6 +4,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
+import { useFirebase } from '@/firebase';
 
 const TwitterIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 1.4 3.3 4.4 3.3 4.4s-1.4 1.4-2.8 2.1c.1 2.3.1 4.3.1 6.2 0 6.1-4.1 10.6-10.6 10.6-5.2 0-8-3.3-8-3.3s3.1 1.4 5.7.1c-3.1-.6-5.2-3.3-5.2-3.3s.7.1 1.4.1c-2.3-.6-4.1-2.3-4.1-4.5 0 0 .7.4 1.4.4C3.1 13.4 1.4 8.8 1.4 8.8s1.6 2.8 5.7 2.8c-.1-2.3.1-4.3.1-4.3s1.4-3.7 4.5-3.7c1.4 0 2.8.6 2.8.6s-1.2-.4-1.2-1.2c0 0 .5-1.4 2.8-1.4z"></path></svg>
@@ -17,38 +18,17 @@ const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
 )
 
-const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Fremove-photos-background-removed%20(1).png?alt=media&token=e95cb4d3-18c7-48b8-93f8-656354e39a3f';
+const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Flogo.png?alt=media&token=4369a197-f580-4995-b2a6-3837c8586044';
 
 export function Footer() {
-  const [logoUrl, setLogoUrl] = useState(DEFAULT_LOGO_URL);
-  const [socials, setSocials] = useState({ twitter: '#', facebook: '#', instagram: '#' });
-  const [hasMounted, setHasMounted] = useState(false);
+  const { siteSettings, isSiteSettingsLoading } = useFirebase();
 
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hasMounted) return;
-    
-    const loadSettings = () => {
-      const savedLogo = localStorage.getItem('logoImage');
-      setLogoUrl(savedLogo || DEFAULT_LOGO_URL);
-
-      const twitter = localStorage.getItem('social-twitter') || '#';
-      const facebook = localStorage.getItem('social-facebook') || '#';
-      const instagram = localStorage.getItem('social-instagram') || '#';
-      setSocials({ twitter, facebook, instagram });
-    };
-
-    loadSettings();
-
-    window.addEventListener('storage', loadSettings);
-
-    return () => {
-      window.removeEventListener('storage', loadSettings);
-    };
-  }, [hasMounted]);
+  const logoUrl = siteSettings?.logoUrl || DEFAULT_LOGO_URL;
+  const socials = {
+    twitter: siteSettings?.twitterUrl || '#',
+    facebook: siteSettings?.facebookUrl || '#',
+    instagram: siteSettings?.instagramUrl || '#',
+  };
 
   return (
     <footer className="bg-secondary text-secondary-foreground border-t">
@@ -56,7 +36,11 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
             <Link href="/" className="flex items-center space-x-2">
-              <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" />
+              {isSiteSettingsLoading ? (
+                  <div className="h-8 w-36 bg-muted rounded-md animate-pulse" />
+              ) : (
+                <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" />
+              )}
             </Link>
             <p className="text-sm">Create, discover, and celebrate events with OccasionCraft.</p>
             <div className="flex space-x-4">

@@ -103,3 +103,18 @@ export type SupportTicket = {
     status: 'open' | 'in-progress' | 'closed';
     createdAt: string; // ISO 8601
 }
+
+export type SiteSettings = {
+  logoUrl?: string;
+  faviconUrl?: string;
+  heroBannerUrl?: string;
+  primaryColor?: string;
+  backgroundColor?: string;
+  accentColor?: string;
+  twitterUrl?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+  privacyPolicy?: string;
+  termsAndConditions?: string;
+  aboutUs?: string;
+}

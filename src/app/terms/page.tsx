@@ -2,45 +2,24 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useFirebase } from '@/firebase';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function TermsPage() {
-  const [content, setContent] = useState('');
-  const [hasMounted, setHasMounted] = useState(false);
-
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (hasMounted) {
-      const savedContent = localStorage.getItem('termsAndConditions');
-      if (savedContent) {
-        setContent(savedContent);
-      } else {
-        setContent('Terms and Conditions have not been set by an admin yet.');
-      }
-      
-      const handleStorageChange = () => {
-          const updatedContent = localStorage.getItem('termsAndConditions');
-          setContent(updatedContent || 'Terms and Conditions have not been set by an admin yet.');
-      };
-
-      window.addEventListener('storage', handleStorageChange);
-
-      return () => {
-          window.removeEventListener('storage', handleStorageChange);
-      };
-    }
-  }, [hasMounted]);
+  const { siteSettings, isSiteSettingsLoading } = useFirebase();
 
   return (
     <div className="container mx-auto max-w-3xl py-12 px-4">
         <h1 className="text-4xl font-bold font-headline mb-6">Terms of Use</h1>
         <div className="prose dark:prose-invert max-w-none">
-            {hasMounted ? (
-                <p className="whitespace-pre-wrap">{content}</p>
+            {isSiteSettingsLoading ? (
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-5/6" />
+                </div>
             ) : (
-                <p>Loading...</p>
+                <p className="whitespace-pre-wrap">{siteSettings?.termsAndConditions || 'Terms and Conditions have not been set by an admin yet.'}</p>
             )}
         </div>
     </div>

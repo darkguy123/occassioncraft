@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { UserNav } from './user-nav';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useFirebase } from '@/firebase';
 import type { User } from '@/lib/types';
 import { doc } from 'firebase/firestore';
 import { Notifications } from './notifications';
@@ -14,35 +14,15 @@ import { PlusCircle, ShoppingCart } from 'lucide-react';
 import { useLoader } from '@/context/loader-context';
 import { useCart } from '@/context/cart-context';
 
-const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Fremove-photos-background-removed%20(1).png?alt=media&token=e95cb4d3-18c7-48b8-93f8-656354e39a3f';
+const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Flogo.png?alt=media&token=4369a197-f580-4995-b2a6-3837c8586044';
 
 export function Header() {
   const { user, isUserLoading } = useUser();
+  const { siteSettings, isSiteSettingsLoading } = useFirebase();
   const firestore = useFirestore();
   const { showLoader } = useLoader();
   const { cart } = useCart();
-  const [logoUrl, setLogoUrl] = useState(DEFAULT_LOGO_URL);
-  const [hasMounted, setHasMounted] = useState(false);
-
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hasMounted) return;
-
-    const loadLogo = () => {
-      const savedLogo = localStorage.getItem('logoImage');
-      setLogoUrl(savedLogo || DEFAULT_LOGO_URL);
-    };
-
-    loadLogo();
-    window.addEventListener('storage', loadLogo);
-    return () => {
-      window.removeEventListener('storage', loadLogo);
-    };
-  }, [hasMounted]);
-
+  
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
     return doc(firestore, 'users', user.uid);
@@ -59,13 +39,19 @@ export function Header() {
   const vendorLinkHref = isVendor ? "/vendor/dashboard" : "/vendor";
   const vendorLinkText = isVendor ? "My Dashboard" : "Host Your Event";
 
+  const logoUrl = siteSettings?.logoUrl || DEFAULT_LOGO_URL;
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
       <div className="container flex h-16 items-center">
         <div className="mr-4 flex">
            <Link href="/" className="mr-6 flex items-center space-x-2" onClick={handleLinkClick}>
-            <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" priority />
-          </Link>
+            {isSiteSettingsLoading ? (
+              <div className="h-8 w-36 bg-muted rounded-md animate-pulse" />
+            ) : (
+              <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" priority />
+            )}
+           </Link>
           <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
             <Link href="/events" className="transition-colors hover:text-foreground/80 text-foreground/60" onClick={handleLinkClick}>
               Discover Events
