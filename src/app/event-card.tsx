@@ -4,7 +4,7 @@ import Link from 'next/link';
 import type { Event } from '@/lib/types';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, MapPin, Ticket } from 'lucide-react';
+import { Calendar, Lock, MapPin, Ticket } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 
@@ -40,8 +40,17 @@ export default function EventCard({ event }: EventCardProps) {
         </CardContent>
         <CardFooter className="p-4 flex justify-between items-center bg-secondary/50">
           <div className="flex items-center">
-            <Ticket className="h-5 w-5 mr-2 text-primary" />
-            <span className="font-bold text-lg">Free</span>
+            {event.isPrivate ? (
+                <>
+                    <Lock className="h-5 w-5 mr-2 text-amber-500" />
+                    <span className="font-bold text-lg text-amber-500">Private Event</span>
+                </>
+            ) : (
+                <>
+                    <Ticket className="h-5 w-5 mr-2 text-primary" />
+                    <span className="font-bold text-lg">Tickets Available</span>
+                </>
+            )}
           </div>
           <Button variant="outline" size="sm">
             Details

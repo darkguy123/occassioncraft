@@ -1,20 +1,26 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Image from 'next/image';
-import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
-import { doc, collection } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking, useCollection } from '@/firebase';
+import { doc, collection, query, where, limit } from 'firebase/firestore';
 import type { Event, Notification, UserTicket, Ticket } from '@/lib/types';
 import { useParams, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
-import { AlertTriangle, Calendar, Clock, MapPin, Sparkles, Ticket as TicketIcon } from 'lucide-react';
+import { AlertTriangle, Calendar, Clock, Lock, MapPin, Sparkles, Ticket as TicketIcon, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { usePaystackPayment } from 'react-paystack';
 import { useToast } from '@/hooks/use-toast';
-import { v4 as uuidv4 } from 'uuid';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function EventDetailsPage() {
     const { user } = useUser();
@@ -24,134 +30,60 @@ export default function EventDetailsPage() {
     const { toast } = useToast();
     const eventId = params.eventId as string;
 
+    const [isAlertOpen, setIsAlertOpen] = useState(false);
+    const [alertContent, setAlertContent] = useState({ title: '', description: '' });
+
     const eventDocRef = useMemoFirebase(() => {
         if (!firestore || !eventId) return null;
         return doc(firestore, 'events', eventId);
     }, [firestore, eventId]);
 
     const { data: eventData, isLoading: isEventLoading } = useDoc<Event>(eventDocRef);
-    
-    // In this new model, we assume a single price for simplicity, or that it's a free event.
-    // The complex pricing is handled during ticket crafting. We will assume a price of 0 for public ticket claims.
-    const ticketPrice = 0;
-    const isFreeEvent = ticketPrice === 0;
 
-    const paystackConfig = useMemo(() => {
-        if (!eventData || !user?.email || isFreeEvent) return null;
-        return {
-            reference: uuidv4(),
-            email: user.email,
-            amount: ticketPrice * 100, // Amount in kobo
-            currency: 'NGN',
-            publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
-        };
-    }, [eventData, user?.email, isFreeEvent, ticketPrice]);
+    const ticketsQuery = useMemoFirebase(() => {
+        if (!firestore || !eventId) return null;
+        return query(collection(firestore, 'tickets'), where('eventId', '==', eventId), where('isPrivate', '==', false), limit(1));
+    }, [firestore, eventId]);
 
-    const initializePayment = usePaystackPayment(paystackConfig!);
+    const { data: publicTickets, isLoading: areTicketsLoading } = useCollection(ticketsQuery);
 
-    const createTicketAndNotify = (ticketId: string) => {
-         if (!user || !firestore || !eventData) {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Could not process ticket. User or event data missing.',
-            });
-            return;
-        }
-
-        const userTicketRef = doc(firestore, `users/${user.uid}/tickets`, ticketId);
-        const centralTicketRef = doc(firestore, 'tickets', ticketId);
-        
-        // This is a simplified ticket. The full details would have been set during crafting.
-        // For a public claim, we create a basic ticket record.
-        const ticketData: Partial<Ticket> = {
-            id: ticketId,
-            eventId: eventData.id,
-            userId: user.uid,
-            vendorId: eventData.vendorId,
-            purchaseDate: new Date().toISOString(),
-            price: ticketPrice,
-            package: 'Regular', // Assume a default package for public claims
-            scans: 0,
-            maxScans: 1, // Default to 1 scan
-            isPrivate: false,
-        };
-
-        const userTicketPointer: Omit<UserTicket, 'event'> = {
-            ticketId: ticketId,
-            eventId: eventData.id,
-            purchaseDate: new Date().toISOString(),
-            userId: user.uid,
-            vendorId: eventData.vendorId,
-        }
-
-        const notificationsCollectionRef = collection(firestore, `users/${user.uid}/notifications`);
-        const notificationData: Omit<Notification, 'id'> = {
-            userId: user.uid,
-            title: isFreeEvent ? `Ticket Claimed: ${eventData.name}` : `Ticket Purchased: ${eventData.name}`,
-            description: `Your ticket for ${eventData.name} is ready.`,
-            createdAt: new Date().toISOString(),
-            read: false,
-            link: `/events/${eventData.id}/tickets/${ticketId}`,
-        }
-
-        setDocumentNonBlocking(userTicketRef, userTicketPointer);
-        setDocumentNonBlocking(centralTicketRef, ticketData);
-        setDocumentNonBlocking(notificationsCollectionRef, notificationData, { merge: true });
-
-
-        toast({
-            title: isFreeEvent ? 'Ticket Claimed!' : 'Payment Successful!',
-            description: 'Your ticket has been secured.',
-        });
-
-        router.push(`/events/${eventData.id}/tickets/${ticketId}`);
-    }
-
-    const onPaymentSuccess = (reference: any) => {
-        createTicketAndNotify(reference.reference);
-    };
-
-    const onPaymentClose = () => {
-        toast({
-            variant: 'destructive',
-            title: 'Payment Closed',
-            description: 'The payment modal was closed.',
-        });
-    };
+    const isLoading = isEventLoading || areTicketsLoading;
 
     const handleGetTicket = () => {
         if (!user) {
-            router.push('/login');
+            router.push('/login?redirect=/events/' + eventId);
             return;
         }
 
-        if (isFreeEvent) {
-            const ticketId = uuidv4();
-            createTicketAndNotify(ticketId);
+        if (eventData?.isPrivate) {
+            setAlertContent({
+                title: 'Private Event',
+                description: 'This event is private and strictly by invitation. You cannot claim tickets directly.'
+            });
+            setIsAlertOpen(true);
             return;
         }
 
-        if (!paystackConfig) {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Payment details could not be configured. Please try again later.',
+        if (!publicTickets || publicTickets.length === 0) {
+            setAlertContent({
+                title: 'No Tickets Available',
+                description: 'There are no public tickets available for this event yet. Please check back later.'
             });
+            setIsAlertOpen(true);
             return;
         }
-        if (!process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY.startsWith('pk_test_')) {
-            toast({
-                variant: 'destructive',
-                title: 'Setup Required',
-                description: 'The Paystack public key is not configured in the .env file.',
-            });
-            return;
-        }
-        initializePayment({onSuccess: onPaymentSuccess, onClose: onPaymentClose});
+        
+        // If public tickets are available, we would redirect to a page where user can select one.
+        // For now, let's just log it. A future implementation could show a ticket selection modal.
+        toast({
+            title: "Redirecting...",
+            description: "Showing available public tickets for this event."
+        });
+        // In a real scenario, you might have a dedicated page for purchasing from available ticket types.
+        // router.push(`/events/${eventId}/purchase`);
     };
 
-    if (isEventLoading) {
+    if (isLoading) {
         return (
             <div className="container mx-auto max-w-4xl py-12 px-4 space-y-8">
                 <Skeleton className="h-96 w-full rounded-2xl" />
@@ -188,57 +120,81 @@ export default function EventDetailsPage() {
     const formattedTime = eventData.startTime;
 
     return (
-        <div>
-            <section className="relative w-full h-[60vh]">
-                <Image
-                    src={eventData.bannerUrl || 'https://picsum.photos/seed/event/1200/800'}
-                    alt={eventData.name}
-                    fill
-                    className="object-cover"
-                    data-ai-hint={eventData.name}
-                    priority
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                <div className="relative z-10 flex flex-col items-start justify-end h-full p-8 md:p-12 container mx-auto">
-                    <h1 className="text-4xl md:text-6xl font-headline font-bold text-white shadow-lg">{eventData.name}</h1>
-                    <p className="text-lg text-white/90 mt-2 shadow-md">Hosted by {eventData.organizer || 'the organizer'}</p>
-                </div>
-            </section>
-
-            <div className="container mx-auto max-w-5xl py-12 px-4">
-                <div className="grid md:grid-cols-3 gap-8 md:gap-12">
-                    <div className="md:col-span-2">
-                        <h2 className="font-headline text-2xl font-bold mb-4">About this event</h2>
-                        <p className="text-muted-foreground whitespace-pre-wrap">{eventData.description || 'No description provided.'}</p>
+        <>
+            <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                            <Info className="h-5 w-5" /> {alertContent.title}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>{alertContent.description}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogAction onClick={() => setIsAlertOpen(false)}>
+                        OK
+                    </AlertDialogAction>
+                </AlertDialogContent>
+            </AlertDialog>
+            <div>
+                <section className="relative w-full h-[60vh]">
+                    <Image
+                        src={eventData.bannerUrl || 'https://picsum.photos/seed/event/1200/800'}
+                        alt={eventData.name}
+                        fill
+                        className="object-cover"
+                        data-ai-hint={eventData.name}
+                        priority
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                    <div className="relative z-10 flex flex-col items-start justify-end h-full p-8 md:p-12 container mx-auto">
+                        <h1 className="text-4xl md:text-6xl font-headline font-bold text-white shadow-lg">{eventData.name}</h1>
+                        <p className="text-lg text-white/90 mt-2 shadow-md">Hosted by {eventData.organizer || 'the organizer'}</p>
                     </div>
-                    <div className="md:row-start-1 md:col-start-3">
-                         <Card className="p-6 sticky top-24">
-                            <div className="space-y-4 text-sm">
-                                <div className="flex items-center">
-                                    <Calendar className="h-5 w-5 mr-3 text-primary" />
-                                    <span className="font-medium text-lg">{formattedDate}</span>
+                </section>
+
+                <div className="container mx-auto max-w-5xl py-12 px-4">
+                    <div className="grid md:grid-cols-3 gap-8 md:gap-12">
+                        <div className="md:col-span-2">
+                            <h2 className="font-headline text-2xl font-bold mb-4">About this event</h2>
+                            <p className="text-muted-foreground whitespace-pre-wrap">{eventData.description || 'No description provided.'}</p>
+                        </div>
+                        <div className="md:row-start-1 md:col-start-3">
+                            <Card className="p-6 sticky top-24">
+                                <div className="space-y-4 text-sm">
+                                    <div className="flex items-center">
+                                        <Calendar className="h-5 w-5 mr-3 text-primary" />
+                                        <span className="font-medium text-lg">{formattedDate}</span>
+                                    </div>
+                                    <div className="flex items-center text-muted-foreground">
+                                        <Clock className="h-4 w-4 mr-3.5 ml-0.5" />
+                                        <span>{formattedTime}</span>
+                                    </div>
+                                    <div className="flex items-center text-muted-foreground">
+                                        <MapPin className="h-4 w-4 mr-3.5 ml-0.5" />
+                                        <span>{eventData.isOnline ? 'Online Event' : eventData.location}</span>
+                                    </div>
                                 </div>
-                                <div className="flex items-center text-muted-foreground">
-                                    <Clock className="h-4 w-4 mr-3.5 ml-0.5" />
-                                    <span>{formattedTime}</span>
+                                <div className="my-6 text-center">
+                                {eventData.isPrivate ? (
+                                    <div className="flex flex-col items-center gap-2 text-amber-600">
+                                        <Lock className="h-8 w-8" />
+                                        <span className="font-bold text-xl">Private Event</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center gap-2">
+                                        <TicketIcon className="h-8 w-8 text-primary" />
+                                        <span className="font-bold text-xl">Tickets Available</span>
+                                    </div>
+                                )}
                                 </div>
-                                <div className="flex items-center text-muted-foreground">
-                                    <MapPin className="h-4 w-4 mr-3.5 ml-0.5" />
-                                    <span>{eventData.isOnline ? 'Online Event' : eventData.location}</span>
-                                </div>
-                            </div>
-                            <div className="my-6 text-center">
-                                <span className="font-bold text-4xl">Free</span>
-                                <span className="text-muted-foreground">/ticket</span>
-                            </div>
-                             <Button size="lg" className="w-full font-bold text-lg" onClick={handleGetTicket}>
-                                <TicketIcon className="mr-2 h-5 w-5" />
-                                Get Ticket
-                            </Button>
-                        </Card>
+                                <Button size="lg" className="w-full font-bold text-lg" onClick={handleGetTicket}>
+                                    <TicketIcon className="mr-2 h-5 w-5" />
+                                    Get Tickets
+                                </Button>
+                            </Card>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 }

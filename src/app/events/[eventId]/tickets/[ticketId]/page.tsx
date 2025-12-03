@@ -4,104 +4,26 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import type { Event, Ticket, UserTicket } from '@/lib/types';
+import type { Event, Ticket } from '@/lib/types';
 import { useParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
-import { Ticket as TicketIcon, MapPin, Calendar, User as UserIcon, AlertTriangle, Download, FileImage, FileText } from 'lucide-react';
+import { Ticket as TicketIcon, MapPin, Calendar, User as UserIcon, AlertTriangle, Download, FileImage, FileText, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 import QRCode from 'qrcode';
 import { Button } from '@/components/ui/button';
-import { toPng, toJpeg } from 'html-to-image';
+import { toJpeg } from 'html-to-image';
 import jsPDF from 'jspdf';
-
-
-const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Fremove-photos-background-removed%20(1).png?alt=media&token=e95cb4d3-18c7-48b8-93f8-656354e39a3f';
-
-const TicketDesign = ({ eventData, ticketData, qrCodeUrl, user }: { eventData: Event, ticketData: Ticket, qrCodeUrl: string, user: any }) => {
-    const formattedDate = eventData.date ? format(new Date(eventData.date), "EEEE, MMM d, yyyy") : 'Date';
-    const formattedTime = eventData.startTime || 'Time';
-    
-    return (
-        <Card id="ticket-to-download" className={cn(
-            "w-full max-w-md rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br relative transition-all duration-300 from-slate-50 to-slate-200 dark:from-slate-800 dark:to-slate-900"
-        )}>
-            {ticketData?.ticketImageUrl && (
-                <Image src={ticketData.ticketImageUrl} alt="Ticket background" fill className="object-cover blur-md opacity-50" />
-            )}
-
-            <div className="p-1 backdrop-blur-sm bg-white/10 rounded-2xl relative z-10">
-                {ticketData?.ticketBrandingImageUrl && (
-                    <div className="h-24 relative rounded-t-xl overflow-hidden mb-2">
-                        <Image src={ticketData.ticketBrandingImageUrl} alt="Branding" fill className="object-cover" />
-                    </div>
-                )}
-
-                <div className={cn("p-6 md:p-8", ticketData?.ticketBrandingImageUrl && "pt-2")}>
-
-                    <div className="flex justify-between items-start">
-                        <div className="space-y-1">
-                            <p className="text-xs uppercase tracking-widest text-black/60 dark:text-white/60">Event Ticket</p>
-                            <h3 className="font-headline text-3xl font-bold leading-tight text-black dark:text-white">{eventData.name}</h3>
-                        </div>
-                        <TicketIcon className="h-8 w-8 text-black/60 dark:text-white/60" />
-                    </div>
-
-                    <div className="mt-8 space-y-4 text-sm">
-                        <div className="flex items-center gap-3">
-                            <Calendar className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
-                            <span className="font-medium text-black dark:text-white">{formattedDate} at {formattedTime}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <MapPin className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
-                            <span className="truncate font-medium text-black dark:text-white">{eventData.isOnline ? 'Online Event' : eventData.location}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <UserIcon className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
-                            <span className="truncate font-medium text-black dark:text-white">{ticketData.attendeeName || user?.displayName || 'Ticket Holder'}</span>
-                        </div>
-                         {ticketData.class && (
-                            <div className="flex items-center gap-3">
-                                <TicketIcon className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
-                                <span className="truncate font-medium text-black dark:text-white">{ticketData.class}</span>
-                            </div>
-                         )}
-                    </div>
-
-                    <div className="mt-8 text-center flex flex-col items-center justify-center">
-                        {qrCodeUrl ? (
-                            <div className="bg-white p-2 rounded-lg shadow-lg">
-                                <Image
-                                    src={qrCodeUrl}
-                                    alt="Ticket QR Code"
-                                    width={200}
-                                    height={200}
-                                    data-ai-hint="qr code"
-                                />
-                            </div>
-                        ) : (
-                            <Skeleton className="h-48 w-48" />
-                        )}
-                        <p className="text-xs mt-3 text-black/60 dark:text-white/60">Scan this at the event entrance</p>
-                    </div>
-
-                    <div className="mt-8 border-t-2 border-dashed border-black/20 dark:border-white/20 pt-4 flex items-center justify-between gap-4 text-xs">
-                        <Image src={DEFAULT_LOGO_URL} alt="Logo" width={80} height={20} className="h-5 w-auto" />
-                        <p className="text-black/60 dark:text-white/60">ID: {ticketData.id.substring(0, 13)}</p>
-                    </div>
-                </div>
-            </div>
-        </Card>
-    );
-};
+import { TicketDesign } from '@/components/ticket-design';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function TicketDetailsPage() {
     const { user } = useUser();
     const firestore = useFirestore();
     const params = useParams();
+    const { toast } = useToast();
     const { eventId, ticketId } = params;
 
     const [qrCodeUrl, setQrCodeUrl] = useState('');
@@ -109,7 +31,6 @@ export default function TicketDetailsPage() {
 
     const ticketDocRef = useMemoFirebase(() => {
         if (!firestore || !ticketId) return null;
-        // The definitive ticket data lives in the root /tickets collection
         return doc(firestore, `tickets`, ticketId as string);
     }, [firestore, ticketId]);
 
@@ -156,6 +77,8 @@ export default function TicketDetailsPage() {
             }
         };
 
+        toast({ title: 'Preparing Download...', description: `Your ticket will be downloaded as a ${format.toUpperCase()} file.` });
+
         const downloadImage = (dataUrl: string) => {
             const link = document.createElement('a');
             link.download = `ticket-${ticketId}.jpg`;
@@ -164,12 +87,14 @@ export default function TicketDetailsPage() {
         };
         
         const downloadPdf = (dataUrl: string) => {
-            const pdf = new jsPDF({
+             const pdf = new jsPDF({
                 orientation: 'portrait',
                 unit: 'px',
-                format: [node.offsetWidth, node.offsetHeight]
+                // Make the PDF slightly larger than the node to avoid cutoff
+                format: [node.offsetWidth + 20, node.offsetHeight + 20]
             });
-            pdf.addImage(dataUrl, 'PNG', 0, 0, node.offsetWidth, node.offsetHeight);
+             // Center the image on the PDF page
+            pdf.addImage(dataUrl, 'PNG', 10, 10, node.offsetWidth, node.offsetHeight);
             pdf.save(`ticket-${ticketId}.pdf`);
         }
 
@@ -178,11 +103,28 @@ export default function TicketDetailsPage() {
                 .then(downloadImage)
                 .catch((err) => console.error('oops, something went wrong!', err));
         } else {
-             toPng(node, imageOptions)
+             toJpeg(node, imageOptions) // Use JPEG for PDF as well for consistency
                 .then(downloadPdf)
                 .catch((err) => console.error('oops, something went wrong!', err));
         }
-    }, [ticketId]);
+    }, [ticketId, toast]);
+
+    const handleShare = () => {
+        const shareUrl = `${window.location.origin}/shared-ticket/${ticketId}`;
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            toast({
+                title: 'Link Copied!',
+                description: 'The shareable link has been copied to your clipboard.',
+            });
+        }).catch(err => {
+            console.error('Failed to copy link: ', err);
+            toast({
+                variant: 'destructive',
+                title: 'Failed to Copy',
+                description: 'Could not copy the link to your clipboard.',
+            });
+        });
+    };
 
     if (isLoading) {
         return (
@@ -207,7 +149,6 @@ export default function TicketDetailsPage() {
         )
     }
     
-    // Authorization check: User must own the ticket OR be the vendor for the event.
     const isOwner = ticketData.userId === user?.uid;
     const isVendor = eventData.vendorId === user?.uid;
 
@@ -231,11 +172,14 @@ export default function TicketDetailsPage() {
                 <TicketDesign eventData={eventData} ticketData={ticketData} qrCodeUrl={qrCodeUrl} user={user} />
             </div>
             <Card className="w-full max-w-md p-4">
-                <div className="flex flex-col sm:flex-row gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                     <Button className="w-full" variant="outline" onClick={handleShare}>
+                        <Share2 className="mr-2 h-4 w-4" /> Share
+                    </Button>
                     <Button className="w-full" onClick={() => handleDownload('jpg')}>
                         <FileImage className="mr-2 h-4 w-4" /> Download JPG
                     </Button>
-                    <Button className="w-full" variant="outline" onClick={() => handleDownload('pdf')}>
+                    <Button className="w-full" onClick={() => handleDownload('pdf')}>
                         <FileText className="mr-2 h-4 w-4" /> Download PDF
                     </Button>
                 </div>
@@ -243,5 +187,3 @@ export default function TicketDetailsPage() {
         </div>
     )
 }
-
-    
