@@ -1,4 +1,6 @@
 
+import { FirebaseStorage } from "firebase/storage";
+
 export type UserRole = 'user' | 'vendor' | 'admin' | 'scanner';
 
 export type User = {

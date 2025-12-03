@@ -10,9 +10,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Upload, BookText, FileText, Info, Palette, Twitter, Facebook, Instagram, DollarSign, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { useFirestore, useDoc, setDocumentNonBlocking, useMemoFirebase } from '@/firebase';
+import { useFirestore, useDoc, setDocumentNonBlocking, useMemoFirebase, useStorage } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
 import type { SiteSettings } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,6 +21,7 @@ import Image from 'next/image';
 export default function AdminSettingsPage() {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const storage = useStorage();
   const [uploadingStatus, setUploadingStatus] = useState<Record<string, boolean>>({});
 
   const settingsDocRef = useMemoFirebase(() => {
@@ -53,12 +54,13 @@ export default function AdminSettingsPage() {
     }
 
     setUploadingStatus(prev => ({ ...prev, [fieldName]: true }));
-    const storage = getStorage();
+    
     const storageRef = ref(storage, `site-settings/${uuidv4()}-${file.name}`);
 
     try {
-      await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(storageRef);
+      const uploadTask = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(uploadTask.ref);
+
       setFormData(prev => ({ ...prev, [fieldName]: downloadURL }));
       toast({ title: 'Image Uploaded', description: 'Your image has been uploaded. Save changes to apply.' });
     } catch (error) {
@@ -310,5 +312,3 @@ export default function AdminSettingsPage() {
     </div>
   );
 }
-
-    
