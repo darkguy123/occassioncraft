@@ -105,13 +105,6 @@ function InnerRootProvider({ children }: { children: React.ReactNode }) {
                     children
                 )}
             </main>
-            <div 
-                className="h-12 bg-repeat-x" 
-                style={{ 
-                    backgroundImage: `url("https://storage.googleapis.com/aai-web-samples/pattern.png")`,
-                    backgroundSize: 'auto 100%',
-                }}
-            />
             <Footer />
             <Toaster />
             <Suspense fallback={null}>
