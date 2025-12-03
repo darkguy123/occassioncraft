@@ -47,11 +47,12 @@ export default function AdminEditEventPage({ params }: { params: { eventId: stri
   const firestore = useFirestore();
   const [isUploading, setIsUploading] = useState(false);
   const [newScannerId, setNewScannerId] = useState('');
+  const { eventId } = params;
   
   const eventDocRef = useMemoFirebase(() => {
-    if (!firestore || !params.eventId) return null;
-    return doc(firestore, 'events', params.eventId);
-  }, [firestore, params.eventId]);
+    if (!firestore || !eventId) return null;
+    return doc(firestore, 'events', eventId);
+  }, [firestore, eventId]);
 
   const { data: eventData, isLoading } = useDoc<Event>(eventDocRef);
 
@@ -112,7 +113,7 @@ export default function AdminEditEventPage({ params }: { params: { eventId: stri
 
     setIsUploading(true);
     const storage = getStorage();
-    const storageRef = ref(storage, `banners/${params.eventId}/${uuidv4()}-${file.name}`);
+    const storageRef = ref(storage, `banners/${eventId}/${uuidv4()}-${file.name}`);
 
     try {
         await uploadBytes(storageRef, file);
