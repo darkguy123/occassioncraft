@@ -16,7 +16,7 @@ interface TicketStylePreviewProps {
 }
 
 const GeometricTicketTemplate = ({ eventData, qrCodeUrl }: { eventData: Partial<TicketFormValues> & { name?: string }, qrCodeUrl: string }) => {
-    const { name, date, startTime, location, attendeeName } = eventData;
+    const { name, date, startTime, location, attendeeName, class: ticketClass } = eventData;
     const formattedDate = date ? format(date, "MMM dd, yyyy") : 'Jan 01, 2025';
     const formattedTime = startTime || '8:00 PM';
 
@@ -64,11 +64,12 @@ const GeometricTicketTemplate = ({ eventData, qrCodeUrl }: { eventData: Partial<
                 <div>
                     <h3 className="font-bold text-2xl tracking-wide">{name || 'Your Event Name'}</h3>
                     <p className="text-white/70">{attendeeName || 'Ticket Holder'}</p>
+                    {ticketClass && <p className="font-headline font-bold text-lg text-amber-300 mt-1">{ticketClass}</p>}
                 </div>
                 <div className="flex justify-between items-end">
                     <div className="text-sm">
                         <p className="font-semibold">{formattedDate}</p>
-                        <p className="text-white/70">{formattedTime} &bull; {location || 'Venue'}</p>
+                        <p className="text-white/70">{formattedTime} • {location || 'Venue'}</p>
                     </div>
                      <div className="flex items-center gap-4">
                         {qrCodeUrl ? (
@@ -95,6 +96,7 @@ const ModernTicketTemplate = ({ eventData, qrCodeUrl }: { eventData: Partial<Tic
                  {eventData.ticketBrandingImageUrl && <Image src={eventData.ticketBrandingImageUrl} alt="branding" width={120} height={40} className="mb-4" />}
                 <h3 className="font-sans text-4xl font-bold tracking-tighter">{eventData.name || 'Event Name'}</h3>
                 <p className="text-zinc-400">{eventData.attendeeName || 'Ticket Holder'}</p>
+                {eventData.class && <p className="font-headline font-bold text-lg text-amber-300 mt-1">{eventData.class}</p>}
                 <div className="mt-6 flex justify-between items-center">
                     {qrCodeUrl ? <div className="bg-white p-1 rounded-md"><Image src={qrCodeUrl} alt="QR Code" width={100} height={100} /></div> : <Skeleton className="h-24 w-24" />}
                     <div className="text-right">
@@ -119,6 +121,7 @@ const MinimalTicketTemplate = ({ eventData, qrCodeUrl }: { eventData: Partial<Ti
                     {eventData.ticketBrandingImageUrl && <Image src={eventData.ticketBrandingImageUrl} alt="branding" width={80} height={80} className="mx-auto mb-2 rounded-full" />}
                     <p className="text-sm tracking-[0.2em] uppercase text-gray-500">Admit One</p>
                     <h3 className="text-3xl font-bold">{eventData.name || 'Event Name'}</h3>
+                     {eventData.class && <p className="font-headline font-semibold text-lg text-amber-600 mt-1">{eventData.class}</p>}
                 </div>
                 <div className="border-t border-b border-dashed border-gray-300 py-4 my-4 flex justify-between text-center">
                     <div>
@@ -185,6 +188,7 @@ export function TicketStylePreview({ eventData }: TicketStylePreviewProps) {
                         <div className="flex items-center gap-3"><Calendar className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" /><span className="font-medium text-black dark:text-white">{eventData.date ? format(eventData.date, "EEEE, MMM d, yyyy") : 'Your Date'} at {eventData.startTime || 'Your Time'}</span></div>
                         <div className="flex items-center gap-3"><MapPin className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" /><span className="truncate font-medium text-black dark:text-white">{eventData.location || 'Your Location'}</span></div>
                         <div className="flex items-center gap-3"><User className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" /><span className="truncate font-medium text-black dark:text-white">{eventData.attendeeName || 'Ticket Holder'}</span></div>
+                        {eventData.class && <p className="font-headline font-bold text-lg text-primary mt-1">{eventData.class}</p>}
                     </div>
                      
                     <div className="mt-8 text-center flex flex-col items-center justify-center">
