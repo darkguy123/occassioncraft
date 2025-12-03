@@ -20,7 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function AdminSettingsPage() {
   const { toast } = useToast();
   const firestore = useFirestore();
-  const [isUploading, setIsUploading] = useState<Record<string, boolean>>({});
+  const [isUploading, setIsUploading] = useState(false);
 
   const settingsDocRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -51,7 +51,7 @@ export default function AdminSettingsPage() {
       return;
     }
 
-    setIsUploading(prev => ({ ...prev, [fieldName]: true }));
+    setIsUploading(true);
     const storage = getStorage();
     const storageRef = ref(storage, `site-settings/${uuidv4()}-${file.name}`);
 
@@ -64,7 +64,7 @@ export default function AdminSettingsPage() {
       console.error("Error uploading file:", error);
       toast({ variant: 'destructive', title: 'Upload Failed' });
     } finally {
-      setIsUploading(prev => ({ ...prev, [fieldName]: false }));
+      setIsUploading(false);
     }
   };
 
@@ -119,17 +119,17 @@ export default function AdminSettingsPage() {
                       <Label htmlFor="logoUrl">Logo Image</Label>
                       <div className="flex items-center justify-center w-full">
                           <label htmlFor="logoUrl-upload" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
-                                {isUploading.logoUrl && <Loader2 className="h-8 w-8 animate-spin" />}
-                                {!isUploading.logoUrl && formData.logoUrl ? (
+                                {isUploading && <Loader2 className="h-8 w-8 animate-spin" />}
+                                {!isUploading && formData.logoUrl ? (
                                     <img src={formData.logoUrl} alt="Logo preview" className="h-24 w-auto object-contain" />
-                                ) : !isUploading.logoUrl && (
+                                ) : !isUploading && (
                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                         <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
                                         <p className="text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
                                         <p className="text-xs text-muted-foreground">PNG, JPG, SVG (MAX. 2MB)</p>
                                     </div>
                                 )}
-                                <Input id="logoUrl-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/svg+xml, image/webp" onChange={(e) => handleFileChange(e, 'logoUrl')} />
+                                <Input id="logoUrl-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/svg+xml, image/webp" onChange={(e) => handleFileChange(e, 'logoUrl')} disabled={isUploading}/>
                           </label>
                       </div>
                     </div>
@@ -138,16 +138,16 @@ export default function AdminSettingsPage() {
                       <Label htmlFor="faviconUrl">Favicon Image</Label>
                        <div className="flex items-center gap-4">
                             <label htmlFor="faviconUrl-upload" className="flex items-center justify-center w-24 h-24 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
-                                {isUploading.faviconUrl && <Loader2 className="h-6 w-6 animate-spin" />}
-                                {!isUploading.faviconUrl && formData.faviconUrl ? (
+                                {isUploading && <Loader2 className="h-6 w-6 animate-spin" />}
+                                {!isUploading && formData.faviconUrl ? (
                                     <img src={formData.faviconUrl} alt="Favicon preview" className="h-12 w-12 object-contain" />
-                                ) : !isUploading.faviconUrl && (
+                                ) : !isUploading && (
                                    <div className="flex flex-col items-center justify-center text-center p-2">
                                         <Upload className="w-6 h-6 mb-1 text-muted-foreground" />
                                         <p className="text-xs text-muted-foreground">Upload .ico, .png, .svg</p>
                                     </div>
                                 )}
-                                <Input id="faviconUrl-upload" type="file" className="hidden" accept="image/x-icon, image/png, image/svg+xml" onChange={(e) => handleFileChange(e, 'faviconUrl')} />
+                                <Input id="faviconUrl-upload" type="file" className="hidden" accept="image/x-icon, image/png, image/svg+xml" onChange={(e) => handleFileChange(e, 'faviconUrl')} disabled={isUploading}/>
                             </label>
                             <div>
                                 <p className="text-sm text-muted-foreground">Upload a new favicon.</p>
@@ -157,7 +157,7 @@ export default function AdminSettingsPage() {
                     </div>
 
                     <div className="flex justify-end">
-                        <Button onClick={() => handleSave('Branding')}>Save Changes</Button>
+                        <Button onClick={() => handleSave('Branding')} disabled={isUploading}>Save Changes</Button>
                     </div>
                 </CardContent>
             </Card>
@@ -190,23 +190,23 @@ export default function AdminSettingsPage() {
                 <Label htmlFor="heroBannerUrl">Homepage Banner Image</Label>
                 <div className="flex items-center justify-center w-full">
                   <label htmlFor="heroBannerUrl-upload" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
-                    {isUploading.heroBannerUrl && <Loader2 className="h-8 w-8 animate-spin" />}
-                    {!isUploading.heroBannerUrl && formData.heroBannerUrl ? (
+                    {isUploading && <Loader2 className="h-8 w-8 animate-spin" />}
+                    {!isUploading && formData.heroBannerUrl ? (
                       <img src={formData.heroBannerUrl} alt="Hero banner preview" className="h-full w-full object-cover" />
-                    ) : !isUploading.heroBannerUrl && (
+                    ) : !isUploading && (
                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
                         <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
                         <p className="text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
                         <p className="text-xs text-muted-foreground">PNG, JPG, WEBP (MAX. 2MB)</p>
                       </div>
                     )}
-                    <Input id="heroBannerUrl-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/webp" onChange={(e) => handleFileChange(e, 'heroBannerUrl')} />
+                    <Input id="heroBannerUrl-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/webp" onChange={(e) => handleFileChange(e, 'heroBannerUrl')} disabled={isUploading}/>
                   </label>
                 </div>
               </div>
 
               <div className="flex justify-end">
-                 <Button onClick={() => handleSave('Appearance')}>Save Appearance</Button>
+                 <Button onClick={() => handleSave('Appearance')} disabled={isUploading}>Save Appearance</Button>
               </div>
             </CardContent>
           </Card>
@@ -303,3 +303,5 @@ export default function AdminSettingsPage() {
     </div>
   );
 }
+
+    
