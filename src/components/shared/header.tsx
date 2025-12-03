@@ -14,7 +14,7 @@ import { PlusCircle, ShoppingCart } from 'lucide-react';
 import { useLoader } from '@/context/loader-context';
 import { useCart } from '@/context/cart-context';
 
-const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Flogo.png?alt=media&token=4369a197-f580-4995-b2a6-3837c8586044';
+const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Fremove-photos-background-removed%20(1).png?alt=media&token=e95cb4d3-18c7-48b8-93f8-656354e39a3f';
 
 export function Header() {
   const { user, isUserLoading } = useUser();
@@ -42,21 +42,21 @@ export function Header() {
   const logoUrl = siteSettings?.logoUrl || DEFAULT_LOGO_URL;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
+    <header className="sticky top-0 z-50 w-full border-b bg-gradient-to-r from-[#336BFC] to-[#1e40af] text-white">
       <div className="container flex h-16 items-center">
         <div className="mr-4 flex">
            <Link href="/" className="mr-6 flex items-center space-x-2" onClick={handleLinkClick}>
             {isSiteSettingsLoading ? (
-              <div className="h-8 w-36 bg-muted rounded-md animate-pulse" />
+              <div className="h-8 w-36 bg-white/20 rounded-md animate-pulse" />
             ) : (
               <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" priority />
             )}
            </Link>
           <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
-            <Link href="/events" className="transition-colors hover:text-foreground/80 text-foreground/60" onClick={handleLinkClick}>
+            <Link href="/events" className="transition-colors hover:text-white text-white/80" onClick={handleLinkClick}>
               Discover Events
             </Link>
-            <Link href={vendorLinkHref} className="transition-colors hover:text-foreground/80 text-foreground/60" onClick={handleLinkClick}>
+            <Link href={vendorLinkHref} className="transition-colors hover:text-white text-white/80" onClick={handleLinkClick}>
                 {vendorLinkText}
             </Link>
           </nav>
@@ -67,13 +67,13 @@ export function Header() {
               <>
                 {(isVendor || isAdmin) && (
                   <div className="flex items-center gap-2">
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="destructive" size="sm">
                         <Link href="/create-event" onClick={handleLinkClick}>
                             <PlusCircle className="mr-2 h-4 w-4" />
                             Create Event
                         </Link>
                     </Button>
-                     <Button variant="ghost" size="icon" className="relative" asChild>
+                     <Button variant="ghost" size="icon" className="relative text-white hover:bg-white/20 hover:text-white" asChild>
                       <Link href="/vendor/checkout">
                         <ShoppingCart className="h-5 w-5" />
                         {cart.length > 0 && (
@@ -91,10 +91,10 @@ export function Header() {
               </>
             ) : (
               <>
-                <Button variant="ghost" asChild>
+                <Button variant="ghost" asChild className="text-white hover:bg-white/20 hover:text-white">
                   <Link href="/login" onClick={handleLinkClick}>Log In</Link>
                 </Button>
-                <Button asChild>
+                <Button asChild variant="destructive">
                   <Link href="/signup" onClick={handleLinkClick}>Sign Up</Link>
                 </Button>
               </>
