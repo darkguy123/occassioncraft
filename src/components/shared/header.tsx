@@ -14,7 +14,7 @@ import { PlusCircle, ShoppingCart } from 'lucide-react';
 import { useLoader } from '@/context/loader-context';
 import { useCart } from '@/context/cart-context';
 
-const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Fremove-photos-background-removed%20(1).png?alt=media&token=e95cb4d3-18c7-48b8-93f8-656354e39a3f';
+const DEFAULT_LOGO_URL = '/default-logo.png'; // Path relative to the /public directory
 
 export function Header() {
   const { user, isUserLoading } = useUser();
@@ -49,7 +49,7 @@ export function Header() {
             {isSiteSettingsLoading ? (
               <div className="h-8 w-36 bg-white/20 rounded-md animate-pulse" />
             ) : (
-              <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" priority />
+              <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" priority unoptimized />
             )}
            </Link>
           <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">

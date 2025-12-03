@@ -18,7 +18,7 @@ const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
 )
 
-const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Fremove-photos-background-removed%20(1).png?alt=media&token=e95cb4d3-18c7-48b8-93f8-656354e39a3f';
+const DEFAULT_LOGO_URL = '/default-logo.png'; // Path relative to the /public directory
 
 export function Footer() {
   const { siteSettings, isSiteSettingsLoading } = useFirebase();
@@ -39,7 +39,7 @@ export function Footer() {
               {isSiteSettingsLoading ? (
                   <div className="h-8 w-36 bg-white/20 rounded-md animate-pulse" />
               ) : (
-                <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" />
+                <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" unoptimized/>
               )}
             </Link>
             <p className="text-sm text-white/80">Create, discover, and celebrate events with OccasionCraft.</p>

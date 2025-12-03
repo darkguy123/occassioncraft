@@ -17,10 +17,10 @@ import { CartProvider } from '@/context/cart-context';
 function Favicon() {
     const { siteSettings, isSiteSettingsLoading } = useFirebase();
 
-    const faviconUrl = siteSettings?.faviconUrl || 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Flogo-icon.png?alt=media&token=48731737-23a3-4537-8547-975bea415255';
+    const faviconUrl = siteSettings?.faviconUrl || '/favicon.ico';
     
     if (isSiteSettingsLoading) {
-      return <link rel="icon" href="https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Flogo-icon.png?alt=media&token=48731737-23a3-4537-8547-975bea415255" />;
+      return <link rel="icon" href="/favicon.ico" />;
     }
 
     return <link rel="icon" href={faviconUrl} />;
@@ -83,7 +83,7 @@ function InnerRootProvider({ children }: { children: React.ReactNode }) {
     return (
         <>
             <ThemeUpdater />
-            <Suspense fallback={<link rel="icon" href="https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2Flogo-icon.png?alt=media&token=48731737-23a3-4537-8547-975bea415255" />}>
+            <Suspense fallback={<link rel="icon" href="/favicon.ico" />}>
                 <Favicon />
             </Suspense>
             <PageLoader />

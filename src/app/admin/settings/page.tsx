@@ -7,13 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, BookText, FileText, Info, Palette, Twitter, Facebook, Instagram, DollarSign, Loader2 } from 'lucide-react';
+import { BookText, FileText, Info, Palette, Twitter, Facebook, Instagram } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { useFirestore, useDoc, setDocumentNonBlocking, useMemoFirebase, useStorage } from '@/firebase';
+import { useFirestore, useDoc, setDocumentNonBlocking, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { v4 as uuidv4 } from 'uuid';
 import type { SiteSettings } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
@@ -21,8 +19,6 @@ import Image from 'next/image';
 export default function AdminSettingsPage() {
   const { toast } = useToast();
   const firestore = useFirestore();
-  const storage = useStorage();
-  const [uploadingStatus, setUploadingStatus] = useState<Record<string, boolean>>({});
 
   const settingsDocRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -44,37 +40,6 @@ export default function AdminSettingsPage() {
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, fieldName: keyof SiteSettings) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 2 * 1024 * 1024) { // 2MB limit
-      toast({ variant: 'destructive', title: 'File too large', description: 'Image must be smaller than 2MB.' });
-      return;
-    }
-
-    setUploadingStatus(prev => ({ ...prev, [fieldName]: true }));
-    
-    const storageRef = ref(storage, `site-settings/${uuidv4()}-${file.name}`);
-
-    try {
-      const uploadTask = await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(uploadTask.ref);
-
-      setFormData(prev => ({ ...prev, [fieldName]: downloadURL }));
-      toast({ title: 'Image Uploaded', description: 'Your image has been uploaded. Save changes to apply.' });
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      toast({ variant: 'destructive', title: 'Upload Failed', description: 'There was a problem uploading your file. Please check storage rules and try again.' });
-    } finally {
-        setUploadingStatus(prev => {
-            const newStatus = { ...prev };
-            delete newStatus[fieldName];
-            return newStatus;
-        });
-    }
-  };
-
   const handleSave = (section: string) => {
     if (!settingsDocRef) {
       toast({ variant: 'destructive', title: 'Error', description: 'Database not available.' });
@@ -86,8 +51,6 @@ export default function AdminSettingsPage() {
       description: `Your ${section.toLowerCase()} settings have been saved.`,
     });
   };
-
-  const isAnyFieldUploading = Object.values(uploadingStatus).some(status => status);
   
   if (isSettingsLoading) {
     return (
@@ -110,63 +73,39 @@ export default function AdminSettingsPage() {
       </div>
 
       <Tabs defaultValue="branding" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
+        <TabsList className="grid w-full grid-cols-4 max-w-xl">
             <TabsTrigger value="branding">Branding</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
             <TabsTrigger value="content">Content</TabsTrigger>
             <TabsTrigger value="socials">Socials</TabsTrigger>
-            <TabsTrigger value="pricing">Pricing</TabsTrigger>
         </TabsList>
         <TabsContent value="branding">
             <Card>
                 <CardHeader>
                 <CardTitle>Branding</CardTitle>
-                <CardDescription>Manage your website logo and favicon.</CardDescription>
+                <CardDescription>Manage your website logo and favicon by providing public paths to your images (e.g., /logo.png). Upload your files to the `public` directory.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-8">
                     <div className="grid gap-2">
-                      <Label htmlFor="logoUrl">Logo Image</Label>
-                      <div className="flex items-center justify-center w-full">
-                          <label htmlFor="logoUrl-upload" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
-                                {uploadingStatus['logoUrl'] ? <Loader2 className="h-8 w-8 animate-spin" /> :
-                                 formData.logoUrl ? (
-                                    <Image src={formData.logoUrl} alt="Logo preview" className="h-24 w-auto object-contain" width={200} height={96} />
-                                ) : (
-                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                        <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
-                                        <p className="text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                        <p className="text-xs text-muted-foreground">PNG, JPG, SVG (MAX. 2MB)</p>
-                                    </div>
-                                )}
-                          </label>
-                          <Input id="logoUrl-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/svg+xml, image/webp" onChange={(e) => handleFileChange(e, 'logoUrl')} disabled={uploadingStatus['logoUrl']}/>
-                      </div>
+                      <Label htmlFor="logoUrl">Logo Path</Label>
+                      <Input id="logoUrl" placeholder="/logo.png" value={formData.logoUrl || ''} onChange={handleInputChange} />
+                       <div className="flex items-center gap-4 mt-2">
+                         <p className="text-sm text-muted-foreground">Current Logo:</p>
+                         <Image src={formData.logoUrl || '/default-logo.png'} alt="Logo preview" width={140} height={32} className="h-8 w-auto bg-neutral-200 p-1 rounded" unoptimized/>
+                       </div>
                     </div>
 
                     <div className="grid gap-2">
-                      <Label htmlFor="faviconUrl">Favicon Image</Label>
-                       <div className="flex items-center gap-4">
-                            <label htmlFor="faviconUrl-upload" className="flex items-center justify-center w-24 h-24 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
-                                {uploadingStatus['faviconUrl'] ? <Loader2 className="h-6 w-6 animate-spin" /> :
-                                 formData.faviconUrl ? (
-                                    <Image src={formData.faviconUrl} alt="Favicon preview" className="h-12 w-12 object-contain" width={48} height={48} />
-                                ) : (
-                                   <div className="flex flex-col items-center justify-center text-center p-2">
-                                        <Upload className="w-6 h-6 mb-1 text-muted-foreground" />
-                                        <p className="text-xs text-muted-foreground">Upload .ico, .png, .svg</p>
-                                    </div>
-                                )}
-                            </label>
-                            <Input id="faviconUrl-upload" type="file" className="hidden" accept="image/x-icon, image/png, image/svg+xml" onChange={(e) => handleFileChange(e, 'faviconUrl')} disabled={uploadingStatus['faviconUrl']}/>
-                            <div>
-                                <p className="text-sm text-muted-foreground">Upload a new favicon.</p>
-                                <p className="text-xs text-muted-foreground">This will appear in the browser tab.</p>
-                            </div>
-                        </div>
+                       <Label htmlFor="faviconUrl">Favicon Path</Label>
+                       <Input id="faviconUrl" placeholder="/favicon.ico" value={formData.faviconUrl || ''} onChange={handleInputChange} />
+                       <div className="flex items-center gap-4 mt-2">
+                         <p className="text-sm text-muted-foreground">Current Favicon:</p>
+                         <Image src={formData.faviconUrl || '/default-logo.png'} alt="Favicon preview" width={32} height={32} className="h-8 w-8 bg-neutral-200 p-1 rounded" unoptimized/>
+                       </div>
                     </div>
 
                     <div className="flex justify-end">
-                        <Button onClick={() => handleSave('Branding')} disabled={isAnyFieldUploading}>Save Changes</Button>
+                        <Button onClick={() => handleSave('Branding')}>Save Changes</Button>
                     </div>
                 </CardContent>
             </Card>
@@ -196,26 +135,12 @@ export default function AdminSettingsPage() {
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="heroBannerUrl">Homepage Banner Image</Label>
-                <div className="flex items-center justify-center w-full">
-                  <label htmlFor="heroBannerUrl-upload" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-secondary/80 relative">
-                    {uploadingStatus['heroBannerUrl'] ? <Loader2 className="h-8 w-8 animate-spin" /> :
-                     formData.heroBannerUrl ? (
-                      <Image src={formData.heroBannerUrl} alt="Hero banner preview" className="h-full w-full object-cover" layout="fill" />
-                    ) : (
-                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                        <p className="text-xs text-muted-foreground">PNG, JPG, WEBP (MAX. 2MB)</p>
-                      </div>
-                    )}
-                  </label>
-                   <Input id="heroBannerUrl-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/webp" onChange={(e) => handleFileChange(e, 'heroBannerUrl')} disabled={uploadingStatus['heroBannerUrl']}/>
-                </div>
+                <Label htmlFor="heroBannerUrl">Homepage Banner URL</Label>
+                <Input id="heroBannerUrl" placeholder="https://example.com/banner.jpg" value={formData.heroBannerUrl || ''} onChange={handleInputChange} />
               </div>
 
               <div className="flex justify-end">
-                 <Button onClick={() => handleSave('Appearance')} disabled={isAnyFieldUploading}>Save Appearance</Button>
+                 <Button onClick={() => handleSave('Appearance')}>Save Appearance</Button>
               </div>
             </CardContent>
           </Card>
@@ -286,27 +211,6 @@ export default function AdminSettingsPage() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-        <TabsContent value="pricing">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Vendor Pricing Tiers</CardTitle>
-                    <CardDescription>Set the monthly prices for your vendor subscription plans. Changes will be reflected on the vendor landing page.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="space-y-2">
-                        <Label htmlFor="premium-price" className="flex items-center gap-2"><DollarSign className="h-4 w-4" /> Premium Plan Price (NGN)</Label>
-                        <Input id="premium-price" placeholder="e.g. 15000" type="number"/>
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="diamond-price" className="flex items-center gap-2"><DollarSign className="h-4 w-4" /> Diamond Plan Price (NGN)</Label>
-                        <Input id="diamond-price" placeholder="e.g. 50000" type="number"/>
-                    </div>
-                    <div className="flex justify-end">
-                        <Button onClick={() => toast({ title: "Note: This is a UI demo", description: "In a real app, this would save the prices to a secure backend." })}>Save Prices</Button>
-                    </div>
-                </CardContent>
-            </Card>
         </TabsContent>
       </Tabs>
     </div>
