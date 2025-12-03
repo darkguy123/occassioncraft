@@ -107,6 +107,11 @@ export default function CreateTicketPage() {
   
   const selectedPackage = form.watch('package');
   const selectedTier = form.watch('tier');
+  const selectedEventId = form.watch('eventId');
+
+  const selectedEvent = useMemo(() => {
+    return vendorEvents?.find(e => e.id === selectedEventId);
+  }, [vendorEvents, selectedEventId]);
 
   const currentPriceDetails = useMemo(() => {
     if (selectedPackage === 'Tiered') {
@@ -521,7 +526,7 @@ export default function CreateTicketPage() {
                             <CardTitle>Ticket Preview</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <TicketStylePreview eventData={form.watch()} />
+                            <TicketStylePreview eventData={{...form.watch(), name: selectedEvent?.name }} />
                         </CardContent>
                     </Card>
                     <Card>

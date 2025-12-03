@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { TicketFormValues } from '@/app/create-ticket/page';
@@ -11,10 +12,10 @@ import QRCode from 'qrcode';
 import { Skeleton } from './ui/skeleton';
 
 interface TicketStylePreviewProps {
-    eventData: Partial<TicketFormValues>;
+    eventData: Partial<TicketFormValues> & { name?: string };
 }
 
-const GeometricTicketTemplate = ({ eventData, qrCodeUrl }: { eventData: Partial<TicketFormValues>, qrCodeUrl: string }) => {
+const GeometricTicketTemplate = ({ eventData, qrCodeUrl }: { eventData: Partial<TicketFormValues> & { name?: string }, qrCodeUrl: string }) => {
     const { name, date, startTime, location, attendeeName } = eventData;
     const formattedDate = date ? format(date, "MMM dd, yyyy") : 'Jan 01, 2025';
     const formattedTime = startTime || '8:00 PM';
@@ -85,7 +86,7 @@ const GeometricTicketTemplate = ({ eventData, qrCodeUrl }: { eventData: Partial<
 };
 
 
-const ModernTicketTemplate = ({ eventData, qrCodeUrl }: { eventData: Partial<TicketFormValues>, qrCodeUrl: string }) => {
+const ModernTicketTemplate = ({ eventData, qrCodeUrl }: { eventData: Partial<TicketFormValues> & { name?: string }, qrCodeUrl: string }) => {
     // A sleek, modern design
     return (
          <Card className="w-full max-w-md mx-auto rounded-2xl overflow-hidden shadow-2xl bg-zinc-800 text-white relative">
@@ -108,7 +109,7 @@ const ModernTicketTemplate = ({ eventData, qrCodeUrl }: { eventData: Partial<Tic
     );
 };
 
-const MinimalTicketTemplate = ({ eventData, qrCodeUrl }: { eventData: Partial<TicketFormValues>, qrCodeUrl: string }) => {
+const MinimalTicketTemplate = ({ eventData, qrCodeUrl }: { eventData: Partial<TicketFormValues> & { name?: string }, qrCodeUrl: string }) => {
     // A clean, minimal design
     return (
         <Card className="w-full max-w-md mx-auto rounded-lg shadow-2xl bg-white text-black font-serif relative">
