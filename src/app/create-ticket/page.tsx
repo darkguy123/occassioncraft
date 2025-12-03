@@ -7,7 +7,6 @@ import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
@@ -42,7 +41,7 @@ const ticketFormSchema = z.object({
   maxScans: z.number().min(1).default(1),
   
   // Design fields
-  templateId: z.string().default('classic'), // Kept for data structure, but UI is removed
+  templateId: z.string().default('classic'),
   ticketImageUrl: z.string().optional(),
   ticketBrandingImageUrl: z.string().optional(),
 });
@@ -332,6 +331,39 @@ export default function CreateTicketPage() {
                         <CardContent className="space-y-6">
                             <FormField
                                 control={form.control}
+                                name="templateId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Choose Ticket Style</FormLabel>
+                                        <FormControl>
+                                            <RadioGroup
+                                                onValueChange={field.onChange}
+                                                defaultValue={field.value}
+                                                className="grid grid-cols-3 gap-4"
+                                            >
+                                                {['Classic', 'Modern', 'Minimal'].map((style) => (
+                                                <FormItem key={style}>
+                                                    <FormControl>
+                                                    <RadioGroupItem value={style.toLowerCase()} id={style.toLowerCase()} className="sr-only" />
+                                                    </FormControl>
+                                                    <Label
+                                                        htmlFor={style.toLowerCase()}
+                                                        className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                                                    >
+                                                        <div className="w-16 h-10 bg-secondary rounded-sm mb-2" />
+                                                        <span className="text-sm font-medium">{style}</span>
+                                                    </Label>
+                                                </FormItem>
+                                                ))}
+                                            </RadioGroup>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
                                 name="ticketImageUrl"
                                 render={({ field }) => (
                                 <FormItem>
@@ -449,8 +481,8 @@ export default function CreateTicketPage() {
                                   <Input
                                     type="number"
                                     {...field}
+                                    onChange={e => field.onChange(parseInt(e.target.value, 10))}
                                     value={field.value || 1}
-                                    onChange={e => field.onChange(parseInt(e.target.value, 10) || 1)}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -482,7 +514,7 @@ export default function CreateTicketPage() {
                             <CardTitle>Ticket Preview</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <TicketStylePreview eventData={form.getValues()} />
+                            <TicketStylePreview eventData={form.watch()} />
                         </CardContent>
                     </Card>
                     <Card>

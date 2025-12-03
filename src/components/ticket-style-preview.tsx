@@ -17,7 +17,7 @@ interface TicketStylePreviewProps {
 
 
 export function TicketStylePreview({ eventData }: TicketStylePreviewProps) {
-    const { name, date, startTime, location, ticketImageUrl, ticketBrandingImageUrl, attendeeName, guestPhotoUrl, package: ticketPackage } = eventData;
+    const { name, date, startTime, location, ticketImageUrl, ticketBrandingImageUrl, attendeeName, guestPhotoUrl, package: ticketPackage, templateId } = eventData;
     const [qrCodeUrl, setQrCodeUrl] = useState('');
 
     useEffect(() => {
@@ -46,7 +46,10 @@ export function TicketStylePreview({ eventData }: TicketStylePreviewProps) {
     
     return (
         <Card className={cn(
-            "w-full max-w-md mx-auto rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br relative transition-all duration-300 from-slate-50 to-slate-200 dark:from-slate-800 dark:to-slate-900"
+            "w-full max-w-md mx-auto rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br relative transition-all duration-300",
+            templateId === 'classic' && "from-slate-50 to-slate-200 dark:from-slate-800 dark:to-slate-900",
+            templateId === 'modern' && "from-zinc-100 to-zinc-300 dark:from-zinc-800 dark:to-zinc-900",
+            templateId === 'minimal' && "from-white to-gray-100 dark:from-gray-900 dark:to-black",
         )}>
             {ticketImageUrl && (
                 <Image src={ticketImageUrl} alt="Ticket background" fill className="object-cover blur-sm opacity-50" />
@@ -63,24 +66,50 @@ export function TicketStylePreview({ eventData }: TicketStylePreviewProps) {
 
                     <div className="flex justify-between items-start">
                         <div className="space-y-1">
-                            <p className="text-xs uppercase tracking-widest text-black/60 dark:text-white/60">Event Ticket</p>
-                            <h3 className="font-headline text-3xl font-bold leading-tight text-black dark:text-white">{name || 'Your Event Title'}</h3>
+                            <p className={cn(
+                                "text-xs uppercase tracking-widest",
+                                templateId === 'classic' && "text-black/60 dark:text-white/60",
+                                templateId === 'modern' && "text-black/70 dark:text-white/70",
+                                templateId === 'minimal' && "text-gray-500",
+                            )}>Event Ticket</p>
+                            <h3 className={cn(
+                                "font-bold leading-tight",
+                                templateId === 'classic' && "font-headline text-3xl text-black dark:text-white",
+                                templateId === 'modern' && "font-sans text-4xl tracking-tighter text-black dark:text-white",
+                                templateId === 'minimal' && "font-serif text-2xl text-black dark:text-white"
+                            )}>{name || 'Your Event Title'}</h3>
                         </div>
-                        <Ticket className="h-8 w-8 text-black/60 dark:text-white/60" />
+                        <Ticket className={cn("h-8 w-8",
+                             templateId === 'classic' && "text-black/60 dark:text-white/60",
+                             templateId === 'modern' && "text-black/70 dark:text-white/70",
+                             templateId === 'minimal' && "text-gray-500",
+                        )} />
                     </div>
 
                     <div className="mt-8 space-y-4 text-sm">
                         <div className="flex items-center gap-3">
-                            <Calendar className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
-                            <span className="font-medium text-black dark:text-white">{formattedDate} at {formattedTime}</span>
+                            <Calendar className={cn("h-4 w-4 shrink-0",
+                                templateId === 'classic' && "text-black/60 dark:text-white/60",
+                                templateId === 'modern' && "text-black/70 dark:text-white/70",
+                                templateId === 'minimal' && "text-gray-500",
+                            )} />
+                            <span className={cn("font-medium", templateId === 'minimal' ? 'font-serif' : 'font-sans', 'text-black dark:text-white')}>{formattedDate} at {formattedTime}</span>
                         </div>
                         <div className="flex items-center gap-3">
-                            <MapPin className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
-                            <span className="truncate font-medium text-black dark:text-white">{location || 'Your Location'}</span>
+                            <MapPin className={cn("h-4 w-4 shrink-0",
+                                templateId === 'classic' && "text-black/60 dark:text-white/60",
+                                templateId === 'modern' && "text-black/70 dark:text-white/70",
+                                templateId === 'minimal' && "text-gray-500",
+                            )} />
+                            <span className={cn("truncate font-medium", templateId === 'minimal' ? 'font-serif' : 'font-sans', 'text-black dark:text-white')}>{location || 'Your Location'}</span>
                         </div>
                          <div className="flex items-center gap-3">
-                            <User className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
-                            <span className="truncate font-medium text-black dark:text-white">{attendeeName || 'Ticket Holder'}</span>
+                            <User className={cn("h-4 w-4 shrink-0",
+                                templateId === 'classic' && "text-black/60 dark:text-white/60",
+                                templateId === 'modern' && "text-black/70 dark:text-white/70",
+                                templateId === 'minimal' && "text-gray-500",
+                            )} />
+                            <span className={cn("truncate font-medium", templateId === 'minimal' ? 'font-serif' : 'font-sans', 'text-black dark:text-white')}>{attendeeName || 'Ticket Holder'}</span>
                         </div>
                     </div>
 
@@ -103,17 +132,31 @@ export function TicketStylePreview({ eventData }: TicketStylePreviewProps) {
                         ) : (
                             <Skeleton className="h-48 w-48" />
                         )}
-                        <p className="text-xs mt-3 text-black/60 dark:text-white/60">Scan this at the event entrance</p>
+                        <p className={cn("text-xs mt-3",
+                            templateId === 'classic' && "text-black/60 dark:text-white/60",
+                            templateId === 'modern' && "text-black/70 dark:text-white/70",
+                            templateId === 'minimal' && "text-gray-500",
+                        )}>Scan this at the event entrance</p>
                     </div>
 
-                    <div className="mt-8 border-t-2 border-dashed border-black/20 dark:border-white/20 pt-4 flex items-center justify-between gap-4 text-xs">
-                        <p className={cn("font-semibold text-lg", "text-black dark:text-white")}>{eventData.class || 'Regular'}</p>
-                        <p className="text-black/60 dark:text-white/60">ID: ...</p>
+                    <div className={cn("mt-8 border-t-2 pt-4 flex items-center justify-between gap-4 text-xs",
+                         templateId === 'classic' && "border-dashed border-black/20 dark:border-white/20",
+                         templateId === 'modern' && "border-solid border-black/30 dark:border-white/30",
+                         templateId === 'minimal' && "border-dotted border-gray-400"
+                    )}>
+                        <p className={cn("font-semibold", 
+                             templateId === 'classic' && "text-lg text-black dark:text-white",
+                             templateId === 'modern' && "text-base text-black dark:text-white",
+                             templateId === 'minimal' && "text-sm font-serif text-black dark:text-white"
+                        )}>{eventData.class || 'Regular'}</p>
+                         <p className={cn(
+                            templateId === 'classic' && "text-black/60 dark:text-white/60",
+                            templateId === 'modern' && "text-black/70 dark:text-white/70",
+                            templateId === 'minimal' && "text-gray-500",
+                        )}>ID: ...</p>
                     </div>
                 </div>
             </div>
         </Card>
     )
 }
-
-    
