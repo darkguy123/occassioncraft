@@ -63,7 +63,7 @@ export default function AdminSettingsPage() {
       toast({ title: 'Image Uploaded', description: 'Your image has been uploaded. Save changes to apply.' });
     } catch (error) {
       console.error("Error uploading file:", error);
-      toast({ variant: 'destructive', title: 'Upload Failed' });
+      toast({ variant: 'destructive', title: 'Upload Failed', description: 'There was a problem uploading your file. Please check storage rules and try again.' });
     } finally {
         setUploadingStatus(prev => {
             const newStatus = { ...prev };
