@@ -42,7 +42,7 @@ export function Header() {
   const logoUrl = siteSettings?.logoUrl || DEFAULT_LOGO_URL;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-gradient-to-r from-[#336BFC] to-[#1e40af] text-white">
+    <header className="sticky top-0 z-50 w-full bg-gradient-to-r from-[#336BFC] to-[#1e40af] text-white">
       <div className="container flex h-16 items-center">
         <div className="mr-4 flex">
            <Link href="/" className="mr-6 flex items-center space-x-2" onClick={handleLinkClick}>
