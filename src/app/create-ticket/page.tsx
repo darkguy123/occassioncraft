@@ -22,13 +22,22 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { TicketStylePreview } from "@/components/ticket-style-preview"
 import Image from "next/image"
 import { generateTicketImage } from "@/ai/flows/generate-ticket-image-flow"
-import { Loader2, Wand2, Info, Plus, Upload, ShoppingCart, Check } from "lucide-react"
+import { Loader2, Wand2, Info, Plus, Upload, ShoppingCart, Check, PartyPopper } from "lucide-react"
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
-import { useCart } from "@/context/cart-context"
+import { useCart, type CartItem } from "@/context/cart-context"
 import Link from "next/link";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const ticketFormSchema = z.object({
   eventId: z.string().min(1, "Please select an event to link this ticket to."),
@@ -72,6 +81,8 @@ export default function CreateTicketPage() {
   const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
   const [isUploading, setIsUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
+  const [lastAddedCartItem, setLastAddedCartItem] = useState<CartItem | null>(null);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -136,7 +147,7 @@ export default function CreateTicketPage() {
       return;
     }
 
-    const cartItem = {
+    const cartItem: CartItem = {
       id: uuidv4(),
       ...data,
       price: currentPriceDetails.price,
@@ -145,12 +156,20 @@ export default function CreateTicketPage() {
     };
     
     addToCart(cartItem);
-
-    toast({
-      title: "Ticket Added to Cart",
-      description: `${currentPriceDetails.tickets} x ${data.package} ${data.tier || ''} ticket(s) have been added to your cart.`,
-    });
+    setLastAddedCartItem(cartItem);
+    setIsSuccessDialogOpen(true);
   };
+  
+  const handleCraftAnother = () => {
+    form.reset();
+    setLastAddedCartItem(null);
+    setIsSuccessDialogOpen(false);
+  }
+  
+  const handleViewCart = () => {
+    setIsSuccessDialogOpen(false);
+    router.push('/vendor/checkout');
+  }
 
   useEffect(() => {
     const isLoading = isUserLoading || isUserDataLoading;
@@ -227,6 +246,7 @@ export default function CreateTicketPage() {
   const isPremiumPackage = selectedPackage.startsWith('Premium');
 
   return (
+    <>
     <div className="container max-w-6xl mx-auto py-10 px-4">
         <div className="space-y-2 mb-8">
             <h1 className="text-4xl font-bold font-headline">Craft a New Ticket</h1>
@@ -555,5 +575,36 @@ export default function CreateTicketPage() {
         </form>
       </Form>
     </div>
+
+    <AlertDialog open={isSuccessDialogOpen} onOpenChange={setIsSuccessDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader className="text-center items-center">
+                <PartyPopper className="h-12 w-12 text-primary" />
+                <AlertDialogTitle className="text-2xl">Added to Cart!</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Your ticket batch has been successfully added to your cart.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            
+            {lastAddedCartItem && (
+                <div className="my-4 rounded-lg border bg-secondary/50 p-4 space-y-2 text-sm">
+                    <h4 className="font-semibold">Your Item:</h4>
+                    <p><span className="font-medium">{lastAddedCartItem.quantity} x {lastAddedCartItem.package} {lastAddedCartItem.tier || ''} tickets</span> for <span className="font-medium">{lastAddedCartItem.eventName}</span></p>
+                    <p className="text-lg font-bold">Total: ₦{lastAddedCartItem.price.toLocaleString()}</p>
+                </div>
+            )}
+
+            <AlertDialogFooter className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button variant="outline" onClick={handleCraftAnother}>
+                    Craft Another Ticket
+                </Button>
+                 <Button onClick={handleViewCart}>
+                    <ShoppingCart className="mr-2 h-4 w-4" />
+                    View Cart & Checkout
+                </Button>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
