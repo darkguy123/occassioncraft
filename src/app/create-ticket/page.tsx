@@ -43,7 +43,7 @@ const ticketFormSchema = z.object({
   // Design fields
   templateId: z.string().default('classic'),
   ticketImageUrl: z.string().optional(),
-  ticketBrandingImageUrl: zstring().optional(),
+  ticketBrandingImageUrl: z.string().optional(),
 });
 
 export type TicketFormValues = z.infer<typeof ticketFormSchema>;
@@ -268,7 +268,7 @@ export default function CreateTicketPage() {
                         <RadioGroup
                           onValueChange={(value) => {
                               field.onChange(value);
-                              form.setValue('tier', undefined);
+                              form.setValue('tier', '');
                           }}
                           defaultValue={field.value}
                           className="grid grid-cols-2 gap-4"
@@ -303,7 +303,7 @@ export default function CreateTicketPage() {
                           render={({ field }) => (
                             <FormItem className="space-y-3">
                               <FormControl>
-                                <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="space-y-2">
+                                <RadioGroup onValueChange={field.onChange} defaultValue={field.value || ''} className="space-y-2">
                                   {Object.entries(packages.Tiered).map(([name, details]) => (
                                     <FormItem key={name}>
                                       <FormControl>
@@ -333,7 +333,7 @@ export default function CreateTicketPage() {
                     <Card>
                         <CardHeader>
                             <CardTitle>Premium Design Options</CardTitle>
-                            <CardDescription>Customize the look of your premium tickets.</CardDescription>
+                            <CardDescription>Select a base design for your premium tickets.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <FormField
@@ -437,7 +437,7 @@ export default function CreateTicketPage() {
                                 render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Ticket Class</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value || ''}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Select a class..." /></SelectTrigger></FormControl>
                                     <SelectContent>
                                         <SelectItem value="Regular">Regular</SelectItem>
