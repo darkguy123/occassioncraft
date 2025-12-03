@@ -10,12 +10,23 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    domains: [
-      'placehold.co',
-      'firebasestorage.googleapis.com',
-      'picsum.photos',
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+        port: '',
+        pathname: '**',
+      },
+       {
+        protocol: 'https',
+        hostname: 'picsum.photos',
+        port: '',
+        pathname: '**',
+      },
     ],
   },
 };
 
 export default nextConfig;
+
+    
