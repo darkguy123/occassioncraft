@@ -125,8 +125,9 @@ export default function Home() {
             </TabsContent>
           ))}
         </Tabs>
-
-        <div className="text-center mt-12">
+      </div>
+      <div className="w-full bg-secondary">
+        <div className="container mx-auto text-center">
             <Button variant="outline" size="lg" asChild>
                 <Link href="/events">Load More Events</Link>
             </Button>
