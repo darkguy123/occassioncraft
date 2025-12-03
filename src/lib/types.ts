@@ -1,5 +1,5 @@
 
-export type UserRole = 'user' | 'vendor' | 'admin';
+export type UserRole = 'user' | 'vendor' | 'admin' | 'scanner';
 
 export type User = {
     id: string;

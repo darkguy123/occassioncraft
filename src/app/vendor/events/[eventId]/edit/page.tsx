@@ -18,10 +18,10 @@ import { useRouter, useParams } from "next/navigation"
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
 import Image from "next/image"
-import type { Event } from "@/lib/types";
+import type { Event, User as UserType } from "@/lib/types";
 import Link from "next/link";
 import { useFirestore, useDoc, updateDocumentNonBlocking, useMemoFirebase } from "@/firebase";
-import { doc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -130,17 +130,44 @@ export default function VendorEditEventPage() {
     }
   };
 
-  const handleAddScanner = () => {
-    if (!newScannerId.trim() || !eventDocRef) return;
+  const handleAddScanner = async () => {
+    if (!newScannerId.trim() || !eventDocRef || !firestore) return;
+    const scannerUid = newScannerId.trim();
+
+    // 1. Add to event's authorizedScanners array
     updateDocumentNonBlocking(eventDocRef, {
-      authorizedScanners: arrayUnion(newScannerId.trim())
+      authorizedScanners: arrayUnion(scannerUid)
     });
+
+    // 2. Add 'scanner' role to the user's document
+    const userRef = doc(firestore, 'users', scannerUid);
+    try {
+        const userDoc = await getDoc(userRef);
+        if (userDoc.exists()) {
+            const userData = userDoc.data() as UserType;
+            const updatedRoles = [...new Set([...(userData.roles || []), 'scanner'])];
+            updateDocumentNonBlocking(userRef, { roles: updatedRoles });
+        } else {
+            toast({ variant: 'destructive', title: 'User Not Found', description: `Could not find a user with ID: ${scannerUid}` });
+            // Rollback the change on the event if user doesn't exist
+            updateDocumentNonBlocking(eventDocRef, { authorizedScanners: arrayRemove(scannerUid) });
+            return;
+        }
+    } catch (error) {
+        console.error("Error adding scanner role:", error);
+        updateDocumentNonBlocking(eventDocRef, { authorizedScanners: arrayRemove(scannerUid) });
+        toast({ variant: 'destructive', title: 'Error', description: `Failed to update user role.` });
+        return;
+    }
+
     toast({ title: "Scanner Added", description: "The user can now scan tickets for this event." });
     setNewScannerId('');
   };
 
   const handleRemoveScanner = (scannerId: string) => {
     if (!eventDocRef) return;
+     // We can leave the 'scanner' role on the user document, as they might be a scanner for another event.
+    // Access control is ultimately handled on the /validate page per event.
     updateDocumentNonBlocking(eventDocRef, {
       authorizedScanners: arrayRemove(scannerId)
     });

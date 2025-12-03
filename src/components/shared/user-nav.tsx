@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LayoutDashboard, LogOut, Ticket, Shield, Settings } from 'lucide-react';
+import { LayoutDashboard, LogOut, Ticket, Shield, Settings, QrCode } from 'lucide-react';
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { User } from '@/lib/types';
@@ -41,6 +41,7 @@ export function UserNav() {
 
   const isVendor = (userProfileData?.roles || []).includes('vendor');
   const isAdmin = (userProfileData?.roles || []).includes('admin');
+  const isScanner = (userProfileData?.roles || []).includes('scanner');
 
   return (
     <DropdownMenu>
@@ -86,6 +87,14 @@ export function UserNav() {
                 <Link href="/admin">
                 <Shield className="mr-2 h-4 w-4" />
                 <span>Admin Panel</span>
+                </Link>
+            </DropdownMenuItem>
+          )}
+           {isScanner && (
+            <DropdownMenuItem asChild>
+                <Link href="/validate">
+                <QrCode className="mr-2 h-4 w-4" />
+                <span>Scan Tickets</span>
                 </Link>
             </DropdownMenuItem>
           )}
