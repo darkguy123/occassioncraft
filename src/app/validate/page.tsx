@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle, XCircle, AlertTriangle, Loader2, Camera, VideoOff, Zap, ZapOff } from 'lucide-react';
 import { useFirestore, useUser } from '@/firebase';
 import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
-import type { Event, Ticket, User } from '@/lib/types';
+import type { Event, Ticket, User, Vendor } from '@/lib/types';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import jsQR from 'jsqr';
@@ -95,7 +95,7 @@ function TicketValidator() {
                 videoStream.getTracks().forEach(track => track.stop());
             }
         }
-    }, [validationStatus, toast]);
+    }, [validationStatus, toast, videoStream]);
 
     // Check for torch support
     useEffect(() => {
@@ -143,18 +143,23 @@ function TicketValidator() {
 
                 if (code) {
                     setIsScanning(false);
-                    const url = new URL(code.data);
-                    const ticketId = url.searchParams.get('ticketId');
-                    if (ticketId) {
-                        validateTicketById(ticketId);
-                    } else {
-                        setScanResult({ status: 'error', message: 'Invalid QR code. No ticket ID found.' });
-                        setValidationStatus('error');
+                    try {
+                        const url = new URL(code.data);
+                        const ticketId = url.searchParams.get('ticketId');
+                        if (ticketId) {
+                            validateTicketById(ticketId);
+                        } else {
+                            setScanResult({ status: 'error', message: 'Invalid QR code. No ticket ID found.' });
+                            setValidationStatus('error');
+                        }
+                    } catch (error) {
+                         setScanResult({ status: 'error', message: 'Invalid QR code format.' });
+                         setValidationStatus('error');
                     }
                 }
             }
         }
-    }, []);
+    }, [validateTicketById]);
 
     useEffect(() => {
         let animationFrameId: number;
@@ -173,7 +178,7 @@ function TicketValidator() {
     }, [isScanning, hasCameraPermission, scanQrCode]);
 
     
-    const validateTicketById = async (ticketId: string) => {
+    const validateTicketById = useCallback(async (ticketId: string) => {
         if (!scannerUser) {
             setValidationStatus('unauthorized');
             return;
@@ -196,7 +201,7 @@ function TicketValidator() {
                 return;
             }
 
-            const ticket = ticketSnap.data() as Ticket;
+            const ticket = { id: ticketSnap.id, ...ticketSnap.data() } as Ticket;
             
             await processValidation(ticket, scannerUser);
 
@@ -205,18 +210,20 @@ function TicketValidator() {
             setScanResult({ status: 'error', message: error.message || 'An unexpected error occurred during validation.' });
             setValidationStatus('error');
         }
-    }
+    }, [scannerUser, firestore, processValidation]);
     
-    const processValidation = async (ticket: Ticket, scanner: User) => {
+    const processValidation = useCallback(async (ticket: Ticket, scanner: User) => {
         if (!firestore) return;
 
         const ticketRef = doc(firestore, `tickets`, ticket.id);
         const eventRef = doc(firestore, 'events', ticket.eventId);
         const userRef = doc(firestore, 'users', ticket.userId);
+        const vendorRef = doc(firestore, 'vendors', ticket.vendorId);
 
-        const [eventSnap, userSnap] = await Promise.all([
+        const [eventSnap, userSnap, vendorSnap] = await Promise.all([
             getDoc(eventRef),
-            getDoc(userRef)
+            getDoc(userRef),
+            getDoc(vendorRef)
         ]);
 
         if (!eventSnap.exists()) {
@@ -232,10 +239,16 @@ function TicketValidator() {
 
         const event = eventSnap.data() as Event;
         const ticketHolder = userSnap.data() as User;
+        const vendor = vendorSnap.data() as Vendor;
         
         // --- SECURITY CHECK ---
-        const authorizedScanners = [event.vendorId, ...(event.authorizedScanners || [])];
-        if (!authorizedScanners.includes(scanner.uid)) {
+        const eventScanners = event.authorizedScanners || [];
+        const vendorScanners = vendor?.authorizedScanners || [];
+        const isVendorOwner = event.vendorId === scanner.uid;
+        
+        const isAuthorized = isVendorOwner || eventScanners.includes(scanner.uid) || vendorScanners.includes(scanner.uid);
+
+        if (!isAuthorized) {
             setScanResult({ status: 'error', message: `You are not an authorized scanner for the event "${event.name}".` });
             setValidationStatus('error');
             return;
@@ -265,7 +278,7 @@ function TicketValidator() {
             }
         });
         setValidationStatus('success');
-    }
+    }, [firestore]);
 
     const resetScanner = () => {
         setScanResult(null);
@@ -305,7 +318,7 @@ function TicketValidator() {
                          </CardDescription>
                      </CardHeader>
                      <CardContent>
-                         <Button asChild><a href="/login">Login to Scan</a></Button>
+                         <Button asChild><Link href="/login">Login to Scan</Link></Button>
                      </CardContent>
                  </Card>
             </div>

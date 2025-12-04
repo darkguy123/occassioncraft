@@ -5,6 +5,7 @@ export type UserRole = 'user' | 'vendor' | 'admin' | 'scanner';
 
 export type User = {
     id: string;
+    uid: string; // Ensure uid is part of User type
     firstName: string;
     lastName: string;
     email: string;
@@ -84,6 +85,7 @@ export type Vendor = {
   contactEmail: string;
   status: 'pending' | 'approved' | 'rejected';
   pricingTier?: 'Free' | 'Premium' | 'Diamond';
+  authorizedScanners?: string[];
 }
 
 export type Notification = {
@@ -120,3 +122,5 @@ export type SiteSettings = {
   termsAndConditions?: string;
   aboutUs?: string;
 }
+
+    
