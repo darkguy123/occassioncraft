@@ -32,17 +32,9 @@ export function MobileMenu() {
 
     const isVendor = userData?.roles?.includes('vendor');
     const isAdmin = userData?.roles?.includes('admin');
-    const isScanner = userData?.roles?.includes('scanner');
-    const canScan = isVendor || isAdmin || isScanner;
     const canCraft = isVendor || isAdmin;
 
-    const filteredNavItems = navItems.filter(item => {
-        if (!item.vendorOrScanner) return true;
-        if (!user) return false; // Hide vendor/scanner links if not logged in
-        if (item.label === 'Scan') return canScan;
-        if (item.label === 'Vendor') return isVendor || isAdmin;
-        return true;
-    });
+    const filteredNavItems = navItems;
 
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 h-16 w-[90vw] max-w-sm bg-background/80 backdrop-blur-md border border-border shadow-lg rounded-full z-40 md:hidden">
@@ -96,4 +88,3 @@ export function MobileMenu() {
     </div>
   );
 }
-
