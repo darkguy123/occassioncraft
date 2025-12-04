@@ -16,6 +16,7 @@ import { useCart } from '@/context/cart-context';
 import { usePwaInstall } from '@/context/pwa-install-context';
 
 const DEFAULT_LOGO_URL = '/default-logo.png'; // Path relative to the /public directory
+const MOBILE_LOGO_URL = '/download.png';
 
 export function Header() {
   const { user, isUserLoading } = useUser();
@@ -51,7 +52,10 @@ export function Header() {
             {isSiteSettingsLoading ? (
               <div className="h-8 w-36 bg-white/20 rounded-md animate-pulse" />
             ) : (
-              <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" priority unoptimized />
+              <>
+                <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto hidden md:block" priority unoptimized />
+                <Image src={MOBILE_LOGO_URL} alt="OccasionCraft Logo" width={32} height={32} className="h-8 w-8 block md:hidden" priority unoptimized />
+              </>
             )}
            </Link>
           <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
