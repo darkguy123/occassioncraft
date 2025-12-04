@@ -9,13 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle, XCircle, AlertTriangle, Loader2, Camera, VideoOff } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Loader2, Camera, VideoOff, Zap, ZapOff } from 'lucide-react';
 import { useFirestore, useUser } from '@/firebase';
 import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import type { Event, Ticket, User } from '@/lib/types';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import jsQR from 'jsqr';
+import { Input } from '@/components/ui/input';
 
 type ValidationStatus = 'idle' | 'loading' | 'success' | 'error' | 'unauthorized';
 type ScanResult = {
@@ -42,6 +43,12 @@ function TicketValidator() {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isScanning, setIsScanning] = useState(false);
+    const [manualTicketId, setManualTicketId] = useState('');
+
+    // Flashlight state
+    const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
+    const [isTorchSupported, setIsTorchSupported] = useState(false);
+    const [isTorchOn, setIsTorchOn] = useState(false);
 
 
     // Authorization check effect
@@ -63,6 +70,7 @@ function TicketValidator() {
           try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
             setHasCameraPermission(true);
+            setVideoStream(stream);
     
             if (videoRef.current) {
               videoRef.current.srcObject = stream;
@@ -83,12 +91,40 @@ function TicketValidator() {
 
         // Cleanup: stop video stream when component unmounts
         return () => {
-            if (videoRef.current && videoRef.current.srcObject) {
-                const stream = videoRef.current.srcObject as MediaStream;
-                stream.getTracks().forEach(track => track.stop());
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
             }
         }
     }, [validationStatus, toast]);
+
+    // Check for torch support
+    useEffect(() => {
+        if (videoStream) {
+            const track = videoStream.getVideoTracks()[0];
+            if (track && 'getCapabilities' in track) {
+                const capabilities = track.getCapabilities();
+                // @ts-ignore - torch is a valid capability but not in all TS libs
+                setIsTorchSupported(!!capabilities.torch);
+            }
+        }
+    }, [videoStream]);
+
+    const toggleTorch = useCallback(async () => {
+        if (!videoStream || !isTorchSupported) return;
+
+        const track = videoStream.getVideoTracks()[0];
+        try {
+            await track.applyConstraints({
+                // @ts-ignore
+                advanced: [{ torch: !isTorchOn }]
+            });
+            setIsTorchOn(!isTorchOn);
+        } catch (error) {
+            console.error('Failed to toggle torch:', error);
+            toast({ variant: 'destructive', title: 'Torch Error', description: 'Could not control the flashlight.' });
+        }
+    }, [videoStream, isTorchOn, isTorchSupported, toast]);
+
 
     const scanQrCode = useCallback(() => {
         if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA && canvasRef.current) {
@@ -234,7 +270,18 @@ function TicketValidator() {
     const resetScanner = () => {
         setScanResult(null);
         setValidationStatus('idle');
+        setManualTicketId('');
         setIsScanning(true);
+    }
+    
+    const handleManualSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const trimmedId = manualTicketId.trim();
+        if (trimmedId) {
+            validateTicketById(trimmedId);
+        } else {
+            toast({ variant: 'destructive', title: 'Invalid ID', description: 'Please enter a ticket ID.' });
+        }
     }
     
     if (!authChecked) {
@@ -267,7 +314,7 @@ function TicketValidator() {
 
 
     return (
-        <div className="container mx-auto max-w-2xl py-12 px-4">
+        <div className="container mx-auto max-w-2xl py-12 px-4 space-y-6">
             <Card>
                 <CardHeader>
                     <CardTitle>Ticket Validator</CardTitle>
@@ -311,6 +358,18 @@ function TicketValidator() {
                                 <div className="absolute inset-0 border-8 border-white/20 rounded-lg" style={{ clipPath: 'polygon(0% 0%, 0% 100%, 25% 100%, 25% 25%, 75% 25%, 75% 75%, 25% 75%, 25% 100%, 100% 100%, 100% 0%)' }} />
 
                                 {validationStatus === 'loading' && <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white"><Loader2 className="h-10 w-10 animate-spin mb-2" />Validating...</div>}
+                                
+                                {isTorchSupported && (
+                                     <Button
+                                        size="icon"
+                                        variant={isTorchOn ? "secondary" : "outline"}
+                                        onClick={toggleTorch}
+                                        className="absolute top-4 right-4 z-10"
+                                     >
+                                        {isTorchOn ? <ZapOff /> : <Zap />}
+                                        <span className="sr-only">Toggle Flashlight</span>
+                                     </Button>
+                                )}
 
                                 {hasCameraPermission === false && (
                                      <Alert variant="destructive" className="absolute bottom-4 left-4 right-4 w-auto z-10">
@@ -332,6 +391,26 @@ function TicketValidator() {
                     </div>
                 </CardContent>
             </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Manual Validation</CardTitle>
+                    <CardDescription>If the camera isn't working, you can enter a ticket ID below.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleManualSubmit} className="flex items-center gap-2">
+                        <Input
+                            placeholder="Enter Ticket ID"
+                            value={manualTicketId}
+                            onChange={(e) => setManualTicketId(e.target.value)}
+                            disabled={validationStatus === 'loading'}
+                        />
+                        <Button type="submit" disabled={!manualTicketId.trim() || validationStatus === 'loading'}>
+                            {validationStatus === 'loading' ? <Loader2 className="h-4 w-4 animate-spin"/> : 'Validate'}
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
         </div>
     );
 }
@@ -344,3 +423,5 @@ export default function ValidatePage() {
         </Suspense>
     )
 }
+
+    
