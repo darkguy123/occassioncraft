@@ -64,15 +64,16 @@ export function Header() {
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-end space-x-2">
-           {canInstall && (
-              <Button onClick={triggerInstall} variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white">
-                  <Download className="h-5 w-5" />
-                  <span className="sr-only">Install App</span>
-              </Button>
-           )}
+           
           {!isUserLoading &&
             (user ? (
               <>
+                 {canInstall && (
+                    <Button onClick={triggerInstall} variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white">
+                        <Download className="h-5 w-5" />
+                        <span className="sr-only">Install App</span>
+                    </Button>
+                )}
                 {(isVendor || isAdmin) && (
                   <div className="flex items-center gap-2">
                     <Button asChild variant="destructive" size="sm">
@@ -99,6 +100,12 @@ export function Header() {
               </>
             ) : (
               <>
+                 {canInstall && (
+                    <Button onClick={triggerInstall} variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white">
+                        <Download className="h-5 w-5" />
+                        <span className="sr-only">Install App</span>
+                    </Button>
+                )}
                 <Button variant="ghost" asChild className="text-white hover:bg-white/20 hover:text-white">
                   <Link href="/login" onClick={handleLinkClick}>Log In</Link>
                 </Button>
