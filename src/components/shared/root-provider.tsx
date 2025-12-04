@@ -13,6 +13,8 @@ import { usePathname } from 'next/navigation';
 import { LoaderProvider } from '@/context/loader-context';
 import { PageLoader } from './page-loader';
 import { CartProvider } from '@/context/cart-context';
+import { InstallPwaPrompt } from '@/components/shared/install-pwa-prompt';
+import { MobileMenu } from '@/components/shared/mobile-menu';
 
 function Favicon() {
     const { siteSettings, isSiteSettingsLoading } = useFirebase();
@@ -80,6 +82,10 @@ function InnerRootProvider({ children }: { children: React.ReactNode }) {
         setHasMounted(true);
     }, []);
 
+    const hideFooter = pathname.startsWith('/validate');
+    const showMobileMenu = hasMounted && window.matchMedia('(max-width: 768px)').matches;
+
+
     return (
         <>
             <ThemeUpdater />
@@ -87,8 +93,9 @@ function InnerRootProvider({ children }: { children: React.ReactNode }) {
                 <Favicon />
             </Suspense>
             <PageLoader />
+            <InstallPwaPrompt />
             <Header />
-            <main className="flex-grow">
+            <main className="flex-grow pb-24 md:pb-0">
                 {hasMounted ? (
                     <AnimatePresence mode="wait">
                         <motion.div
@@ -105,7 +112,8 @@ function InnerRootProvider({ children }: { children: React.ReactNode }) {
                     children
                 )}
             </main>
-            <Footer />
+            {!hideFooter && <Footer />}
+            {showMobileMenu && <MobileMenu />}
             <Toaster />
             <Suspense fallback={null}>
                 <NavigationEvents />
