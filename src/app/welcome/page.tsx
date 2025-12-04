@@ -71,7 +71,7 @@ export default function WelcomePage() {
          {isSiteSettingsLoading ? (
             <div className="h-8 w-36 bg-white/20 rounded-md animate-pulse" />
         ) : (
-            <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" unoptimized/>
+            <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" priority unoptimized/>
         )}
       </header>
 
@@ -97,6 +97,7 @@ export default function WelcomePage() {
                           width={300}
                           height={300}
                           className="w-full max-w-[280px] sm:max-w-[320px] h-auto"
+                          priority
                         />
                         <h2 className="text-2xl sm:text-3xl font-headline font-bold mt-8">{slide.title}</h2>
                         <p className="text-white/80 mt-2 max-w-xs mx-auto">{slide.description}</p>
