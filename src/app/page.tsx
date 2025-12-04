@@ -126,7 +126,7 @@ export default function Home() {
           ))}
         </Tabs>
       </div>
-      <div className="w-full bg-secondary">
+      <div className="w-full bg-secondary py-12 pb-[120px]">
         <div className="container mx-auto text-center">
             <Button variant="outline" size="lg" asChild>
                 <Link href="/events">Load More Events</Link>
