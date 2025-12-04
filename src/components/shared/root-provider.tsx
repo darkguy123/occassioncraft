@@ -16,6 +16,7 @@ import { CartProvider } from '@/context/cart-context';
 import { InstallPwaPrompt } from '@/components/shared/install-pwa-prompt';
 import { MobileMenu } from '@/components/shared/mobile-menu';
 import { SplashScreen } from './splash-screen';
+import { PwaInstallProvider } from '@/context/pwa-install-context';
 
 function Favicon() {
     const { siteSettings, isSiteSettingsLoading } = useFirebase();
@@ -150,9 +151,11 @@ export function RootProvider({ children }: { children: React.ReactNode }) {
   return (
       <FirebaseClientProvider>
         <LoaderProvider>
-         <CartProvider>
-          <InnerRootProvider>{children}</InnerRootProvider>
-         </CartProvider>
+         <PwaInstallProvider>
+             <CartProvider>
+              <InnerRootProvider>{children}</InnerRootProvider>
+             </CartProvider>
+         </PwaInstallProvider>
         </LoaderProvider>
       </FirebaseClientProvider>
   );

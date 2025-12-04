@@ -7,68 +7,35 @@ import { Download, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useFirebase } from '@/firebase';
 import Image from 'next/image';
-
-interface BeforeInstallPromptEvent extends Event {
-  readonly platforms: string[];
-  readonly userChoice: Promise<{
-    outcome: 'accepted' | 'dismissed';
-    platform: string;
-  }>;
-  prompt(): Promise<void>;
-}
+import { usePwaInstall } from '@/context/pwa-install-context';
 
 export function InstallPwaPrompt() {
   const { siteSettings } = useFirebase();
-  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const { canInstall, triggerInstall } = usePwaInstall();
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setInstallPrompt(e as BeforeInstallPromptEvent);
-      
+    if (canInstall) {
       const isDismissed = sessionStorage.getItem('pwaInstallPromptDismissed');
       if (!isDismissed) {
         setIsVisible(true);
       }
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    // Also check for appinstalled event
-    const handleAppInstalled = () => {
+    } else {
         setIsVisible(false);
-    };
-    window.addEventListener('appinstalled', handleAppInstalled);
-
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-       window.removeEventListener('appinstalled', handleAppInstalled);
-    };
-  }, []);
+    }
+  }, [canInstall]);
 
   const handleInstallClick = () => {
-    if (!installPrompt) return;
-    installPrompt.prompt();
-    installPrompt.userChoice.then((choiceResult) => {
-      if (choiceResult.outcome === 'accepted') {
-        console.log('User accepted the install prompt');
-        setIsVisible(false);
-      } else {
-        console.log('User dismissed the install prompt');
-      }
-      setInstallPrompt(null);
-    });
+    triggerInstall();
+    setIsVisible(false);
   };
 
   const handleDismiss = () => {
     setIsVisible(false);
-    // Use session storage so it reappears on next visit
     sessionStorage.setItem('pwaInstallPromptDismissed', 'true');
   };
 
-  if (!isVisible || !installPrompt) {
+  if (!isVisible) {
     return null;
   }
 

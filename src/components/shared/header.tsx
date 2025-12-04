@@ -10,9 +10,10 @@ import { useUser, useFirestore, useDoc, useMemoFirebase, useFirebase } from '@/f
 import type { User } from '@/lib/types';
 import { doc } from 'firebase/firestore';
 import { Notifications } from './notifications';
-import { PlusCircle, ShoppingCart } from 'lucide-react';
+import { PlusCircle, ShoppingCart, Download } from 'lucide-react';
 import { useLoader } from '@/context/loader-context';
 import { useCart } from '@/context/cart-context';
+import { usePwaInstall } from '@/context/pwa-install-context';
 
 const DEFAULT_LOGO_URL = '/default-logo.png'; // Path relative to the /public directory
 
@@ -22,6 +23,7 @@ export function Header() {
   const firestore = useFirestore();
   const { showLoader } = useLoader();
   const { cart } = useCart();
+  const { canInstall, triggerInstall } = usePwaInstall();
   
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -62,6 +64,12 @@ export function Header() {
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-end space-x-2">
+           {canInstall && (
+              <Button onClick={triggerInstall} variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white">
+                  <Download className="h-5 w-5" />
+                  <span className="sr-only">Install App</span>
+              </Button>
+           )}
           {!isUserLoading &&
             (user ? (
               <>
