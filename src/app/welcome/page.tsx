@@ -58,41 +58,51 @@ export default function WelcomePage() {
   
   const logoUrl = '/recommenoptimized.png';
 
+  const slideVariants = {
+    hidden: { opacity: 0, scale: 0.8, y: 20 },
+    visible: { opacity: 1, scale: 1, y: 0 },
+    exit: { opacity: 0, scale: 0.8, y: -20 },
+  };
+
 
   return (
-    <div className="h-screen w-full flex flex-col justify-between p-8 bg-background">
+    <div className="h-screen w-full flex flex-col justify-between p-6 sm:p-8 bg-[#3366ff] text-white">
       <header className="flex justify-center">
          {isSiteSettingsLoading ? (
-            <div className="h-8 w-36 bg-muted rounded-md animate-pulse" />
+            <div className="h-8 w-36 bg-white/20 rounded-md animate-pulse" />
         ) : (
             <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto" unoptimized/>
         )}
       </header>
 
-      <main className="flex-1 flex flex-col justify-center">
+      <main className="flex-1 flex flex-col justify-center overflow-hidden">
         <Carousel setApi={setApi} className="w-full">
           <CarouselContent>
             {welcomeSlides.map((slide, index) => (
               <CarouselItem key={index}>
-                <div className="text-center p-4">
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: current === index ? 1 : 0.5, scale: current === index ? 1 : 0.8 }}
-                    transition={{ duration: 0.5 }}
-                    className="flex justify-center"
-                  >
-                    <Image
-                      src={slide.image}
-                      alt={slide.title}
-                      width={300}
-                      height={300}
-                      className="w-full max-w-[300px] h-auto"
-                    />
-                  </motion.div>
-                  <h2 className="text-2xl font-headline font-bold mt-8">{slide.title}</h2>
-                  <p className="text-muted-foreground mt-2 max-w-xs mx-auto">{slide.description}</p>
-                </div>
+                <AnimatePresence mode="wait">
+                 {current === index && (
+                    <motion.div
+                        key={index}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        variants={slideVariants}
+                        transition={{ duration: 0.5, ease: "easeInOut" }}
+                        className="text-center p-4 flex flex-col items-center"
+                    >
+                        <Image
+                          src={slide.image}
+                          alt={slide.title}
+                          width={300}
+                          height={300}
+                          className="w-full max-w-[280px] sm:max-w-[320px] h-auto"
+                        />
+                        <h2 className="text-2xl sm:text-3xl font-headline font-bold mt-8">{slide.title}</h2>
+                        <p className="text-white/80 mt-2 max-w-xs mx-auto">{slide.description}</p>
+                    </motion.div>
+                 )}
+                </AnimatePresence>
               </CarouselItem>
             ))}
           </CarouselContent>
@@ -102,19 +112,20 @@ export default function WelcomePage() {
             <button
               key={i}
               onClick={() => api?.scrollTo(i)}
-              className={`h-2 w-2 rounded-full transition-all ${current === i ? 'w-6 bg-primary' : 'bg-muted'}`}
+              className={`h-2 w-2 rounded-full transition-all duration-300 ${current === i ? 'w-6 bg-white' : 'bg-white/50'}`}
+              aria-label={`Go to slide ${i + 1}`}
             />
           ))}
         </div>
       </main>
 
       <footer className="space-y-4">
-        <Button size="lg" className="w-full" onClick={handleGetStarted}>
+        <Button size="lg" className="w-full font-bold text-lg" variant="destructive" onClick={handleGetStarted}>
           Get Started
         </Button>
-        <div className="text-center text-sm">
+        <div className="text-center text-sm text-white/80">
             Already have an account?{' '}
-            <Button variant="link" onClick={handleLogin} className="p-0 h-auto">
+            <Button variant="link" onClick={handleLogin} className="p-0 h-auto text-white font-bold hover:underline">
                 Log in
             </Button>
         </div>
