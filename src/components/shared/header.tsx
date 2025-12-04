@@ -16,7 +16,7 @@ import { useCart } from '@/context/cart-context';
 import { usePwaInstall } from '@/context/pwa-install-context';
 
 const DEFAULT_LOGO_URL = '/recommenoptimized.svg'; // Path relative to the /public directory
-const MOBILE_LOGO_URL = '/recommenoptimized.svg';
+const MOBILE_LOGO_URL = '/ocicon.png';
 
 export function Header() {
   const { user, isUserLoading } = useUser();
