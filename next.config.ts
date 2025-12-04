@@ -1,21 +1,16 @@
-
-import type {NextConfig} from 'next';
+import type { NextConfig } from 'next';
 
 const withPWA = require('@ducanh2912/next-pwa').default({
   dest: 'public',
   disable: process.env.NODE_ENV === 'development',
+  register: true,
+  skipWaiting: true,
   fallbacks: {
-    //image: "/static/images/fallback.png",
-    //document: "/offline",
-    //font: '/static/font/fallback.woff2',
-    //audio: ...,
-    //video: ...,
+    document: '/offline', // A dedicated offline page
   },
 });
 
-
 const nextConfig: NextConfig = {
-  /* config options here */
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -30,8 +25,8 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '**',
       },
-       {
-        protocol: 'https' ,
+      {
+        protocol: 'https',
         hostname: 'picsum.photos',
         port: '',
         pathname: '**',
