@@ -17,6 +17,7 @@ import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import jsQR from 'jsqr';
 import { Input } from '@/components/ui/input';
+import Link from 'next/link';
 
 type ValidationStatus = 'idle' | 'loading' | 'success' | 'error' | 'unauthorized';
 type ScanResult = {
@@ -64,8 +65,6 @@ function TicketValidator() {
     
      // Get camera permission and start video stream
     useEffect(() => {
-        if (validationStatus !== 'idle') return;
-
         const getCameraPermission = async () => {
           try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
@@ -87,7 +86,9 @@ function TicketValidator() {
           }
         };
 
-        getCameraPermission();
+        if (validationStatus === 'idle') {
+            getCameraPermission();
+        }
 
         // Cleanup: stop video stream when component unmounts
         return () => {
@@ -95,7 +96,7 @@ function TicketValidator() {
                 videoStream.getTracks().forEach(track => track.stop());
             }
         }
-    }, [validationStatus, toast, videoStream]);
+    }, [validationStatus, toast]);
 
     // Check for torch support
     useEffect(() => {
@@ -125,6 +126,113 @@ function TicketValidator() {
         }
     }, [videoStream, isTorchOn, isTorchSupported, toast]);
 
+
+    const processValidation = useCallback(async (ticket: Ticket, scanner: User) => {
+        if (!firestore) return;
+
+        const ticketRef = doc(firestore, `tickets`, ticket.id);
+        const eventRef = doc(firestore, 'events', ticket.eventId);
+        const userRef = doc(firestore, 'users', ticket.userId);
+        const vendorRef = doc(firestore, 'vendors', ticket.vendorId);
+
+        const [eventSnap, userSnap, vendorSnap] = await Promise.all([
+            getDoc(eventRef),
+            getDoc(userRef),
+            getDoc(vendorRef)
+        ]);
+
+        if (!eventSnap.exists()) {
+            setScanResult({ status: 'error', message: 'Event associated with this ticket not found.' });
+            setValidationStatus('error');
+            return;
+        }
+         if (!userSnap.exists()) {
+            setScanResult({ status: 'error', message: 'User associated with this ticket not found.' });
+            setValidationStatus('error');
+            return;
+        }
+         if (!vendorSnap.exists()) {
+            setScanResult({ status: 'error', message: 'Vendor associated with this ticket not found.' });
+            setValidationStatus('error');
+            return;
+        }
+
+        const event = eventSnap.data() as Event;
+        const ticketHolder = userSnap.data() as User;
+        const vendor = vendorSnap.data() as Vendor;
+        
+        // --- SECURITY CHECK ---
+        const eventScanners = event.authorizedScanners || [];
+        const vendorScanners = vendor?.authorizedScanners || [];
+        const isVendorOwner = event.vendorId === scanner.uid;
+        
+        const isAuthorized = isVendorOwner || eventScanners.includes(scanner.uid) || vendorScanners.includes(scanner.uid);
+
+        if (!isAuthorized) {
+            setScanResult({ status: 'error', message: `You are not an authorized scanner for the event "${event.name}".` });
+            setValidationStatus('error');
+            return;
+        }
+        // --- END SECURITY CHECK ---
+
+        if (ticket.scans >= ticket.maxScans) {
+            setScanResult({ status: 'error', message: `This ticket has already been scanned ${ticket.scans} time(s) (max: ${ticket.maxScans}).` });
+            setValidationStatus('error');
+            return;
+        }
+
+        // All checks passed, ticket is valid.
+        await updateDoc(ticketRef, { 
+            scans: increment(1),
+            lastScannedAt: new Date().toISOString(),
+        });
+
+        setScanResult({
+            status: 'success',
+            message: 'Ticket is valid. Welcome!',
+            details: {
+                eventName: event.name,
+                attendeeName: ticket.attendeeName || `${ticketHolder.firstName} ${ticketHolder.lastName}`,
+                attendeeAvatarUrl: ticketHolder.profileImageUrl,
+                purchaseDate: format(new Date(ticket.purchaseDate), "PPP"),
+            }
+        });
+        setValidationStatus('success');
+    }, [firestore]);
+    
+    const validateTicketById = useCallback(async (ticketId: string) => {
+        if (!scannerUser) {
+            setValidationStatus('unauthorized');
+            return;
+        }
+
+        setValidationStatus('loading');
+        if (!firestore) {
+             setScanResult({ status: 'error', message: 'Database connection not available.' });
+             setValidationStatus('error');
+             return;
+        }
+
+        try {
+            const ticketRef = doc(firestore, 'tickets', ticketId);
+            const ticketSnap = await getDoc(ticketRef);
+
+            if (!ticketSnap.exists()) {
+                setScanResult({ status: 'error', message: 'Ticket ID not found.' });
+                setValidationStatus('error');
+                return;
+            }
+
+            const ticket = { id: ticketSnap.id, ...ticketSnap.data() } as Ticket;
+            
+            await processValidation(ticket, scannerUser);
+
+        } catch (error: any) {
+            console.error("Validation Error:", error);
+            setScanResult({ status: 'error', message: error.message || 'An unexpected error occurred during validation.' });
+            setValidationStatus('error');
+        }
+    }, [scannerUser, firestore, processValidation]);
 
     const scanQrCode = useCallback(() => {
         if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA && canvasRef.current) {
@@ -176,109 +284,8 @@ function TicketValidator() {
             }
         };
     }, [isScanning, hasCameraPermission, scanQrCode]);
-
     
-    const validateTicketById = useCallback(async (ticketId: string) => {
-        if (!scannerUser) {
-            setValidationStatus('unauthorized');
-            return;
-        }
-
-        setValidationStatus('loading');
-        if (!firestore) {
-             setScanResult({ status: 'error', message: 'Database connection not available.' });
-             setValidationStatus('error');
-             return;
-        }
-
-        try {
-            const ticketRef = doc(firestore, 'tickets', ticketId);
-            const ticketSnap = await getDoc(ticketRef);
-
-            if (!ticketSnap.exists()) {
-                setScanResult({ status: 'error', message: 'Ticket ID not found.' });
-                setValidationStatus('error');
-                return;
-            }
-
-            const ticket = { id: ticketSnap.id, ...ticketSnap.data() } as Ticket;
-            
-            await processValidation(ticket, scannerUser);
-
-        } catch (error: any) {
-            console.error("Validation Error:", error);
-            setScanResult({ status: 'error', message: error.message || 'An unexpected error occurred during validation.' });
-            setValidationStatus('error');
-        }
-    }, [scannerUser, firestore, processValidation]);
     
-    const processValidation = useCallback(async (ticket: Ticket, scanner: User) => {
-        if (!firestore) return;
-
-        const ticketRef = doc(firestore, `tickets`, ticket.id);
-        const eventRef = doc(firestore, 'events', ticket.eventId);
-        const userRef = doc(firestore, 'users', ticket.userId);
-        const vendorRef = doc(firestore, 'vendors', ticket.vendorId);
-
-        const [eventSnap, userSnap, vendorSnap] = await Promise.all([
-            getDoc(eventRef),
-            getDoc(userRef),
-            getDoc(vendorRef)
-        ]);
-
-        if (!eventSnap.exists()) {
-            setScanResult({ status: 'error', message: 'Event associated with this ticket not found.' });
-            setValidationStatus('error');
-            return;
-        }
-         if (!userSnap.exists()) {
-            setScanResult({ status: 'error', message: 'User associated with this ticket not found.' });
-            setValidationStatus('error');
-            return;
-        }
-
-        const event = eventSnap.data() as Event;
-        const ticketHolder = userSnap.data() as User;
-        const vendor = vendorSnap.data() as Vendor;
-        
-        // --- SECURITY CHECK ---
-        const eventScanners = event.authorizedScanners || [];
-        const vendorScanners = vendor?.authorizedScanners || [];
-        const isVendorOwner = event.vendorId === scanner.uid;
-        
-        const isAuthorized = isVendorOwner || eventScanners.includes(scanner.uid) || vendorScanners.includes(scanner.uid);
-
-        if (!isAuthorized) {
-            setScanResult({ status: 'error', message: `You are not an authorized scanner for the event "${event.name}".` });
-            setValidationStatus('error');
-            return;
-        }
-        // --- END SECURITY CHECK ---
-
-        if (ticket.scans >= ticket.maxScans) {
-            setScanResult({ status: 'error', message: `This ticket has already been scanned ${ticket.scans} time(s) (max: ${ticket.maxScans}).` });
-            setValidationStatus('error');
-            return;
-        }
-
-        // All checks passed, ticket is valid.
-        await updateDoc(ticketRef, { 
-            scans: increment(1),
-            lastScannedAt: new Date().toISOString(),
-        });
-
-        setScanResult({
-            status: 'success',
-            message: 'Ticket is valid. Welcome!',
-            details: {
-                eventName: event.name,
-                attendeeName: ticket.attendeeName || `${ticketHolder.firstName} ${ticketHolder.lastName}`,
-                attendeeAvatarUrl: ticketHolder.profileImageUrl,
-                purchaseDate: format(new Date(ticket.purchaseDate), "PPP"),
-            }
-        });
-        setValidationStatus('success');
-    }, [firestore]);
 
     const resetScanner = () => {
         setScanResult(null);
@@ -383,15 +390,15 @@ function TicketValidator() {
                                         <span className="sr-only">Toggle Flashlight</span>
                                      </Button>
                                 )}
-
-                                {hasCameraPermission === false && (
-                                     <Alert variant="destructive" className="absolute bottom-4 left-4 right-4 w-auto z-10">
-                                        <VideoOff className="h-4 w-4" />
-                                        <AlertTitle>Camera Access Required</AlertTitle>
-                                        <AlertDescription>
-                                          Please allow camera access in your browser settings to use this feature.
-                                        </AlertDescription>
-                                    </Alert>
+                                
+                               {hasCameraPermission === false && (
+                                  <Alert variant="destructive" className="absolute inset-x-4 bottom-4 w-auto z-10">
+                                      <VideoOff className="h-4 w-4" />
+                                      <AlertTitle>Camera Access Required</AlertTitle>
+                                      <AlertDescription>
+                                          Please allow camera access to use this feature.
+                                      </AlertDescription>
+                                  </Alert>
                                 )}
                                 {hasCameraPermission === null && !isScannerLoading && (
                                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white">
@@ -430,11 +437,15 @@ function TicketValidator() {
 
 
 export default function ValidatePage() {
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
     return (
-        <Suspense fallback={<div>Loading...</div>}>
-            <TicketValidator />
+        <Suspense fallback={<div className="flex items-center justify-center h-screen"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>}>
+            {isClient ? <TicketValidator /> : null}
         </Suspense>
     )
 }
-
-    
