@@ -4,7 +4,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "@/components/ui/table";
-import { BarChart2, Ticket, DollarSign, PlusCircle, QrCode, AlertTriangle, MoreHorizontal, Edit, Trash2, Palette } from "lucide-react";
+import { BarChart2, Ticket, DollarSign, PlusCircle, QrCode, AlertTriangle, MoreHorizontal, Edit, Trash2, Palette, Calendar } from "lucide-react";
 import Link from "next/link";
 import { useUser, useFirestore, useMemoFirebase, useCollection, deleteDocumentNonBlocking } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
@@ -72,20 +72,20 @@ export default function VendorDashboardPage() {
             <Button asChild>
                 <Link href="/create-ticket">
                     <Palette className="mr-2 h-4 w-4" />
-                    Craft Ticket
+                    <span className="hidden sm:inline">Craft Ticket</span>
                 </Link>
             </Button>
         </div>
       </div>
       
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₦{totalRevenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">₦{totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
             <p className="text-xs text-muted-foreground">From all ticket sales</p>
           </CardContent>
         </Card>
@@ -117,67 +117,111 @@ export default function VendorDashboardPage() {
           <CardDescription>A list of your active and past events. Create tickets and link them to these events.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Event</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && (
-                <TableRow>
-                    <TableCell colSpan={4}><Skeleton className="h-20" /></TableCell>
-                </TableRow>
-              )}
-              {!isLoading && vendorEvents && vendorEvents.length > 0 ? (
+          {/* Mobile View: Card List */}
+          <div className="grid gap-4 md:hidden">
+             {isLoading && Array.from({length: 3}).map((_, i) => (
+                <Card key={i} className="p-4"><Skeleton className="h-24 w-full" /></Card>
+             ))}
+             {!isLoading && vendorEvents && vendorEvents.length > 0 ? (
                 vendorEvents.map(event => (
-                  <TableRow key={event.id}>
-                    <TableCell className="font-medium">{event.name}</TableCell>
-                    <TableCell><Badge variant="secondary">{event.status || 'Published'}</Badge></TableCell>
-                    <TableCell>{new Date(event.date).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-right">
-                       <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                 <DropdownMenuItem asChild>
-                                    <Link href={`/vendor/events/${event.id}/report`}>
-                                        <BarChart2 className="mr-2 h-4 w-4" /> View Report
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem asChild>
-                                    <Link href={`/vendor/events/${event.id}/edit`}>
-                                        <Edit className="mr-2 h-4 w-4" /> Edit
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(event.id, event.name)}>
-                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
+                    <Card key={event.id} className="p-4">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h4 className="font-semibold">{event.name}</h4>
+                                <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                                    <Calendar className="h-4 w-4"/>
+                                    {new Date(event.date).toLocaleDateString()}
+                                </div>
+                                <Badge variant="secondary" className="mt-2">{event.status || 'Published'}</Badge>
+                            </div>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                    <DropdownMenuItem asChild><Link href={`/vendor/events/${event.id}/report`}><BarChart2 className="mr-2 h-4 w-4" /> View Report</Link></DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem asChild><Link href={`/vendor/events/${event.id}/edit`}><Edit className="mr-2 h-4 w-4" /> Edit</Link></DropdownMenuItem>
+                                    <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(event.id, event.name)}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    </Card>
                 ))
-              ) : (
-                 !isLoading && (
-                    <TableRow>
-                        <TableCell colSpan={4} className="py-12 text-center text-muted-foreground">
-                        You haven't created any events yet.
-                        </TableCell>
+             ) : (
+                !isLoading && (
+                    <div className="py-12 text-center text-muted-foreground">You haven't created any events yet.</div>
+                )
+             )}
+          </div>
+
+          {/* Desktop View: Table */}
+          <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Event</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading && Array.from({length: 3}).map((_, i) => (
+                    <TableRow key={i}>
+                        <TableCell colSpan={4}><Skeleton className="h-10" /></TableCell>
                     </TableRow>
-                 )
-              )}
-            </TableBody>
-          </Table>
+                  ))}
+                  {!isLoading && vendorEvents && vendorEvents.length > 0 ? (
+                    vendorEvents.map(event => (
+                      <TableRow key={event.id}>
+                        <TableCell className="font-medium">{event.name}</TableCell>
+                        <TableCell><Badge variant="secondary">{event.status || 'Published'}</Badge></TableCell>
+                        <TableCell>{new Date(event.date).toLocaleDateString()}</TableCell>
+                        <TableCell className="text-right">
+                           <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">Open menu</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                     <DropdownMenuItem asChild>
+                                        <Link href={`/vendor/events/${event.id}/report`}>
+                                            <BarChart2 className="mr-2 h-4 w-4" /> View Report
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem asChild>
+                                        <Link href={`/vendor/events/${event.id}/edit`}>
+                                            <Edit className="mr-2 h-4 w-4" /> Edit
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(event.id, event.name)}>
+                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                     !isLoading && (
+                        <TableRow>
+                            <TableCell colSpan={4} className="py-12 text-center text-muted-foreground">
+                            You haven't created any events yet.
+                            </TableCell>
+                        </TableRow>
+                     )
+                  )}
+                </TableBody>
+              </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
