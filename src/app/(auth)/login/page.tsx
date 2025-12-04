@@ -34,7 +34,7 @@ const loginSchema = z.object({
 
 type LoginSchema = z.infer<typeof loginSchema>;
 
-const DEFAULT_LOGO_URL = '/default-logo.png';
+const DEFAULT_LOGO_URL = '/recommenoptimized.svg';
 const features = [
   "Design custom tickets",
   "Manage event sales",

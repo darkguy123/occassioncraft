@@ -91,7 +91,7 @@ export default function AdminSettingsPage() {
                       <Input id="logoUrl" placeholder="/logo.png" value={formData.logoUrl || ''} onChange={handleInputChange} />
                        <div className="flex items-center gap-4 mt-2">
                          <p className="text-sm text-muted-foreground">Current Logo:</p>
-                         <Image src={formData.logoUrl || '/default-logo.png'} alt="Logo preview" width={140} height={32} className="h-8 w-auto bg-neutral-200 p-1 rounded" unoptimized/>
+                         <Image src={formData.logoUrl || '/recommenoptimized.svg'} alt="Logo preview" width={140} height={32} className="h-8 w-auto bg-neutral-200 p-1 rounded" unoptimized/>
                        </div>
                     </div>
 

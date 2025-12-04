@@ -15,8 +15,8 @@ import { useLoader } from '@/context/loader-context';
 import { useCart } from '@/context/cart-context';
 import { usePwaInstall } from '@/context/pwa-install-context';
 
-const DEFAULT_LOGO_URL = '/default-logo.png'; // Path relative to the /public directory
-const MOBILE_LOGO_URL = '/download.png';
+const DEFAULT_LOGO_URL = '/recommenoptimized.svg'; // Path relative to the /public directory
+const MOBILE_LOGO_URL = '/recommenoptimized.svg';
 
 export function Header() {
   const { user, isUserLoading } = useUser();

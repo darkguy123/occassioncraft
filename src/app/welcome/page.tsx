@@ -56,7 +56,7 @@ export default function WelcomePage() {
     router.push('/login');
   }
   
-  const logoUrl = '/recommenoptimized.png';
+  const logoUrl = '/recommenoptimized.svg';
 
   const slideVariants = {
     hidden: { opacity: 0, scale: 0.8, y: 20 },

@@ -40,7 +40,7 @@ const signupSchema = z.object({
 
 export type SignupSchema = z.infer<typeof signupSchema>;
 
-const DEFAULT_LOGO_URL = '/default-logo.png';
+const DEFAULT_LOGO_URL = '/recommenoptimized.svg';
 const features = [
   "Design custom tickets",
   "Manage event sales",

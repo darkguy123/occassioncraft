@@ -6,7 +6,7 @@ import { useFirebase } from '@/firebase';
 import { Progress } from '@/components/ui/progress';
 import { useEffect, useState } from 'react';
 
-const DEFAULT_LOGO_URL = '/default-logo.png';
+const DEFAULT_LOGO_URL = '/recommenoptimized.svg';
 
 export function SplashScreen() {
     const { siteSettings } = useFirebase();
