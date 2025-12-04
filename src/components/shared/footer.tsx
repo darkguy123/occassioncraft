@@ -6,8 +6,8 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useFirebase } from '@/firebase';
 
-const TwitterIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 1.4 3.3 4.4 3.3 4.4s-1.4 1.4-2.8 2.1c.1 2.3.1 4.3.1 6.2 0 6.1-4.1 10.6-10.6 10.6-5.2 0-8-3.3-8-3.3s3.1 1.4 5.7.1c-3.1-.6-5.2-3.3-5.2-3.3s.7.1 1.4.1c-2.3-.6-4.1-2.3-4.1-4.5 0 0 .7.4 1.4.4C3.1 13.4 1.4 8.8 1.4 8.8s1.6 2.8 5.7 2.8c-.1-2.3.1-4.3.1-4.3s1.4-3.7 4.5-3.7c1.4 0 2.8.6 2.8.6s-1.2-.4-1.2-1.2c0 0 .5-1.4 2.8-1.4z"></path></svg>
+const XIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
 )
 
 const FacebookIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -44,7 +44,7 @@ export function Footer() {
             </Link>
             <p className="text-sm text-white/80">Create, discover, and celebrate events with OccasionCraft.</p>
             <div className="flex space-x-4">
-                <Link href={socials.twitter} target="_blank" rel="noopener noreferrer" className="text-white/80 hover:text-white"><TwitterIcon className="h-5 w-5"/></Link>
+                <Link href={socials.twitter} target="_blank" rel="noopener noreferrer" className="text-white/80 hover:text-white"><XIcon className="h-5 w-5"/></Link>
                 <Link href={socials.facebook} target="_blank" rel="noopener noreferrer" className="text-white/80 hover:text-white"><FacebookIcon className="h-5 w-5"/></Link>
                 <Link href={socials.instagram} target="_blank" rel="noopener noreferrer" className="text-white/80 hover:text-white"><InstagramIcon className="h-5 w-5"/></Link>
             </div>

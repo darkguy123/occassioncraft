@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { BookText, FileText, Info, Palette, Twitter, Facebook, Instagram } from 'lucide-react';
+import { BookText, FileText, Info, Palette, Facebook, Instagram } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useFirestore, useDoc, setDocumentNonBlocking, useMemoFirebase } from '@/firebase';
@@ -15,6 +15,10 @@ import { doc } from 'firebase/firestore';
 import type { SiteSettings } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
+
+const XIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+)
 
 export default function AdminSettingsPage() {
   const { toast } = useToast();
@@ -180,10 +184,10 @@ export default function AdminSettingsPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="twitterUrl" className="flex items-center gap-2"><Twitter className="h-4 w-4 text-[#1DA1F2]" /> Twitter</Label>
+                <Label htmlFor="twitterUrl" className="flex items-center gap-2"><XIcon className="h-4 w-4" /> X (Twitter)</Label>
                 <Input
                   id="twitterUrl"
-                  placeholder="https://twitter.com/your-profile"
+                  placeholder="https://x.com/your-profile"
                   value={formData.twitterUrl || ''}
                   onChange={handleInputChange}
                 />
