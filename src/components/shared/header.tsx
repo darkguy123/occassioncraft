@@ -53,8 +53,8 @@ export function Header() {
               <div className="h-8 w-36 bg-white/20 rounded-md animate-pulse" />
             ) : (
               <>
-                <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto hidden md:block" priority unoptimized />
-                <Image src={MOBILE_LOGO_URL} alt="OccasionCraft Logo" width={32} height={32} className="h-8 w-8 block md:hidden" priority unoptimized />
+                <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={32} className="h-8 w-auto hidden sm:block" priority unoptimized />
+                <Image src={MOBILE_LOGO_URL} alt="OccasionCraft Logo" width={32} height={32} className="h-8 w-8 block sm:hidden" priority unoptimized />
               </>
             )}
            </Link>
