@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Eye, EyeOff, Ticket } from "lucide-react"
+import { Eye, EyeOff, Ticket, LogIn } from "lucide-react"
 import { useForm, SubmitHandler } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -91,16 +91,8 @@ export default function LoginPage() {
   const logoUrl = siteSettings?.logoUrl || DEFAULT_LOGO_URL;
 
   return (
-    <div className="w-full min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-4.5rem)] grid grid-cols-1 md:grid-cols-2">
-      <div className="hidden md:block relative">
-        <Image
-          src="https://picsum.photos/seed/login-bg/1200/1600"
-          alt="Login background"
-          data-ai-hint="event crowd celebration"
-          fill
-          className="object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/60 to-primary/60" />
+    <div className="w-full min-h-[calc(100vh-4rem)] md:min-h-screen grid grid-cols-1 md:grid-cols-2">
+      <div className="hidden md:block relative bg-[#1e40af]">
         <div className="relative z-10 flex flex-col justify-between h-full p-8 text-white">
             <div>
                  {isSiteSettingsLoading ? (
@@ -131,14 +123,20 @@ export default function LoginPage() {
       </div>
       
       <div className="flex items-center justify-center p-4 sm:p-8 bg-secondary/30">
-        <Card className="mx-auto max-w-sm w-full shadow-2xl">
-            <CardHeader className="text-center md:hidden">
+        <Card className="mx-auto max-w-sm w-full shadow-2xl overflow-hidden md:shadow-none md:border-0 md:bg-transparent">
+             <CardHeader className="text-center bg-[#3366ff] text-primary-foreground p-6 md:bg-transparent md:text-inherit md:p-0">
+                 <div className="mx-auto h-12 w-auto mb-2 md:hidden">
+                     <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={40} className="h-10 w-auto" unoptimized/>
+                 </div>
+                 <div className="hidden md:flex justify-center mb-4">
+                    <LogIn className="h-8 w-8 text-primary" />
+                 </div>
               <CardTitle className="text-2xl font-headline">Welcome Back</CardTitle>
-              <CardDescription>
+              <CardDescription className="text-white/80 md:text-muted-foreground">
                 Enter your email below to login to your account
               </CardDescription>
             </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-6 md:p-0 md:pt-6">
             <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>

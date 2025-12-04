@@ -10,7 +10,7 @@ import { doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff, Ticket, PartyPopper, AlertTriangle } from "lucide-react";
+import { Eye, EyeOff, Ticket, PartyPopper, AlertTriangle, UserPlus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -135,7 +135,7 @@ export default function SignupPage() {
 
   return (
     <>
-      <div className="w-full min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-4.5rem)] grid grid-cols-1 md:grid-cols-2">
+      <div className="w-full min-h-[calc(100vh-4rem)] md:min-h-screen grid grid-cols-1 md:grid-cols-2">
          <div className="hidden md:block relative">
             <Image
             src="https://picsum.photos/seed/signup-bg/1200/1600"
@@ -175,9 +175,9 @@ export default function SignupPage() {
       </div>
       
       <div className="flex items-center justify-center p-4 sm:p-8 bg-secondary/30">
-        <Card className="mx-auto max-w-sm w-full shadow-2xl">
+        <Card className="mx-auto max-w-sm w-full shadow-2xl md:shadow-none md:border-0 md:bg-transparent">
           <CardHeader className="text-center">
-              <Ticket className="mx-auto h-8 w-8 text-primary" />
+              <UserPlus className="mx-auto h-8 w-8 text-primary" />
               <CardTitle className="text-2xl font-headline">Get Started</CardTitle>
               <CardDescription>Enter your details to create your account.</CardDescription>
           </CardHeader>

@@ -9,12 +9,13 @@ import { useFirebase } from '@/firebase';
 import { NavigationEvents } from '@/components/shared/navigation-events';
 import { Suspense, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { LoaderProvider } from '@/context/loader-context';
 import { PageLoader } from './page-loader';
 import { CartProvider } from '@/context/cart-context';
 import { InstallPwaPrompt } from '@/components/shared/install-pwa-prompt';
 import { MobileMenu } from '@/components/shared/mobile-menu';
+import { SplashScreen } from './splash-screen';
 
 function Favicon() {
     const { siteSettings, isSiteSettingsLoading } = useFirebase();
@@ -76,15 +77,38 @@ function ThemeUpdater() {
 
 function InnerRootProvider({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const router = useRouter();
     const [hasMounted, setHasMounted] = useState(false);
+    const [showSplash, setShowSplash] = useState(true);
 
     useEffect(() => {
         setHasMounted(true);
-    }, []);
+        const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
 
-    const hideFooter = pathname.startsWith('/validate');
-    const showMobileMenu = hasMounted && window.matchMedia('(max-width: 768px)').matches;
+        if (isMobile && !hasSeenWelcome && pathname !== '/welcome') {
+            router.replace('/welcome');
+            // No need to show splash if we are redirecting
+            setShowSplash(false);
+        } else {
+             const splashTimeout = setTimeout(() => setShowSplash(false), 2500);
+             return () => clearTimeout(splashTimeout);
+        }
+        
+    }, [router, pathname]);
 
+    const hideFooter = pathname.startsWith('/validate') || pathname.startsWith('/welcome');
+    const hideHeader = pathname.startsWith('/welcome') || pathname.startsWith('/validate');
+    const showMobileMenu = hasMounted && window.matchMedia('(max-width: 768px)').matches && !hideFooter;
+
+
+    if (showSplash && hasMounted && !pathname.startsWith('/welcome')) {
+        return <SplashScreen />;
+    }
+
+    if (pathname.startsWith('/welcome')) {
+        return children;
+    }
 
     return (
         <>
@@ -94,7 +118,7 @@ function InnerRootProvider({ children }: { children: React.ReactNode }) {
             </Suspense>
             <PageLoader />
             <InstallPwaPrompt />
-            <Header />
+            {!hideHeader && <Header />}
             <main className="flex-grow pb-24 md:pb-0">
                 {hasMounted ? (
                     <AnimatePresence mode="wait">

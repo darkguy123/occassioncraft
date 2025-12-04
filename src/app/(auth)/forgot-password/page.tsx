@@ -53,8 +53,8 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-8rem)] py-12 px-4">
-      <Card className="mx-auto max-w-sm w-full">
+    <div className="flex items-center justify-center min-h-[calc(100vh-8rem)] md:min-h-screen py-12 px-4 bg-secondary/30">
+      <Card className="mx-auto max-w-sm w-full shadow-lg md:shadow-none md:border-0 md:bg-transparent">
         <CardHeader className="text-center">
           <MailQuestion className="mx-auto h-8 w-8 text-primary" />
           <CardTitle className="text-2xl font-headline">Forgot Password</CardTitle>
