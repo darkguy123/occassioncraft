@@ -59,24 +59,26 @@ function TicketValidator() {
     useEffect(() => {
         if (validationStatus !== 'idle') return;
 
-        async function getCameraPermission() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                if (videoRef.current) {
-                    videoRef.current.srcObject = stream;
-                }
-                setHasCameraPermission(true);
-                setIsScanning(true);
-            } catch (err) {
-                console.error("Camera permission denied:", err);
-                setHasCameraPermission(false);
-                toast({
-                    variant: 'destructive',
-                    title: 'Camera Access Denied',
-                    description: 'Please enable camera permissions to scan QR codes.',
-                });
+        const getCameraPermission = async () => {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+            setHasCameraPermission(true);
+    
+            if (videoRef.current) {
+              videoRef.current.srcObject = stream;
             }
-        }
+             setIsScanning(true);
+          } catch (error) {
+            console.error('Error accessing camera:', error);
+            setHasCameraPermission(false);
+            toast({
+              variant: 'destructive',
+              title: 'Camera Access Denied',
+              description: 'Please enable camera permissions in your browser settings to use this app.',
+            });
+          }
+        };
+
         getCameraPermission();
 
         // Cleanup: stop video stream when component unmounts
@@ -311,13 +313,15 @@ function TicketValidator() {
                                 {validationStatus === 'loading' && <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white"><Loader2 className="h-10 w-10 animate-spin mb-2" />Validating...</div>}
 
                                 {hasCameraPermission === false && (
-                                    <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-white p-4 text-center">
-                                        <VideoOff className="h-12 w-12 mb-4" />
-                                        <h3 className="font-bold text-lg">Camera Access Denied</h3>
-                                        <p className="text-sm">Please enable camera permissions in your browser settings to use the scanner.</p>
-                                    </div>
+                                     <Alert variant="destructive" className="absolute bottom-4 left-4 right-4 w-auto z-10">
+                                        <VideoOff className="h-4 w-4" />
+                                        <AlertTitle>Camera Access Required</AlertTitle>
+                                        <AlertDescription>
+                                          Please allow camera access in your browser settings to use this feature.
+                                        </AlertDescription>
+                                    </Alert>
                                 )}
-                                {hasCameraPermission === null && (
+                                {hasCameraPermission === null && !isScannerLoading && (
                                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white">
                                         <Loader2 className="h-10 w-10 animate-spin mb-2" />
                                         <p>Requesting camera access...</p>
