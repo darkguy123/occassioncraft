@@ -169,7 +169,7 @@ export default function CheckoutPage() {
                         </CardContent>
                         <CardFooter>
                             <Button className="w-full" size="lg" onClick={handleCheckout} disabled={cart.length === 0}>
-                                Proceed to Payment (₦{cartTotal.toLocaleString()})
+                                Pay Now
                             </Button>
                         </CardFooter>
                     </Card>
