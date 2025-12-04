@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, CalendarPlus, Ticket, QrCode, ShoppingCart, Settings } from 'lucide-react';
+import { LayoutDashboard, CalendarPlus, Ticket, QrCode, ShoppingCart, Settings, UserPlus } from 'lucide-react';
 import { useCart } from '@/context/cart-context';
 import { Badge } from '../ui/badge';
 
@@ -12,6 +12,7 @@ const navItems = [
     { href: '/vendor/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/create-event', icon: CalendarPlus, label: 'Create Event' },
     { href: '/create-ticket', icon: Ticket, label: 'Craft Ticket' },
+    { href: '/vendor/scanners', icon: UserPlus, label: 'Scanners' },
     { href: '/validate', icon: QrCode, label: 'Scan Tickets' },
     { href: '/vendor/checkout', icon: ShoppingCart, label: 'Cart' },
 ];

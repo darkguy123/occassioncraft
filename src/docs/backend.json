@@ -67,7 +67,10 @@
       "type": "object",
       "description": "Represents a vendor who creates events and tickets.",
       "properties": {
-        "id": { "type": "string" }, "name": { "type": "string" }, "email": { "type": "string", "format": "email" }
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "authorizedScanners": { "type": "array", "items": { "type": "string" }, "description": "A list of user IDs authorized to scan tickets for any of the vendor's events." }
       },
       "required": ["id", "name", "email"]
     },
@@ -126,6 +129,6 @@
       { "path": "/users/{userId}/notifications/{notificationId}", "definition": { "entityName": "Notification", "schema": { "$ref": "#/backend/entities/Notification" } } },
       { "path": "/settings/site", "definition": { "entityName": "SiteSettings", "schema": { "$ref": "#/backend/entities/SiteSettings" }, "description": "A single document holding all global site settings." } }
     ],
-    "reasoning": "The data model is now ticket-centric. Events are simple shells. A new root collection `/tickets/{ticketId}` holds all crafted ticket details, including design, pricing package, and validation rules. The `/users/{userId}/tickets` subcollection is a lightweight pointer to the main tickets for fast user-specific lookups. A new `/settings/site` document is added to store global configuration."
+    "reasoning": "The data model is now ticket-centric. Events are simple shells. A new root collection `/tickets/{ticketId}` holds all crafted ticket details, including design, pricing package, and validation rules. The `/users/{userId}/tickets` subcollection is a lightweight pointer to the main tickets for fast user-specific lookups. A new `/settings/site` document is added to store global configuration. The Vendor entity now has a list of authorized scanners."
   }
 }
