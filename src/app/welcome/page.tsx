@@ -56,7 +56,7 @@ export default function WelcomePage() {
     router.push('/login');
   }
   
-  const logoUrl = siteSettings?.logoUrl || '/default-logo.png';
+  const logoUrl = '/recommenoptimized.png';
 
 
   return (

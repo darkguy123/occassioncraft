@@ -97,10 +97,10 @@ export default function AdminSettingsPage() {
 
                     <div className="grid gap-2">
                        <Label htmlFor="faviconUrl">Favicon Path</Label>
-                       <Input id="faviconUrl" placeholder="/favicon.ico" value={formData.faviconUrl || ''} onChange={handleInputChange} />
+                       <Input id="faviconUrl" placeholder="/download.png" value={formData.faviconUrl || ''} onChange={handleInputChange} />
                        <div className="flex items-center gap-4 mt-2">
                          <p className="text-sm text-muted-foreground">Current Favicon:</p>
-                         <Image src={formData.faviconUrl || '/default-logo.png'} alt="Favicon preview" width={32} height={32} className="h-8 w-8 bg-neutral-200 p-1 rounded" unoptimized/>
+                         <Image src={formData.faviconUrl || '/download.png'} alt="Favicon preview" width={32} height={32} className="h-8 w-8 bg-neutral-200 p-1 rounded" unoptimized/>
                        </div>
                     </div>
 

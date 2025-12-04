@@ -20,10 +20,10 @@ import { SplashScreen } from './splash-screen';
 function Favicon() {
     const { siteSettings, isSiteSettingsLoading } = useFirebase();
 
-    const faviconUrl = siteSettings?.faviconUrl || '/favicon.ico';
+    const faviconUrl = siteSettings?.faviconUrl || '/download.png';
     
     if (isSiteSettingsLoading) {
-      return <link rel="icon" href="/favicon.ico" />;
+      return <link rel="icon" href="/download.png" />;
     }
 
     return <link rel="icon" href={faviconUrl} />;
@@ -113,7 +113,7 @@ function InnerRootProvider({ children }: { children: React.ReactNode }) {
     return (
         <>
             <ThemeUpdater />
-            <Suspense fallback={<link rel="icon" href="/favicon.ico" />}>
+            <Suspense fallback={<link rel="icon" href="/download.png" />}>
                 <Favicon />
             </Suspense>
             <PageLoader />

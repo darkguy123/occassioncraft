@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    shortcut: "/favicon.ico",
+    shortcut: "/download.png",
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
   },
 };
@@ -40,7 +40,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        <link rel='icon' href='/favicon.ico' />
+        <link rel='icon' href='/download.png' />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" />

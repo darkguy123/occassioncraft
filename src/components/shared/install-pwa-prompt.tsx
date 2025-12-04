@@ -83,7 +83,7 @@ export function InstallPwaPrompt() {
         >
           <div className="container mx-auto p-2 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Image src={siteSettings?.faviconUrl || '/favicon.ico'} alt="App Icon" width={40} height={40} className="rounded-md" />
+              <Image src={siteSettings?.faviconUrl || '/download.png'} alt="App Icon" width={40} height={40} className="rounded-md" />
               <div>
                 <p className="font-semibold text-foreground">Get the OccasionCraft App</p>
                 <p className="text-sm text-muted-foreground">Add to your Home Screen for a better experience.</p>
