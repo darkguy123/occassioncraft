@@ -14,8 +14,8 @@ const navItems = [
   { href: '/', icon: Home, label: 'Home' },
   { href: '/events', icon: Compass, label: 'Discover' },
   // Center button is handled separately
-  { href: '/vendor', icon: LayoutDashboard, label: 'Vendor', vendorOrScanner: true },
-  { href: '/validate', icon: QrCode, label: 'Scan', vendorOrScanner: true },
+  { href: '/vendor', icon: LayoutDashboard, label: 'Vendor' },
+  { href: '/validate', icon: QrCode, label: 'Scan' },
 ];
 
 export function MobileMenu() {
@@ -31,17 +31,13 @@ export function MobileMenu() {
     const { data: userData } = useDoc<UserType>(userDocRef);
 
     const isVendor = userData?.roles?.includes('vendor');
-    const isAdmin = userData?.roles?.includes('admin');
-    const canCraft = isVendor || isAdmin;
-
-    const filteredNavItems = navItems;
 
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 h-16 w-[90vw] max-w-sm bg-background/80 backdrop-blur-md border border-border shadow-lg rounded-full z-40 md:hidden">
       <nav className="h-full">
         <ul className="flex justify-around items-center h-full relative">
             {/* Regular Nav Items */}
-            {filteredNavItems.slice(0, 2).map((item) => {
+            {navItems.slice(0, 2).map((item) => {
                 const isActive = (pathname === item.href) || (item.href !== '/' && pathname.startsWith(item.href));
                 return (
                 <li key={item.href}>
@@ -57,7 +53,7 @@ export function MobileMenu() {
             <li className="w-16 h-16"></li>
             
             {/* Regular Nav Items */}
-            {filteredNavItems.slice(2).map((item) => {
+            {navItems.slice(2).map((item) => {
                 let href = item.href;
                 if (item.label === 'Vendor' && isVendor) {
                     href = '/vendor/dashboard';
@@ -74,16 +70,14 @@ export function MobileMenu() {
             })}
         </ul>
          {/* Center Action Button */}
-         {canCraft && (
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[calc(50%+10px)]">
-                    <Button asChild className="rounded-full w-16 h-16 bg-primary shadow-lg" size="icon">
-                        <Link href="/create-ticket">
-                            <Palette className="h-7 w-7" />
-                            <span className="sr-only">Craft Ticket</span>
-                        </Link>
-                    </Button>
-            </div>
-         )}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[calc(50%+10px)]">
+            <Button asChild className="rounded-full w-16 h-16 bg-primary shadow-lg" size="icon">
+                <Link href="/create-ticket">
+                    <Palette className="h-7 w-7" />
+                    <span className="sr-only">Craft Ticket</span>
+                </Link>
+            </Button>
+        </div>
       </nav>
     </div>
   );
