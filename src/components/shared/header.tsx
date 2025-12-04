@@ -68,18 +68,15 @@ export function Header() {
           {!isUserLoading &&
             (user ? (
               <>
-                 {canInstall && (
-                    <Button onClick={triggerInstall} variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white">
-                        <Download className="h-5 w-5" />
-                        <span className="sr-only">Install App</span>
-                    </Button>
-                )}
                 {(isVendor || isAdmin) && (
                   <div className="flex items-center gap-2">
-                    <Button asChild variant="destructive" size="sm">
+                    <Button asChild variant="destructive" size="sm" className="relative">
                         <Link href="/create-event" onClick={handleLinkClick}>
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Create Event
+                            <span className="md:hidden"><PlusCircle className="h-5 w-5" /></span>
+                            <span className="hidden md:flex items-center">
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Create Event
+                            </span>
                         </Link>
                     </Button>
                      <Button variant="ghost" size="icon" className="relative text-white hover:bg-white/20 hover:text-white" asChild>
@@ -94,6 +91,12 @@ export function Header() {
                       </Link>
                     </Button>
                   </div>
+                )}
+                 {canInstall && (
+                    <Button onClick={triggerInstall} variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white">
+                        <Download className="h-5 w-5" />
+                        <span className="sr-only">Install App</span>
+                    </Button>
                 )}
                 <Notifications />
                 <UserNav />

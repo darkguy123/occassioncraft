@@ -13,7 +13,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { LoaderProvider } from '@/context/loader-context';
 import { PageLoader } from './page-loader';
 import { CartProvider } from '@/context/cart-context';
-import { InstallPwaPrompt } from '@/components/shared/install-pwa-prompt';
 import { MobileMenu } from '@/components/shared/mobile-menu';
 import { SplashScreen } from './splash-screen';
 import { PwaInstallProvider } from '@/context/pwa-install-context';
@@ -118,7 +117,6 @@ function InnerRootProvider({ children }: { children: React.ReactNode }) {
                 <Favicon />
             </Suspense>
             <PageLoader />
-            <InstallPwaPrompt />
             {!hideHeader && <Header />}
             <main className="flex-grow pb-24 md:pb-0">
                 {hasMounted ? (
