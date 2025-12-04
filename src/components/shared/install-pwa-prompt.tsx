@@ -27,16 +27,24 @@ export function InstallPwaPrompt() {
       e.preventDefault();
       setInstallPrompt(e as BeforeInstallPromptEvent);
       
-      const alreadyShown = localStorage.getItem('pwaInstallPromptShown');
-      if (!alreadyShown) {
+      const isDismissed = sessionStorage.getItem('pwaInstallPromptDismissed');
+      if (!isDismissed) {
         setIsVisible(true);
       }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
+    // Also check for appinstalled event
+    const handleAppInstalled = () => {
+        setIsVisible(false);
+    };
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+       window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
 
@@ -46,18 +54,18 @@ export function InstallPwaPrompt() {
     installPrompt.userChoice.then((choiceResult) => {
       if (choiceResult.outcome === 'accepted') {
         console.log('User accepted the install prompt');
+        setIsVisible(false);
       } else {
         console.log('User dismissed the install prompt');
       }
       setInstallPrompt(null);
-      setIsVisible(false);
-      localStorage.setItem('pwaInstallPromptShown', 'true');
     });
   };
 
   const handleDismiss = () => {
     setIsVisible(false);
-    localStorage.setItem('pwaInstallPromptShown', 'true');
+    // Use session storage so it reappears on next visit
+    sessionStorage.setItem('pwaInstallPromptDismissed', 'true');
   };
 
   if (!isVisible || !installPrompt) {
@@ -68,10 +76,10 @@ export function InstallPwaPrompt() {
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ y: -100 }}
+          initial={{ y: 100 }}
           animate={{ y: 0 }}
-          exit={{ y: -100 }}
-          className="fixed top-0 left-0 right-0 z-[100] bg-background border-b shadow-md"
+          exit={{ y: 100 }}
+          className="fixed bottom-0 left-0 right-0 z-[100] bg-background border-t shadow-lg md:hidden"
         >
           <div className="container mx-auto p-2 flex items-center justify-between">
             <div className="flex items-center gap-4">
