@@ -124,7 +124,7 @@ export default function LoginPage() {
       
       <div className="flex items-center justify-center p-4 sm:p-8 bg-secondary/30">
         <Card className="mx-auto max-w-sm w-full shadow-2xl overflow-hidden md:shadow-none md:border-0 md:bg-transparent">
-             <CardHeader className="text-center bg-[#3366ff] text-primary-foreground p-6 md:bg-transparent md:text-inherit md:p-0">
+             <CardHeader className="text-center bg-[#3366ff] text-primary-foreground p-6 md:bg-transparent md:text-inherit md:p-6 md:px-0">
                  <div className="mx-auto h-12 w-auto mb-2 md:hidden">
                      <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={40} className="h-10 w-auto" unoptimized/>
                  </div>

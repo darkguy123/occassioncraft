@@ -123,66 +123,68 @@ export default function AdminVendorsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Company Name</TableHead>
-                    <TableHead>Contact Email</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading && Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}>
-                        <TableCell><Skeleton className="h-5 w-32"/></TableCell>
-                        <TableCell><Skeleton className="h-5 w-40"/></TableCell>
-                        <TableCell><Skeleton className="h-5 w-20"/></TableCell>
-                        <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto"/></TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Company Name</TableHead>
+                      <TableHead className="hidden sm:table-cell">Contact Email</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                  {!isLoading && vendors?.map((vendor) => (
-                    <TableRow key={vendor.id}>
-                        <TableCell className="font-medium">{vendor.companyName}</TableCell>
-                        <TableCell>{vendor.contactEmail}</TableCell>
-                        <TableCell>
-                            <Badge variant={getBadgeVariant(vendor.status)}>
-                                {vendor.status ? vendor.status.charAt(0).toUpperCase() + vendor.status.slice(1) : 'N/A'}
-                            </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                           <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                  <span className="sr-only">Open menu</span>
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleOpenDetails(vendor)}>
-                                    <Eye className="mr-2 h-4 w-4" /> View Details
-                                </DropdownMenuItem>
-                                {vendor.status === 'pending' && (
-                                    <>
-                                        <DropdownMenuItem onClick={() => handleUpdateStatus(vendor.id, vendor.companyName, 'approved')}>Approve</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleUpdateStatus(vendor.id, vendor.companyName, 'rejected')}>Reject</DropdownMenuItem>
-                                    </>
-                                )}
-                                 <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(vendor.id, vendor.companyName)}>Delete</DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                        </TableCell>
-                    </TableRow>
-                  ))}
-                  {!isLoading && vendors?.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center text-muted-foreground py-12">
-                          No vendors found.
-                        </TableCell>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoading && Array.from({ length: 5 }).map((_, i) => (
+                      <TableRow key={i}>
+                          <TableCell><Skeleton className="h-5 w-32"/></TableCell>
+                          <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-40"/></TableCell>
+                          <TableCell><Skeleton className="h-5 w-20"/></TableCell>
+                          <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto"/></TableCell>
                       </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                    ))}
+                    {!isLoading && vendors?.map((vendor) => (
+                      <TableRow key={vendor.id}>
+                          <TableCell className="font-medium">{vendor.companyName}</TableCell>
+                          <TableCell className="hidden sm:table-cell">{vendor.contactEmail}</TableCell>
+                          <TableCell>
+                              <Badge variant={getBadgeVariant(vendor.status)}>
+                                  {vendor.status ? vendor.status.charAt(0).toUpperCase() + vendor.status.slice(1) : 'N/A'}
+                              </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">Open menu</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleOpenDetails(vendor)}>
+                                      <Eye className="mr-2 h-4 w-4" /> View Details
+                                  </DropdownMenuItem>
+                                  {vendor.status === 'pending' && (
+                                      <>
+                                          <DropdownMenuItem onClick={() => handleUpdateStatus(vendor.id, vendor.companyName, 'approved')}>Approve</DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => handleUpdateStatus(vendor.id, vendor.companyName, 'rejected')}>Reject</DropdownMenuItem>
+                                      </>
+                                  )}
+                                  <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(vendor.id, vendor.companyName)}>Delete</DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                          </TableCell>
+                      </TableRow>
+                    ))}
+                    {!isLoading && vendors?.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-muted-foreground py-12">
+                            No vendors found.
+                          </TableCell>
+                        </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </div>

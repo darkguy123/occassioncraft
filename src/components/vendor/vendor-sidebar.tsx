@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -20,7 +21,7 @@ export function VendorSidebar() {
     const { cart } = useCart();
 
     return (
-        <aside className="w-64 flex-shrink-0 border-r bg-background">
+        <aside className="w-full h-full md:w-64 flex-shrink-0 border-r bg-background">
             <div className="flex h-full flex-col">
                 <div className="p-4 border-b">
                     <Link href="/vendor/dashboard" className="flex items-center gap-2 font-bold text-lg">
@@ -30,7 +31,7 @@ export function VendorSidebar() {
                 </div>
                 <nav className="flex-1 p-4 space-y-1">
                     {navItems.map((item) => {
-                        const isActive = pathname.startsWith(item.href) && (item.href !== '/vendor/dashboard' || pathname === '/vendor/dashboard');
+                        const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/vendor/dashboard');
                         return (
                             <Link
                                 key={item.label}

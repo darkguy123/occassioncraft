@@ -20,7 +20,7 @@ export function AdminSidebar() {
     const pathname = usePathname();
 
     return (
-        <aside className="w-64 flex-shrink-0 border-r bg-background">
+        <aside className="w-full h-full md:w-64 flex-shrink-0 border-r bg-background">
             <div className="flex h-full flex-col">
                 <div className="p-4 border-b">
                     <Link href="/admin" className="flex items-center gap-2 font-bold text-lg">
@@ -30,7 +30,7 @@ export function AdminSidebar() {
                 </div>
                 <nav className="flex-1 p-4 space-y-1">
                     {navItems.map((item) => {
-                        const isActive = pathname.startsWith(item.href) && (item.href !== '/admin' || pathname === '/admin');
+                        const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/admin');
                         return (
                             <Link
                                 key={item.label}
