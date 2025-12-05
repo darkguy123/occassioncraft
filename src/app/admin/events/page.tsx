@@ -10,7 +10,7 @@ import {
   TableHead,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, MoreHorizontal, Edit, Trash2, BarChart2 } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Edit, Trash2, BarChart2, CheckCircle, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import {
   Card,
@@ -28,7 +28,7 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from '@/components/ui/badge';
-import { useFirestore, useCollection, deleteDocumentNonBlocking, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, deleteDocumentNonBlocking, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import type { Event } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -49,6 +49,25 @@ export default function AdminEventsPage() {
       title: "Event Deleted",
       description: `The event "${eventName}" has been successfully deleted.`,
     });
+  }
+
+  const handleUpdateStatus = (eventId: string, eventName: string, status: 'published' | 'rejected') => {
+    if (!firestore) return;
+    const eventRef = doc(firestore, 'events', eventId);
+    updateDocumentNonBlocking(eventRef, { status });
+    toast({
+        title: "Event Updated",
+        description: `The event "${eventName}" has been ${status}.`
+    });
+  }
+  
+  const getBadgeVariant = (status?: 'published' | 'draft' | 'pending' | 'rejected') => {
+    switch (status) {
+        case 'published': return 'secondary';
+        case 'pending': return 'outline';
+        case 'rejected': return 'destructive';
+        default: return 'default';
+    }
   }
   
   return (
@@ -99,7 +118,7 @@ export default function AdminEventsPage() {
                   <TableRow key={event.id}>
                     <TableCell className="font-medium">{event.name}</TableCell>
                     <TableCell>{event.organizer}</TableCell>
-                    <TableCell><Badge variant="secondary">{event.status || 'Published'}</Badge></TableCell>
+                    <TableCell><Badge variant={getBadgeVariant(event.status)} className="capitalize">{event.status || 'Published'}</Badge></TableCell>
                     <TableCell>{new Date(event.date).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">
                        <DropdownMenu>
@@ -116,12 +135,23 @@ export default function AdminEventsPage() {
                                         <BarChart2 className="mr-2 h-4 w-4" /> View Report
                                     </Link>
                                 </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem asChild>
+                                 <DropdownMenuItem asChild>
                                     <Link href={`/admin/events/${event.id}/edit`}>
                                         <Edit className="mr-2 h-4 w-4" /> Edit Event
                                     </Link>
                                 </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                {event.status === 'pending' && (
+                                    <>
+                                        <DropdownMenuItem onClick={() => handleUpdateStatus(event.id, event.name, 'published')}>
+                                            <CheckCircle className="mr-2 h-4 w-4" /> Approve
+                                        </DropdownMenuItem>
+                                         <DropdownMenuItem onClick={() => handleUpdateStatus(event.id, event.name, 'rejected')}>
+                                            <XCircle className="mr-2 h-4 w-4" /> Reject
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                    </>
+                                )}
                                 <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(event.id, event.name)}>
                                     <Trash2 className="mr-2 h-4 w-4" /> Delete Event
                                 </DropdownMenuItem>

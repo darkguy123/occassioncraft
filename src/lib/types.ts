@@ -26,7 +26,7 @@ export type Event = {
   bannerUrl?: string;
   vendorId: string;
   organizer?: string;
-  status?: 'published' | 'draft';
+  status?: 'published' | 'draft' | 'pending' | 'rejected';
   isPrivate?: boolean; 
   authorizedScanners?: string[]; 
 };
