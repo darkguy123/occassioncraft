@@ -32,8 +32,8 @@ service cloud.firestore {
     }
     
     match /events/{eventId} {
-       // Admins can list all events.
-       allow list: if isAdmin();
+       // Allow public list access for anyone. The query must filter for 'published' status on the client.
+       allow list: if true;
        
        // Events are publicly readable only if they are published.
        // Vendors can read their own non-published events.

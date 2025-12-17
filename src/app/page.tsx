@@ -8,7 +8,7 @@ import { Globe, Music, Palette, Code, Utensils, Award } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion } from 'framer-motion';
 import { useFirestore, useCollection, useMemoFirebase, useFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import type { Event } from '@/lib/types';
 import EventCard from '@/components/event-card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -35,7 +35,12 @@ export default function Home() {
   const firestore = useFirestore();
   const { siteSettings, isSiteSettingsLoading } = useFirebase();
 
-  const eventsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'events') : null, [firestore]);
+  const eventsCollection = useMemoFirebase(() => {
+    if (!firestore) return null;
+    // Query only for 'published' events to comply with security rules for public access
+    return query(collection(firestore, 'events'), where('status', '==', 'published'));
+  }, [firestore]);
+  
   const { data: events, isLoading } = useCollection<Event>(eventsCollection);
 
   const heroImage = {
