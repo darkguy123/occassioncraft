@@ -32,7 +32,7 @@ service cloud.firestore {
     }
     
     match /events/{eventId} {
-       // Allow public list access for anyone. The query must filter for 'published' status on the client.
+       // Allow public list access for anyone, but the query must filter for 'published' status.
        allow list: if true;
        
        // Events are publicly readable only if they are published.
@@ -42,9 +42,11 @@ service cloud.firestore {
                     || (request.auth != null && resource.data.vendorId == request.auth.uid)
                     || isAdmin();
 
-       // Events can be created by a vendor.
+       // Events can be created by an authenticated user.
        // Events can be updated by their vendor owner or an admin.
-       allow write: if isAdmin() || (request.auth != null && request.resource.data.vendorId == request.auth.uid);
+       allow create: if request.auth != null;
+       allow update: if isAdmin() || (request.auth != null && request.resource.data.vendorId == request.auth.uid);
+       allow delete: if isAdmin() || (request.auth != null && resource.data.vendorId == request.auth.uid);
     }
     
     match /categories/{categoryId} {
@@ -80,6 +82,13 @@ service cloud.firestore {
     match /settings/{settingId} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    match /dataDeletionRequests/{requestId} {
+      // Users can create their own deletion request.
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Admins can manage all deletion requests.
+      allow list, read, update: if isAdmin();
     }
   }
 }

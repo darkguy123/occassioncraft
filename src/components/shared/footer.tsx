@@ -65,6 +65,7 @@ export function Footer() {
               <li><Link href="/about" className="hover:text-white">About Us</Link></li>
               <li><Link href="/privacy" className="hover:text-white">Privacy Policy</Link></li>
               <li><Link href="/terms" className="hover:text-white">Terms of Use</Link></li>
+              <li><Link href="/delete-my-data" className="hover:text-white">Delete My Data</Link></li>
               <li><Link href="/help-center" className="hover:text-white">Contact</Link></li>
             </ul>
           </div>
