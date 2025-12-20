@@ -7,11 +7,13 @@ import { doc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { User } from "@/lib/types";
+import type { User, Vendor } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { PanelLeft } from "lucide-react";
+import { PanelLeft, AlertTriangle } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import Link from "next/link";
 
 export default function VendorLayout({
   children,
@@ -28,12 +30,18 @@ export default function VendorLayout({
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
   
+  const vendorDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'vendors', user.uid);
+  }, [firestore, user]);
+
   const { data: userData, isLoading: isUserDataLoading } = useDoc<User>(userDocRef);
+  const { data: vendorData, isLoading: isVendorDataLoading } = useDoc<Vendor>(vendorDocRef);
   
-  const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
+  const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized' | 'pending' | 'rejected'>('loading');
 
   useEffect(() => {
-    const isLoading = isUserLoading || isUserDataLoading;
+    const isLoading = isUserLoading || isUserDataLoading || isVendorDataLoading;
 
     if (isLoading) {
       setAuthStatus('loading');
@@ -46,22 +54,36 @@ export default function VendorLayout({
       return;
     }
       
-    const isVendor = (userData?.roles || []).includes('vendor');
+    const isVendorRole = (userData?.roles || []).includes('vendor');
 
-    if (isVendor) {
-      setAuthStatus('authorized');
-    } else {
+    if (!isVendorRole) {
       setAuthStatus('unauthorized');
       toast({
         variant: "destructive",
         title: "Access Denied",
-        description: "You do not have permission to access the vendor dashboard.",
+        description: "You are not a vendor. Apply to become one!",
       });
       router.push('/vendor');
+      return;
     }
-  }, [isUserLoading, isUserDataLoading, user, userData, router, toast]);
+    
+    if (vendorData) {
+        if (vendorData.status === 'approved') {
+            setAuthStatus('authorized');
+        } else if (vendorData.status === 'pending') {
+            setAuthStatus('pending');
+        } else {
+            setAuthStatus('rejected');
+        }
+    } else {
+        // This can happen if the roles were updated but the vendor doc wasn't created
+        setAuthStatus('unauthorized');
+        router.push('/vendor');
+    }
 
-  if (authStatus !== 'authorized') {
+  }, [isUserLoading, isUserDataLoading, isVendorDataLoading, user, userData, vendorData, router, toast]);
+
+  if (authStatus === 'loading') {
     return (
       <div className="flex min-h-screen">
         <aside className="w-64 flex-shrink-0 border-r bg-background p-4 hidden md:block">
@@ -77,6 +99,40 @@ export default function VendorLayout({
         </main>
       </div>
     );
+  }
+  
+  if (authStatus === 'pending' || authStatus === 'rejected') {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-secondary p-4 text-center">
+            <Card className="max-w-md">
+                <CardHeader>
+                    <AlertTriangle className="mx-auto h-12 w-12 text-amber-500" />
+                    <CardTitle className="mt-4 text-2xl">{authStatus === 'pending' ? 'Application Pending' : 'Application Rejected'}</CardTitle>
+                    <CardDescription>
+                        {authStatus === 'pending'
+                            ? "Your vendor application is currently under review. You will be notified once it's approved. Thanks for your patience!"
+                            : "We're sorry, but your vendor application was not approved at this time. Please contact support if you believe this is an error."
+                        }
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button asChild>
+                        <Link href="/">Go to Homepage</Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        </div>
+    )
+  }
+
+
+  if (authStatus !== 'authorized') {
+      // Fallback for unauthorized, though specific redirects should handle it.
+       return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-secondary p-4 text-center">
+             <p>Redirecting...</p>
+        </div>
+      );
   }
 
   return (

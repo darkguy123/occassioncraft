@@ -122,5 +122,3 @@ export type SiteSettings = {
   termsAndConditions?: string;
   aboutUs?: string;
 }
-
-    
