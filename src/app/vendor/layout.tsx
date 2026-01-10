@@ -10,10 +10,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { User, Vendor } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { PanelLeft, AlertTriangle } from "lucide-react";
+import { PanelLeft } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import Link from "next/link";
+import { VendorPendingStatus } from "@/components/vendor/vendor-pending-status";
 
 export default function VendorLayout({
   children,
@@ -110,25 +109,7 @@ export default function VendorLayout({
   
   if (authStatus === 'pending' || authStatus === 'rejected') {
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-secondary p-4 text-center">
-            <Card className="max-w-md">
-                <CardHeader>
-                    <AlertTriangle className="mx-auto h-12 w-12 text-amber-500" />
-                    <CardTitle className="mt-4 text-2xl">{authStatus === 'pending' ? 'Application Pending' : 'Application Rejected'}</CardTitle>
-                    <CardDescription>
-                        {authStatus === 'pending'
-                            ? "Your vendor application is currently under review. You will be notified once it's approved. Thanks for your patience!"
-                            : "We're sorry, but your vendor application was not approved at this time. Please contact support if you believe this is an error."
-                        }
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button asChild>
-                        <Link href="/">Go to Homepage</Link>
-                    </Button>
-                </CardContent>
-            </Card>
-        </div>
+        <VendorPendingStatus status={authStatus} vendorData={vendorData}/>
     )
   }
 

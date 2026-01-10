@@ -126,6 +126,7 @@ export default function SignupPage() {
                 description: data.companyDescription,
                 contactEmail: user.email,
                 status: 'pending',
+                createdAt: new Date().toISOString(),
                 pricingTier: 'Free', // Default tier
              }, { merge: true });
         }

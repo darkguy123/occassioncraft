@@ -98,6 +98,7 @@ export default function AdminUsersPage() {
                         companyName: `${user.firstName}'s Company`,
                         contactEmail: user.email,
                         status: 'approved', // Automatically approve since it's an admin action
+                        createdAt: new Date().toISOString(),
                         pricingTier: 'Free'
                      }, { merge: true });
                 } else {

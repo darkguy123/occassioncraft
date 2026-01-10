@@ -84,6 +84,7 @@ export type Vendor = {
   description?: string;
   contactEmail: string;
   status: 'pending' | 'approved' | 'rejected';
+  createdAt: string; // ISO 8601 string
   pricingTier?: 'Free' | 'Premium' | 'Diamond';
   authorizedScanners?: string[];
 }
@@ -122,3 +123,4 @@ export type SiteSettings = {
   termsAndConditions?: string;
   aboutUs?: string;
 }
+

@@ -73,10 +73,11 @@
         "description": { "type": "string" },
         "contactEmail": { "type": "string", "format": "email" },
         "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" },
         "pricingTier": { "type": "string", "enum": ["Free", "Premium", "Diamond"] },
         "authorizedScanners": { "type": "array", "items": { "type": "string" }, "description": "A list of user IDs authorized to scan tickets for any of the vendor's events." }
       },
-      "required": ["id", "userId", "companyName", "contactEmail", "status"]
+      "required": ["id", "userId", "companyName", "contactEmail", "status", "createdAt"]
     },
     "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
