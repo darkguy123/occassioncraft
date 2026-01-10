@@ -59,7 +59,7 @@ export default function AdminUsersPage() {
     return `${firstName?.[0] ?? ''}${lastName?.[0] ?? ''}`.toUpperCase();
   };
   
-  const handleRoleChange = (user: User, role: 'admin' | 'vendor' | 'user', isChecked: boolean) => {
+  const handleRoleChange = async (user: User, role: 'admin' | 'vendor' | 'user', isChecked: boolean) => {
     if (!firestore) return;
 
     const userRef = doc(firestore, 'users', user.id);
@@ -88,7 +88,8 @@ export default function AdminUsersPage() {
         const vendorRef = doc(firestore, 'vendors', user.id);
         if (isChecked) {
             // User is being made a vendor
-            getDoc(vendorRef).then(docSnap => {
+            try {
+                const docSnap = await getDoc(vendorRef);
                 if(!docSnap.exists()){
                      // Create a new vendor doc since one doesn't exist
                      setDocumentNonBlocking(vendorRef, {
@@ -103,7 +104,9 @@ export default function AdminUsersPage() {
                     // If it exists (e.g., they were 'pending' or 'rejected'), approve them.
                     updateDocumentNonBlocking(vendorRef, { status: 'approved' });
                 }
-            })
+            } catch (error) {
+                console.error("Failed to check/update vendor document:", error);
+            }
         } else {
             // User's vendor role is being revoked. We can either delete the vendor doc
             // or set its status to 'rejected'. Let's set to rejected for now to preserve data.

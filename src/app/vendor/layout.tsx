@@ -49,7 +49,7 @@ export default function VendorLayout({
     }
 
     if (!user) {
-      router.push('/login');
+      router.push('/login?redirect=/vendor');
       setAuthStatus('unauthorized');
       return;
     }
@@ -57,33 +57,35 @@ export default function VendorLayout({
     const isVendorRole = (userData?.roles || []).includes('vendor');
 
     if (!isVendorRole) {
+      // This case is for users who are not vendors at all. They get redirected to the vendor landing page.
       setAuthStatus('unauthorized');
-      toast({
-        variant: "destructive",
-        title: "Access Denied",
-        description: "You are not a vendor. Apply to become one!",
-      });
       router.push('/vendor');
       return;
     }
     
-    // Now that we know the user has the vendor role, we check the vendor document status.
+    // At this point, the user HAS the 'vendor' role. We now check their vendor document status.
     if (vendorData) {
-        if (vendorData.status === 'approved') {
-            setAuthStatus('authorized');
-        } else if (vendorData.status === 'pending') {
-            setAuthStatus('pending');
-        } else if (vendorData.status === 'rejected') {
-            setAuthStatus('rejected');
-        } else {
-            // Should not happen if data is consistent, but as a fallback:
-            setAuthStatus('pending'); // Default to pending if status is weird
+        switch (vendorData.status) {
+            case 'approved':
+                setAuthStatus('authorized');
+                break;
+            case 'pending':
+                setAuthStatus('pending');
+                break;
+            case 'rejected':
+                setAuthStatus('rejected');
+                break;
+            default:
+                // Fallback for an unexpected status
+                setAuthStatus('pending');
+                break;
         }
     } else {
-        // User has vendor role but no vendor doc. This implies they need to complete an application
-        // or there's an issue. Push them to the main vendor page to start the process.
-        setAuthStatus('unauthorized');
-        router.push('/vendor');
+        // This is a rare edge case: user has 'vendor' role but no vendor document.
+        // This could happen if an admin assigns the role but the vendor doc creation fails.
+        // Treat them as 'pending' to prevent a redirect loop.
+        setAuthStatus('pending');
+        console.warn("User has vendor role but no vendor document. Defaulting to 'pending' status.");
     }
 
   }, [isUserLoading, isUserDataLoading, isVendorDataLoading, user, userData, vendorData, router, toast]);
