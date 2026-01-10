@@ -83,21 +83,32 @@ export default function AdminUsersPage() {
         }
     }
     
-    if(role === 'vendor' && isChecked) {
+    // Special handling for vendor role to create/update vendor doc
+    if(role === 'vendor') {
         const vendorRef = doc(firestore, 'vendors', user.id);
-        getDoc(vendorRef).then(docSnap => {
-            if(!docSnap.exists()){
-                 setDocumentNonBlocking(vendorRef, {
-                    id: user.id,
-                    userId: user.id,
-                    companyName: `${user.firstName}'s Company`,
-                    contactEmail: user.email,
-                    status: 'approved',
-                 }, { merge: true });
-            } else {
-                updateDocumentNonBlocking(vendorRef, { status: 'approved' });
-            }
-        })
+        if (isChecked) {
+            // User is being made a vendor
+            getDoc(vendorRef).then(docSnap => {
+                if(!docSnap.exists()){
+                     // Create a new vendor doc since one doesn't exist
+                     setDocumentNonBlocking(vendorRef, {
+                        id: user.id,
+                        userId: user.id,
+                        companyName: `${user.firstName}'s Company`,
+                        contactEmail: user.email,
+                        status: 'approved', // Automatically approve since it's an admin action
+                        pricingTier: 'Free'
+                     }, { merge: true });
+                } else {
+                    // If it exists (e.g., they were 'pending' or 'rejected'), approve them.
+                    updateDocumentNonBlocking(vendorRef, { status: 'approved' });
+                }
+            })
+        } else {
+            // User's vendor role is being revoked. We can either delete the vendor doc
+            // or set its status to 'rejected'. Let's set to rejected for now to preserve data.
+             updateDocumentNonBlocking(vendorRef, { status: 'rejected' });
+        }
     }
 
     toast({
