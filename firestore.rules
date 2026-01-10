@@ -6,7 +6,9 @@ service cloud.firestore {
   
     // Helper function to check for admin role
     function isAdmin() {
-      return request.auth != null && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      // A user is an admin if their UID is in the roles_admin collection OR if they are the hardcoded super-admin.
+      return (request.auth != null && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)))
+             || (request.auth != null && request.auth.token.email == 'valentinoboss18@gmail.com');
     }
   
   	// Helper function to check if a user owns a document
@@ -33,7 +35,7 @@ service cloud.firestore {
     
     match /events/{eventId} {
        // Allow public list access for anyone, but the query must filter for 'published' status.
-       allow list: if true;
+       allow list: if resource.data.status == 'published' || isAdmin();
        
        // Events are publicly readable only if they are published.
        // Vendors can read their own non-published events.
