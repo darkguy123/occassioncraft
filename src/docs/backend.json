@@ -16,7 +16,7 @@
         "bannerUrl": { "type": "string", "description": "URL for the event's banner image." },
         "isPrivate": { "type": "boolean", "description": "If true, the event is not listed publicly." },
         "authorizedScanners": { "type": "array", "items": { "type": "string" }, "description": "A list of user IDs authorized to scan tickets for this event." },
-        "status": { "type": "string", "description": "The status of the event.", "enum": ["published", "draft"]}
+        "status": { "type": "string", "description": "The status of the event.", "enum": ["published", "draft", "pending", "rejected"]}
       },
       "required": ["id", "vendorId", "name", "date", "location", "status"]
     },
@@ -68,18 +68,22 @@
       "description": "Represents a vendor who creates events and tickets.",
       "properties": {
         "id": { "type": "string" },
-        "name": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
+        "userId": { "type": "string" },
+        "companyName": { "type": "string" },
+        "description": { "type": "string" },
+        "contactEmail": { "type": "string", "format": "email" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "pricingTier": { "type": "string", "enum": ["Free", "Premium", "Diamond"] },
         "authorizedScanners": { "type": "array", "items": { "type": "string" }, "description": "A list of user IDs authorized to scan tickets for any of the vendor's events." }
       },
-      "required": ["id", "name", "email"]
+      "required": ["id", "userId", "companyName", "contactEmail", "status"]
     },
     "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
       "properties": {
-        "id": { "type": "string" }, "firstName": { "type": "string" }, "lastName": { "type": "string" }, "email": { "type": "string", "format": "email" }, "roles": { "type": "array", "items": { "type": "string", "enum": ["user", "vendor", "admin"] } }
+        "id": { "type": "string" }, "firstName": { "type": "string" }, "lastName": { "type": "string" }, "email": { "type": "string", "format": "email" }, "roles": { "type": "array", "items": { "type": "string", "enum": ["user", "vendor", "admin", "scanner"] } }, "dateJoined": { "type": "string", "format": "date-time"}, "profileImageUrl": { "type": "string" }
       },
       "required": ["id", "firstName", "lastName", "email", "roles"]
     },
@@ -132,7 +136,7 @@
       "required": ["id", "userId", "email", "reason", "status", "createdAt"]
     }
   },
-  "auth": { "providers": ["password", "anonymous"] },
+  "auth": { "providers": ["password", "anonymous", "google.com"] },
   "firestore": {
     "structure": [
       { "path": "/users/{userId}", "definition": { "entityName": "User", "schema": { "$ref": "#/backend/entities/User" } } },
