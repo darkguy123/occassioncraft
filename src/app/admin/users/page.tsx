@@ -82,6 +82,23 @@ export default function AdminUsersPage() {
             deleteDocumentNonBlocking(adminRoleRef);
         }
     }
+    
+    if(role === 'vendor' && isChecked) {
+        const vendorRef = doc(firestore, 'vendors', user.id);
+        getDoc(vendorRef).then(docSnap => {
+            if(!docSnap.exists()){
+                 setDocumentNonBlocking(vendorRef, {
+                    id: user.id,
+                    userId: user.id,
+                    companyName: `${user.firstName}'s Company`,
+                    contactEmail: user.email,
+                    status: 'approved',
+                 }, { merge: true });
+            } else {
+                updateDocumentNonBlocking(vendorRef, { status: 'approved' });
+            }
+        })
+    }
 
     toast({
         title: "Roles Updated",

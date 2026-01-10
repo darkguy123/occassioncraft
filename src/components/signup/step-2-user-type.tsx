@@ -3,11 +3,12 @@
 
 import { UseFormReturn } from "react-hook-form";
 import { SignupSchema } from "@/app/(auth)/signup/page";
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, User, Building } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label"
 
 interface StepProps {
     form: UseFormReturn<SignupSchema>;
@@ -19,7 +20,7 @@ export function Step2UserType({ form, onNext }: StepProps) {
     
     return (
         <div className="space-y-6">
-            <h2 className="text-2xl font-bold">How will you use our platform?</h2>
+            <h2 className="text-2xl font-bold text-center">How will you use our platform?</h2>
              <FormField
                 control={form.control}
                 name="roles"
@@ -94,6 +95,3 @@ export function Step2UserType({ form, onNext }: StepProps) {
         </div>
     );
 }
-
-// Ensure Label is imported from "@/components/ui/label"
-import { Label } from "@/components/ui/label"

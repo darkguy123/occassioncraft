@@ -10,15 +10,13 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogClose,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X } from "lucide-react";
 import { useState, useEffect } from "react";
+import { Label } from "@/components/ui/label";
 
 interface StepProps {
     form: UseFormReturn<SignupSchema>;
@@ -29,26 +27,18 @@ export function Step5Terms({ form }: StepProps) {
     const [isPolicyDialogOpen, setIsPolicyDialogOpen] = useState(false);
 
      useEffect(() => {
-        const savedContent = localStorage.getItem('privacyPolicy');
-        if (savedContent) {
-            setPrivacyPolicyContent(savedContent);
-        } else {
-            setPrivacyPolicyContent('Privacy Policy content has not been set by an admin yet.')
-        }
+        // In a real app, this would be fetched from a CMS or a static file
+        const savedContent = "This is a placeholder for your privacy policy. In a real application, you would fetch this content from a database or a markdown file. You can manage this content from the Admin Panel under Settings > Content.";
+        setPrivacyPolicyContent(savedContent);
     }, []);
 
-    const { formState: { errors }, watch, setValue } = form;
+    const { formState: { errors, isSubmitting }, watch, setValue } = form;
     const isStepValid = watch('terms') && !errors.terms;
-
-    const handleAcceptPolicy = () => {
-        setValue('terms', true, { shouldValidate: true });
-        setIsPolicyDialogOpen(false);
-    };
 
     return (
         <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Review and Finish</h2>
-            <p className="text-muted-foreground">One last step! Please review and accept our terms.</p>
+            <h2 className="text-2xl font-bold text-center">Review and Finish</h2>
+            <p className="text-muted-foreground text-center">One last step! Please review and accept our terms.</p>
             <FormField
                 control={form.control}
                 name="terms"
@@ -63,22 +53,19 @@ export function Step5Terms({ form }: StepProps) {
                             <Dialog open={isPolicyDialogOpen} onOpenChange={setIsPolicyDialogOpen}>
                                 <DialogTrigger asChild>
                                 <span className="underline underline-offset-4 hover:text-primary cursor-pointer">
-                                    Privacy Policy
+                                    Terms & Privacy Policy
                                 </span>
                                 </DialogTrigger>
                                 <DialogContent className="sm:max-w-[625px]">
                                 <DialogHeader>
-                                    <DialogTitle>Privacy Policy</DialogTitle>
+                                    <DialogTitle>Terms & Privacy Policy</DialogTitle>
                                     <DialogDescription>
-                                    Our commitment to your privacy.
+                                    Our commitment to your privacy and terms of service.
                                     </DialogDescription>
                                 </DialogHeader>
                                 <ScrollArea className="h-96 w-full rounded-md border p-4">
                                     <p className="whitespace-pre-wrap text-sm">{privacyPolicyContent || 'Loading...'}</p>
                                 </ScrollArea>
-                                <DialogFooter>
-                                    <Button type="button" onClick={handleAcceptPolicy}>I Accept</Button>
-                                </DialogFooter>
                                 </DialogContent>
                             </Dialog>
                             </Label>
@@ -88,12 +75,9 @@ export function Step5Terms({ form }: StepProps) {
                 )}
             />
             
-            <Button type="submit" className="w-full" disabled={!isStepValid}>
-                Create my account
+            <Button type="submit" className="w-full" disabled={!isStepValid || isSubmitting}>
+                { isSubmitting ? "Creating Account..." : "Create my account" }
             </Button>
         </div>
     );
 }
-
-// We need to import Label here because we removed it from the parent
-import { Label } from "@/components/ui/label"

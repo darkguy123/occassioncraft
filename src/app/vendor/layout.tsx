@@ -68,7 +68,6 @@ export default function VendorLayout({
     }
     
     // Now that we know the user has the vendor role, we check the vendor document status.
-    // The `isLoading` check at the top ensures we don't act prematurely.
     if (vendorData) {
         if (vendorData.status === 'approved') {
             setAuthStatus('authorized');
@@ -78,14 +77,11 @@ export default function VendorLayout({
             setAuthStatus('rejected');
         } else {
             // Should not happen if data is consistent, but as a fallback:
-            setAuthStatus('unauthorized');
-            router.push('/vendor');
+            setAuthStatus('pending'); // Default to pending if status is weird
         }
     } else {
-        // This case now correctly handles when the vendor doc might not exist yet for a new applicant.
-        // It keeps them in a 'loading' or 'pending'-like state until the doc is created or status is clear.
-        // If they have the role but no doc, it implies they need to complete an application or there's an issue.
-        // We'll consider this a state that needs resolution, pushing them to the vendor page.
+        // User has vendor role but no vendor doc. This implies they need to complete an application
+        // or there's an issue. Push them to the main vendor page to start the process.
         setAuthStatus('unauthorized');
         router.push('/vendor');
     }

@@ -5,11 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Check, Star, Zap, ArrowDown, Palette } from "lucide-react";
 import Link from "next/link";
-import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { doc } from 'firebase/firestore';
-import type { User } from '@/lib/types';
-import { useState, useRef } from 'react';
-import { VendorApplicationDialog } from "@/components/vendor/application-dialog";
+import { useUser } from "@/firebase";
+import { useRef } from 'react';
 
 const pricingTiers = [
   {
@@ -23,7 +20,7 @@ const pricingTiers = [
       "Standard QR code generation",
       "Basic event linking",
     ],
-    cta: "Choose Regular",
+    cta: "Get Started",
     variant: "outline"
   },
   {
@@ -52,56 +49,37 @@ const pricingTiers = [
       "Option to add guest names",
       "Create public or private tickets",
     ],
-    cta: "Choose Tiered",
+    cta: "Get Started",
     variant: "outline",
   },
 ];
 
 export default function VendorLandingPage() {
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
-  const [isApplicationOpen, setIsApplicationOpen] = useState(false);
-  const [selectedTier, setSelectedTier] = useState<string | undefined>(undefined);
   const pricingRef = useRef<HTMLElement>(null);
-
-  const userDocRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [firestore, user]);
-
-  const { data: userData } = useDoc<User>(userDocRef);
-  const isVendor = userData?.roles?.includes('vendor');
 
   const handleScrollToPricing = () => {
     pricingRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
   
-  const handleCtaClick = (tierName?: string) => {
-    if (user && !isVendor) {
-      setSelectedTier(tierName);
-      setIsApplicationOpen(true);
-    }
-  };
-
-  const CtaButton = ({tier}: { tier?: typeof pricingTiers[number] }) => {
+  const CtaButton = ({tier, isPrimaryCta}: { tier?: typeof pricingTiers[number], isPrimaryCta?: boolean }) => {
     const isFullWidth = !!tier;
+    const ctaText = isPrimaryCta ? 'Become a Vendor' : tier ? tier.cta : 'Apply Now';
 
     if (isUserLoading) {
       return <Button size="lg" disabled className={isFullWidth ? "w-full" : ""}>Loading...</Button>
     }
-    if (user && isVendor) {
-      return <Button size="lg" asChild variant={tier?.variant as any} className={isFullWidth ? "w-full" : ""}><Link href="/vendor/dashboard">Go to Dashboard</Link></Button>
+    // If user is logged in, link is always to signup to start the onboarding flow
+    if (user) {
+      return <Button size="lg" asChild variant={tier?.variant as any} className={isFullWidth ? "w-full" : ""}><Link href="/signup">{ctaText}</Link></Button>
     }
-    if (user && !isVendor) {
-      return <Button size="lg" variant={tier?.variant as any} className={isFullWidth ? "w-full" : ""} onClick={() => handleCtaClick(tier?.name)}>{tier ? tier.cta : 'Apply Now'}</Button>
-    }
-    return <Button size="lg" asChild variant={tier?.variant as any} className={isFullWidth ? "w-full" : ""}><Link href="/signup">{tier ? tier.cta : 'Become a Vendor Today'}</Link></Button>
+    // If user is not logged in, also link to signup
+    return <Button size="lg" asChild variant={tier?.variant as any} className={isFullWidth ? "w-full" : ""}><Link href="/signup">{ctaText}</Link></Button>
   }
 
 
   return (
     <>
-      {user && !isVendor && <VendorApplicationDialog isOpen={isApplicationOpen} onClose={() => setIsApplicationOpen(false)} selectedTier={selectedTier}/>}
       <div className="bg-background text-foreground">
         {/* Hero Section */}
         <section className="py-20 md:py-32 text-center">
@@ -109,7 +87,7 @@ export default function VendorLandingPage() {
             <h1 className="text-4xl md:text-6xl font-headline font-bold">Craft Beautiful Tickets, Not Just Entries</h1>
             <p className="mt-4 text-lg md:text-xl max-w-3xl mx-auto text-muted-foreground">The ultimate platform to design, create, and manage tickets for any occasion. Go beyond the event and create a memorable experience.</p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <CtaButton />
+              <CtaButton isPrimaryCta />
               <Button size="lg" variant="outline" onClick={handleScrollToPricing}>
                 <ArrowDown className="mr-2 h-4 w-4" />
                 View Packages

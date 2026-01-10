@@ -15,14 +15,14 @@ interface StepProps {
 }
 
 export function Step1AccountDetails({ form, onNext }: StepProps) {
-    const { register, formState: { errors }, watch } = form;
+    const { formState: { errors }, watch } = form;
     const [showPassword, setShowPassword] = useState(false);
 
     const isStepValid = watch('fullName') && watch('email') && watch('password') && !errors.fullName && !errors.email && !errors.password;
 
     return (
         <div className="space-y-4">
-            <h2 className="text-2xl font-bold">Account Details</h2>
+            <h2 className="text-2xl font-bold text-center">Create Your Account</h2>
             <div className="grid gap-4">
                  <FormField
                     control={form.control}

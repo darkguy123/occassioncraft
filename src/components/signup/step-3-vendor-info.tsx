@@ -1,3 +1,4 @@
+
 'use client';
 
 import { UseFormReturn } from "react-hook-form";
@@ -19,7 +20,7 @@ export function Step3VendorInfo({ form, onNext }: StepProps) {
 
     return (
         <div className="space-y-4">
-             <h2 className="text-2xl font-bold">Tell us about your business</h2>
+             <h2 className="text-2xl font-bold text-center">Tell us about your business</h2>
             <div className="grid gap-4">
                  <FormField
                     control={form.control}

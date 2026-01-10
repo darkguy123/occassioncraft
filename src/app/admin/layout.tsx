@@ -54,7 +54,7 @@ export default function AdminLayout({
     }
       
     const isAdminByRole = (userData?.roles || []).includes('admin');
-    const isAdminByCollection = !!adminRoleData;
+    const isAdminByCollection = adminRoleData && Object.keys(adminRoleData).length > 0;
     const isAdmin = isAdminByRole || isAdminByCollection;
 
     if (isAdmin) {

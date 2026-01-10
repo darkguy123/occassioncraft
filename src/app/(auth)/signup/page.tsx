@@ -5,17 +5,16 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useAuth, useFirestore, setDocumentNonBlocking, useFirebase } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { useAuth, useFirestore, setDocumentNonBlocking, updateDocumentNonBlocking, useFirebase } from "@/firebase";
+import { doc, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff, Ticket, PartyPopper, AlertTriangle, UserPlus } from "lucide-react";
+import { Ticket, PartyPopper, AlertTriangle, UserPlus, ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Form } from "@/components/ui/form";
 import Link from "next/link";
-import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import Image from "next/image";
 import {
   AlertDialog,
@@ -26,35 +25,35 @@ import {
   AlertDialogTitle,
   AlertDialogFooter,
 } from "@/components/ui/alert-dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 import { AnimatePresence, motion } from "framer-motion";
+import { Progress } from "@/components/ui/progress";
+import { Step1AccountDetails } from "@/components/signup/step-1-account-details";
+import { Step2UserType } from "@/components/signup/step-2-user-type";
+import { Step3VendorInfo } from "@/components/signup/step-3-vendor-info";
+import { Step4Avatar } from "@/components/signup/step-4-avatar";
+import { Step5Terms } from "@/components/signup/step-5-terms";
 
-const signupSchema = z.object({
+
+export const signupSchema = z.object({
   fullName: z.string().min(3, { message: "Full name must be at least 3 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
-  terms: z.literal(true, {
-    errorMap: () => ({ message: "You must accept the terms and conditions." }),
-  }),
+  roles: z.array(z.string()).min(1, "Please select at least one role."),
+  companyName: z.string().optional(),
+  companyDescription: z.string().optional(),
+  avatarUrl: z.string().optional(),
+  terms: z.boolean().default(false),
 });
 
 export type SignupSchema = z.infer<typeof signupSchema>;
 
 const DEFAULT_LOGO_URL = '/recommenoptimized.svg';
-const features = [
-  "Design custom tickets",
-  "Manage event sales",
-  "Discover new experiences",
-  "Scan tickets seamlessly",
-  "Engage with your audience",
-];
 
 export default function SignupPage() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
   const [showEmailExistsDialog, setShowEmailExistsDialog] = useState(false);
-  const [currentFeatureIndex, setCurrentFeatureIndex] = useState(0);
-
+  const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
+  
   const auth = useAuth();
   const firestore = useFirestore();
   const { siteSettings, isSiteSettingsLoading } = useFirebase();
@@ -67,17 +66,15 @@ export default function SignupPage() {
       fullName: "",
       email: "",
       password: "",
+      roles: [],
       terms: false,
     },
     mode: "onChange",
   });
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentFeatureIndex((prevIndex) => (prevIndex + 1) % features.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
+  const isVendorFlow = form.watch('roles')?.includes('vendor');
+  const totalSteps = isVendorFlow ? 5 : 4;
+  const progress = ((currentStep + 1) / totalSteps) * 100;
 
   const onSubmit = async (data: SignupSchema) => {
     if (!auth || !firestore) return;
@@ -86,18 +83,19 @@ export default function SignupPage() {
       const user = userCredential.user;
 
       if (user) {
-        await sendEmailVerification(user);
+        // await sendEmailVerification(user); // Removed as per request
 
         await updateProfile(user, {
             displayName: data.fullName,
+            photoURL: data.avatarUrl,
         });
 
         const [firstName, ...lastName] = data.fullName.split(' ');
         
-        const roles = ['user'];
-        // Assign admin role if the email matches
+        // Add special admin role if email matches
+        const finalRoles = [...data.roles];
         if (data.email.toLowerCase() === 'valentinoboss18@gmail.com') {
-            roles.push('admin');
+            finalRoles.push('admin');
         }
         
         const userRef = doc(firestore, "users", user.uid);
@@ -106,14 +104,30 @@ export default function SignupPage() {
           firstName: firstName,
           lastName: lastName.join(' '),
           email: data.email,
-          roles: roles,
+          roles: Array.from(new Set(finalRoles)),
           dateJoined: new Date().toISOString(),
+          profileImageUrl: data.avatarUrl,
         };
         setDocumentNonBlocking(userRef, userData, { merge: true });
 
-        if (roles.includes('admin')) {
+        // Grant admin permissions if applicable
+        if (finalRoles.includes('admin')) {
             const adminRoleRef = doc(firestore, "roles_admin", user.uid);
             setDocumentNonBlocking(adminRoleRef, { isAdmin: true }, { merge: true });
+        }
+        
+        // Create pending vendor doc if they signed up as one
+        if (data.roles.includes('vendor')) {
+             const vendorRef = doc(firestore, 'vendors', user.uid);
+             setDocumentNonBlocking(vendorRef, {
+                id: user.uid,
+                userId: user.uid,
+                companyName: data.companyName,
+                description: data.companyDescription,
+                contactEmail: user.email,
+                status: 'pending',
+                pricingTier: 'Free', // Default tier
+             }, { merge: true });
         }
         
         setShowWelcomeDialog(true);
@@ -131,128 +145,71 @@ export default function SignupPage() {
     }
   };
   
+  const handleNext = () => setCurrentStep(prev => prev + 1);
+  const handleBack = () => setCurrentStep(prev => prev - 1);
+  
   const logoUrl = siteSettings?.logoUrl || DEFAULT_LOGO_URL;
+
+  const renderStep = () => {
+      switch(currentStep) {
+          case 0: return <Step1AccountDetails form={form} onNext={handleNext} />;
+          case 1: return <Step2UserType form={form} onNext={handleNext} />;
+          case 2: return isVendorFlow ? <Step3VendorInfo form={form} onNext={handleNext} /> : <Step4Avatar form={form} onNext={handleNext} />;
+          case 3: return isVendorFlow ? <Step4Avatar form={form} onNext={handleNext} /> : <Step5Terms form={form} />;
+          case 4: return <Step5Terms form={form} />;
+          default: return null;
+      }
+  }
 
   return (
     <>
       <div className="w-full min-h-[calc(100vh-4rem)] md:min-h-screen grid grid-cols-1 md:grid-cols-2">
-         <div className="hidden md:block relative">
-            <Image
-            src="https://picsum.photos/seed/signup-bg/1200/1600"
-            alt="Signup background"
-            data-ai-hint="event excitement fun"
-            fill
-            className="object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/80 via-black/60 to-black/80" />
-            <div className="relative z-10 flex flex-col justify-between h-full p-8 text-white">
-                <div>
+         <div className="hidden md:block relative bg-[#1e40af] p-8 text-white">
+            <div className="relative z-10 flex flex-col h-full">
+                <Link href="/" className="mb-auto">
                     {isSiteSettingsLoading ? (
                         <div className="h-10 w-36 bg-gray-200/50 rounded-md animate-pulse" />
                     ) : (
                         <Image src={logoUrl} alt="OccasionCraft Logo" width={140} height={40} className="h-10 w-auto" unoptimized/>
                     )}
-                    <h1 className="text-4xl font-bold font-headline mt-8">Create Your Account</h1>
-                    <p className="text-white/80 mt-2">Join the ultimate platform for event creation and discovery.</p>
+                </Link>
+                <div className="my-auto">
+                  <h1 className="text-4xl font-bold font-headline">Create Your Account</h1>
+                  <p className="text-white/80 mt-2 max-w-sm">Join the ultimate platform for event creation and discovery.</p>
                 </div>
-                
-                <div className="h-20">
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={currentFeatureIndex}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.5 }}
-                            className="flex items-center gap-3 text-lg font-medium"
-                        >
-                            <Ticket className="h-6 w-6 text-accent" />
-                            <span>{features[currentFeatureIndex]}</span>
-                        </motion.div>
-                    </AnimatePresence>
+                <div className="mt-auto">
+                  <Progress value={progress} className="w-full h-2" />
+                  <p className="text-xs text-white/70 mt-2">Step {currentStep + 1} of {totalSteps}</p>
                 </div>
             </div>
       </div>
       
       <div className="flex items-center justify-center p-4 sm:p-8 bg-secondary/30">
         <Card className="mx-auto max-w-sm w-full shadow-2xl md:shadow-none md:border-0 md:bg-transparent">
-          <CardHeader className="text-center">
-              <UserPlus className="mx-auto h-8 w-8 text-primary" />
-              <CardTitle className="text-2xl font-headline">Get Started</CardTitle>
-              <CardDescription>Enter your details to create your account.</CardDescription>
+          <CardHeader>
+              {currentStep > 0 && (
+                <Button variant="ghost" onClick={handleBack} className="absolute top-6 left-4 sm:top-8 sm:left-8">
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                </Button>
+              )}
+               <CardTitle className="text-center pt-8 md:pt-0">
+                    <UserPlus className="mx-auto h-8 w-8 text-primary" />
+               </CardTitle>
           </CardHeader>
           <CardContent>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <FormField
-                        control={form.control}
-                        name="fullName"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Full name</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Max Robinson" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Email</FormLabel>
-                                <FormControl>
-                                    <Input type="email" placeholder="m@example.com" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="password"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Password</FormLabel>
-                                <div className="relative">
-                                    <FormControl>
-                                        <Input type={showPassword ? "text" : "password"} {...field} />
-                                    </FormControl>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground"
-                                        >
-                                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                                    </button>
-                                </div>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                     <FormField
-                        control={form.control}
-                        name="terms"
-                        render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                <FormControl>
-                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                                </FormControl>
-                                <div className="space-y-1 leading-none">
-                                    <FormLabel>
-                                    Accept{" "}
-                                    <Link href="/terms" target="_blank" className="underline">terms and conditions</Link>
-                                    </FormLabel>
-                                    <FormMessage />
-                                </div>
-                            </FormItem>
-                        )}
-                    />
-                    <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                        Create Account
-                    </Button>
+                <form onSubmit={form.handleSubmit(onSubmit)}>
+                    <AnimatePresence mode="wait">
+                       <motion.div
+                            key={currentStep}
+                            initial={{ opacity: 0, x: 50 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -50 }}
+                            transition={{ duration: 0.3 }}
+                       >
+                         {renderStep()}
+                       </motion.div>
+                    </AnimatePresence>
                 </form>
               </Form>
             <div className="mt-4 text-center text-sm">
@@ -272,11 +229,11 @@ export default function SignupPage() {
              <PartyPopper className="mx-auto h-12 w-12 text-primary" />
             <AlertDialogTitle className="text-2xl">Welcome Aboard!</AlertDialogTitle>
             <AlertDialogDescription>
-              Your account has been created. We've sent a verification link to your email address. Please check your inbox!
+              Your account has been created successfully. You can now log in.
             </AlertDialogDescription>
           </AlertDialogHeader>
-            <AlertDialogAction onClick={() => router.push('/')} className="w-full">
-              Continue
+            <AlertDialogAction onClick={() => router.push('/login')} className="w-full">
+              Proceed to Login
             </AlertDialogAction>
         </AlertDialogContent>
       </AlertDialog>
