@@ -48,6 +48,8 @@ export const signupSchema = z.object({
 export type SignupSchema = z.infer<typeof signupSchema>;
 
 const DEFAULT_LOGO_URL = '/recommenoptimized.svg';
+const DEFAULT_AVATAR_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2F62eb2c32479e4d5885188f5a_user-icon-trendy-flat-style-isolated-grey-background-user-symbol-user-icon-trendy-flat-style-isolated-grey-background-123241802-removebg-preview.png?alt=media&token=4ddc16d5-a339-445e-85a4-9273f5509930';
+
 
 export default function SignupPage() {
   const [currentStep, setCurrentStep] = useState(0);
@@ -67,6 +69,7 @@ export default function SignupPage() {
       email: "",
       password: "",
       roles: [],
+      avatarUrl: DEFAULT_AVATAR_URL,
       terms: false,
     },
     mode: "onChange",
@@ -266,3 +269,5 @@ export default function SignupPage() {
     </>
   );
 }
+
+    
