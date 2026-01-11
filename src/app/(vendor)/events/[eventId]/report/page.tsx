@@ -16,12 +16,13 @@ import Link from 'next/link';
 import { ArrowLeft, CheckCircle, Ticket, XCircle } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import type { Ticket as TicketType } from '@/lib/types';
+import type { UserTicket } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { useParams } from 'next/navigation';
 
-export default function ManageTicketsPage({ params: { eventId } }: { params: { eventId: string } }) {
+export default function VendorEventReportPage({ params: { eventId } }: { params: { eventId: string } }) {
   const firestore = useFirestore();
 
   const ticketsQuery = useMemoFirebase(() => {
@@ -29,13 +30,13 @@ export default function ManageTicketsPage({ params: { eventId } }: { params: { e
     return query(collection(firestore, 'tickets'), where('eventId', '==', eventId));
   }, [firestore, eventId]);
 
-  const { data: tickets, isLoading } = useCollection<TicketType>(ticketsQuery);
+  const { data: tickets, isLoading } = useCollection<UserTicket>(ticketsQuery);
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
        <div className="space-y-2">
          <Button variant="ghost" asChild>
-            <Link href="/admin/events"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Events</Link>
+            <Link href="/vendor/dashboard"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard</Link>
          </Button>
         <h1 className="text-3xl font-bold tracking-tight">Event Ticket Report</h1>
         <p className="text-muted-foreground">A live report of all tickets for this event and their scan status.</p>
@@ -69,12 +70,12 @@ export default function ManageTicketsPage({ params: { eventId } }: { params: { e
               ))}
               {!isLoading && tickets && tickets.length > 0 ? (
                 tickets.map(ticket => (
-                    <TableRow key={ticket.id}>
-                        <TableCell className="font-mono text-xs">{ticket.id}</TableCell>
+                    <TableRow key={ticket.ticketId}>
+                        <TableCell className="font-mono text-xs">{ticket.ticketId}</TableCell>
                         <TableCell>{ticket.attendeeName || 'N/A'}</TableCell>
                         <TableCell><Badge variant="outline">{ticket.package} {ticket.tier || ''}</Badge></TableCell>
                         <TableCell>
-                            {ticket.scans > 0 ? (
+                            {ticket.scans && ticket.scans > 0 ? (
                                 <Badge variant="secondary" className="text-green-600 border-green-600">
                                     <CheckCircle className="mr-1 h-3 w-3"/>
                                     Checked In ({ticket.scans}/{ticket.maxScans})
