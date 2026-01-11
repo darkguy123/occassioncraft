@@ -14,7 +14,7 @@ import { Ticket, PartyPopper, AlertTriangle, UserPlus, ArrowLeft } from "lucide-
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
 import Link from "next/link";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from "firebase/auth";
 import Image from "next/image";
 import {
   AlertDialog,
@@ -86,8 +86,9 @@ export default function SignupPage() {
       const user = userCredential.user;
 
       if (user) {
-        // await sendEmailVerification(user); // Removed as per request
-
+        // Sign the user in automatically after creating their account
+        await signInWithEmailAndPassword(auth, data.email, data.password);
+        
         await updateProfile(user, {
             displayName: data.fullName,
             photoURL: data.avatarUrl,
@@ -237,11 +238,11 @@ export default function SignupPage() {
              <PartyPopper className="mx-auto h-12 w-12 text-primary" />
             <AlertDialogTitle className="text-2xl">Welcome Aboard!</AlertDialogTitle>
             <AlertDialogDescription>
-              Your account has been created successfully. You can now log in.
+              Your account has been created successfully. You're now logged in.
             </AlertDialogDescription>
           </AlertDialogHeader>
-            <AlertDialogAction onClick={() => router.push('/login')} className="w-full">
-              Proceed to Login
+            <AlertDialogAction onClick={() => router.push('/dashboard')} className="w-full">
+              Go to my Dashboard
             </AlertDialogAction>
         </AlertDialogContent>
       </AlertDialog>
@@ -269,5 +270,3 @@ export default function SignupPage() {
     </>
   );
 }
-
-    
