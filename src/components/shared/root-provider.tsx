@@ -16,6 +16,7 @@ import { CartProvider } from '@/context/cart-context';
 import { MobileMenu } from '@/components/shared/mobile-menu';
 import { SplashScreen } from './splash-screen';
 import { PwaInstallProvider } from '@/context/pwa-install-context';
+import { InstallPwaPrompt } from './install-pwa-prompt';
 
 function Favicon() {
     const { siteSettings, isSiteSettingsLoading } = useFirebase();
@@ -138,6 +139,7 @@ function InnerRootProvider({ children }: { children: React.ReactNode }) {
             {!hideFooter && <Footer />}
             {showMobileMenu && <MobileMenu />}
             <Toaster />
+            <InstallPwaPrompt />
             <Suspense fallback={null}>
                 <NavigationEvents />
             </Suspense>

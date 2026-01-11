@@ -97,7 +97,7 @@ export function Header() {
                   </div>
                 )}
                  {canInstall && (
-                    <Button onClick={triggerInstall} variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white">
+                    <Button onClick={triggerInstall} variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white hidden md:inline-flex">
                         <Download className="h-5 w-5" />
                         <span className="sr-only">Install App</span>
                     </Button>
@@ -108,7 +108,7 @@ export function Header() {
             ) : (
               <>
                  {canInstall && (
-                    <Button onClick={triggerInstall} variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white">
+                    <Button onClick={triggerInstall} variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white hidden md:inline-flex">
                         <Download className="h-5 w-5" />
                         <span className="sr-only">Install App</span>
                     </Button>
