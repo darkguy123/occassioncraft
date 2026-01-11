@@ -99,15 +99,19 @@ export default function SignupPage() {
         }
         
         const userRef = doc(firestore, "users", user.uid);
-        const userData = {
+        const userData: any = {
           id: user.uid,
           firstName: firstName,
           lastName: lastName.join(' '),
           email: data.email,
           roles: Array.from(new Set(finalRoles)),
           dateJoined: new Date().toISOString(),
-          profileImageUrl: data.avatarUrl,
         };
+
+        if (data.avatarUrl) {
+          userData.profileImageUrl = data.avatarUrl;
+        }
+
         setDocumentNonBlocking(userRef, userData, { merge: true });
 
         // Grant admin permissions if applicable
