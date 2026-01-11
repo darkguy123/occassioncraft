@@ -8,7 +8,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { User, Vendor } from "@/lib/types";
-import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { PanelLeft } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -22,7 +21,6 @@ export default function VendorLayout({
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
-  const { toast } = useToast();
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -62,7 +60,6 @@ export default function VendorLayout({
       return;
     }
     
-    // At this point, the user HAS the 'vendor' role. We now check their vendor document status.
     if (vendorData) {
         switch (vendorData.status) {
             case 'approved':
@@ -75,19 +72,14 @@ export default function VendorLayout({
                 setAuthStatus('rejected');
                 break;
             default:
-                // Fallback for an unexpected status
                 setAuthStatus('pending');
                 break;
         }
     } else {
-        // This is a rare edge case: user has 'vendor' role but no vendor document.
-        // This could happen if an admin assigns the role but the vendor doc creation fails.
-        // Treat them as 'pending' to prevent a redirect loop.
         setAuthStatus('pending');
-        console.warn("User has vendor role but no vendor document. Defaulting to 'pending' status.");
     }
 
-  }, [isUserLoading, isUserDataLoading, isVendorDataLoading, user, userData, vendorData, router, toast]);
+  }, [isUserLoading, isUserDataLoading, isVendorDataLoading, user, userData, vendorData, router]);
 
   if (authStatus === 'loading') {
     return (
@@ -115,7 +107,6 @@ export default function VendorLayout({
 
 
   if (authStatus !== 'authorized') {
-      // Fallback for unauthorized, though specific redirects should handle it.
        return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-secondary p-4 text-center">
              <p>Redirecting...</p>

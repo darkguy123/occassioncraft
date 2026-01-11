@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { UserNav } from './user-nav';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
-import { useUser, useFirestore, useDoc, useMemoFirebase, useFirebase } from '@/firebase';
+import { useUser, useFirebase } from '@/firebase';
 import type { User } from '@/lib/types';
+import { useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Notifications } from './notifications';
 import { PlusCircle, ShoppingCart, Download } from 'lucide-react';
@@ -20,8 +20,7 @@ const MOBILE_LOGO_URL = '/ocicon.png';
 
 export function Header() {
   const { user, isUserLoading } = useUser();
-  const { siteSettings, isSiteSettingsLoading } = useFirebase();
-  const firestore = useFirestore();
+  const { siteSettings, isSiteSettingsLoading, firestore } = useFirebase();
   const { showLoader } = useLoader();
   const { cart } = useCart();
   const { canInstall, triggerInstall } = usePwaInstall();

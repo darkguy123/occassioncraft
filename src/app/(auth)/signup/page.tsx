@@ -5,13 +5,13 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useAuth, useFirestore, setDocumentNonBlocking, updateDocumentNonBlocking, useFirebase } from "@/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { useAuth, useFirestore, setDocumentNonBlocking, useFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Ticket, PartyPopper, AlertTriangle, UserPlus, ArrowLeft } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { PartyPopper, AlertTriangle, UserPlus, ArrowLeft } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
 import Link from "next/link";
 import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from "firebase/auth";
@@ -33,7 +33,6 @@ import { Step3VendorInfo } from "@/components/signup/step-3-vendor-info";
 import { Step4Avatar } from "@/components/signup/step-4-avatar";
 import { Step5Terms } from "@/components/signup/step-5-terms";
 
-
 export const signupSchema = z.object({
   fullName: z.string().min(3, { message: "Full name must be at least 3 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
@@ -43,13 +42,20 @@ export const signupSchema = z.object({
   companyDescription: z.string().optional(),
   avatarUrl: z.string().optional(),
   terms: z.boolean().default(false),
+}).superRefine((data, ctx) => {
+    if (data.roles.includes('vendor') && !data.companyName) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Company name is required for vendors.",
+            path: ['companyName'],
+        });
+    }
 });
 
 export type SignupSchema = z.infer<typeof signupSchema>;
 
 const DEFAULT_LOGO_URL = '/recommenoptimized.svg';
 const DEFAULT_AVATAR_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-8569439258-4b916.firebasestorage.app/o/public%2Fassets%2F62eb2c32479e4d5885188f5a_user-icon-trendy-flat-style-isolated-grey-background-user-symbol-user-icon-trendy-flat-style-isolated-grey-background-123241802-removebg-preview.png?alt=media&token=4ddc16d5-a339-445e-85a4-9273f5509930';
-
 
 export default function SignupPage() {
   const [currentStep, setCurrentStep] = useState(0);
@@ -86,7 +92,6 @@ export default function SignupPage() {
       const user = userCredential.user;
 
       if (user) {
-        // Sign the user in automatically after creating their account
         await signInWithEmailAndPassword(auth, data.email, data.password);
         
         await updateProfile(user, {
@@ -96,7 +101,6 @@ export default function SignupPage() {
 
         const [firstName, ...lastName] = data.fullName.split(' ');
         
-        // Add special admin role if email matches
         const finalRoles = [...data.roles];
         if (data.email.toLowerCase() === 'valentinoboss18@gmail.com') {
             finalRoles.push('admin');
@@ -118,13 +122,11 @@ export default function SignupPage() {
 
         setDocumentNonBlocking(userRef, userData, { merge: true });
 
-        // Grant admin permissions if applicable
         if (finalRoles.includes('admin')) {
             const adminRoleRef = doc(firestore, "roles_admin", user.uid);
             setDocumentNonBlocking(adminRoleRef, { isAdmin: true }, { merge: true });
         }
         
-        // Create pending vendor doc if they signed up as one
         if (data.roles.includes('vendor')) {
              const vendorRef = doc(firestore, 'vendors', user.uid);
              setDocumentNonBlocking(vendorRef, {
@@ -133,9 +135,9 @@ export default function SignupPage() {
                 companyName: data.companyName,
                 description: data.companyDescription,
                 contactEmail: user.email,
-                status: 'pending',
+                status: 'approved', // AUTOMATICALLY APPROVE VENDORS
                 createdAt: new Date().toISOString(),
-                pricingTier: 'Free', // Default tier
+                pricingTier: 'Free',
              }, { merge: true });
         }
         
@@ -238,10 +240,10 @@ export default function SignupPage() {
              <PartyPopper className="mx-auto h-12 w-12 text-primary" />
             <AlertDialogTitle className="text-2xl">Welcome Aboard!</AlertDialogTitle>
             <AlertDialogDescription>
-              Your account has been created successfully. You're now logged in.
+              Your account has been created successfully. You're now being redirected to your dashboard.
             </AlertDialogDescription>
           </AlertDialogHeader>
-            <AlertDialogAction onClick={() => router.push('/dashboard')} className="w-full">
+            <AlertDialogAction onClick={() => router.push(isVendorFlow ? '/vendor/dashboard' : '/dashboard')} className="w-full">
               Go to my Dashboard
             </AlertDialogAction>
         </AlertDialogContent>

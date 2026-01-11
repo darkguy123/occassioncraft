@@ -3,7 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Check, Star, Zap, ArrowDown, Palette } from "lucide-react";
+import { Check, Star, ArrowDown } from "lucide-react";
 import Link from "next/link";
 import { useUser } from "@/firebase";
 import { useRef } from 'react';
@@ -69,11 +69,7 @@ export default function VendorLandingPage() {
     if (isUserLoading) {
       return <Button size="lg" disabled className={isFullWidth ? "w-full" : ""}>Loading...</Button>
     }
-    // If user is logged in, link is always to signup to start the onboarding flow
-    if (user) {
-      return <Button size="lg" asChild variant={tier?.variant as any} className={isFullWidth ? "w-full" : ""}><Link href="/signup">{ctaText}</Link></Button>
-    }
-    // If user is not logged in, also link to signup
+    
     return <Button size="lg" asChild variant={tier?.variant as any} className={isFullWidth ? "w-full" : ""}><Link href="/signup">{ctaText}</Link></Button>
   }
 
