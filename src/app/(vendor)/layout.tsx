@@ -35,11 +35,11 @@ export default function VendorLayout({
   const { data: userData, isLoading: isUserDataLoading } = useDoc<User>(userDocRef);
   const { data: vendorData, isLoading: isVendorDataLoading } = useDoc<Vendor>(vendorDocRef);
   
-  const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized' | 'pending' | 'rejected'>('loading');
+  const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'pending' | 'rejected'>('loading');
+
+  const isLoading = isUserLoading || isUserDataLoading || isVendorDataLoading;
 
   useEffect(() => {
-    const isLoading = isUserLoading || isUserDataLoading || isVendorDataLoading;
-
     if (isLoading) {
       setAuthStatus('loading');
       return;
@@ -47,20 +47,18 @@ export default function VendorLayout({
 
     if (!user) {
       router.push('/login?redirect=/vendor/dashboard');
-      setAuthStatus('unauthorized');
       return;
     }
       
     const isVendorRole = (userData?.roles || []).includes('vendor');
 
     if (!isVendorRole) {
-      // This is a normal user. Redirect them to onboarding to become a vendor.
+      // User is logged in but not a vendor, send them to onboarding.
       router.push('/vendor/onboarding');
-      setAuthStatus('unauthorized');
       return;
     }
     
-    // At this point, the user has the 'vendor' role. Now check their status.
+    // User has vendor role, now check their status from the vendors collection.
     if (vendorData) {
         switch (vendorData.status) {
             case 'approved':
@@ -79,12 +77,11 @@ export default function VendorLayout({
         }
     } else {
         // Has 'vendor' role but no vendor document. Should not happen in normal flow,
-        // but we can treat them as unauthorized and send to onboarding to fix it.
-        router.push('/vendor/onboarding');
-        setAuthStatus('unauthorized');
+        // but we can treat them as pending or send to onboarding.
+        setAuthStatus('pending');
     }
 
-  }, [isUserLoading, isUserDataLoading, isVendorDataLoading, user, userData, vendorData, router]);
+  }, [isLoading, user, userData, vendorData, router]);
 
   if (authStatus === 'loading') {
     return (
