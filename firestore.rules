@@ -19,8 +19,15 @@ service cloud.firestore {
     match /users/{userId} {
       // Admins can list all users.
       allow list: if isAdmin();
-      // Users can read and write their own profile data. Admins can read/write any user's data.
-      allow read, write: if isOwner(userId) || isAdmin();
+      // Users can read their own profile data.
+      allow read: if isOwner(userId) || isAdmin();
+      // Users can write to their own profile, but cannot change their roles unless they are adding 'vendor'.
+      // Admins can write any user's data.
+      allow write: if isAdmin() || 
+                  (isOwner(userId) && (
+                    request.resource.data.keys().hasAll(['roles']) == false || // Allow updates to non-role fields
+                    (request.resource.data.roles.hasOnly(['user', 'vendor']) && resource.data.roles.hasAll(['user'])) // Allow adding 'vendor'
+                  ));
     }
     
     // Users can read/write their own notifications.
@@ -59,8 +66,10 @@ service cloud.firestore {
     match /vendors/{vendorId} {
       // Admins can list all vendors.
       allow list: if isAdmin();
-      // Vendors can read and write their own profiles. Admins have full access.
-      allow read, write: if isOwner(vendorId) || isAdmin();
+      // Vendors can read their own profiles. Admins have full access.
+      allow read: if isOwner(vendorId) || isAdmin();
+      // Only users can create their own vendor profile, and admins can write to any.
+      allow write: if isOwner(vendorId) || isAdmin();
     }
     
     match /tickets/{ticketId} {

@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle, XCircle, AlertTriangle, Loader2, Camera, VideoOff, Zap, ZapOff } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Loader2, Camera, VideoOff, Zap, ZapOff, ArrowLeft } from 'lucide-react';
 import { useFirestore, useUser } from '@/firebase';
 import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import type { Event, Ticket, User, Vendor } from '@/lib/types';
@@ -335,6 +335,11 @@ function TicketValidator() {
 
     return (
         <div className="container mx-auto max-w-2xl py-12 px-4 space-y-6">
+            <div className="space-y-2">
+                <Button variant="ghost" asChild>
+                    <Link href="/dashboard"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard</Link>
+                </Button>
+            </div>
             <Card>
                 <CardHeader>
                     <CardTitle>Ticket Validator</CardTitle>

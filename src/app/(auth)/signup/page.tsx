@@ -74,7 +74,7 @@ export default function SignupPage() {
       fullName: "",
       email: "",
       password: "",
-      roles: [],
+      roles: ['user'],
       avatarUrl: DEFAULT_AVATAR_URL,
       terms: false,
     },

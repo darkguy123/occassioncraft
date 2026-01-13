@@ -8,9 +8,9 @@ import { BarChart2, Ticket, DollarSign, PlusCircle, QrCode, AlertTriangle, MoreH
 import Link from "next/link";
 import { useUser, useFirestore, useMemoFirebase, useCollection, deleteDocumentNonBlocking } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
-import type { Event, Ticket as TicketType } from "@/lib/types";
+import type { Event, Ticket as TicketType, User as UserType } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
     DropdownMenu,
@@ -21,11 +21,29 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/navigation";
 
 export default function VendorDashboardPage() {
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
+    const router = useRouter();
+
+    const userDocRef = useMemoFirebase(() => {
+        if (!user) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [user, firestore]);
+    const { data: userData, isLoading: isUserLoading } = useCollection<UserType>(userDocRef as any);
+
+    useEffect(() => {
+        if (!isUserLoading && userData) {
+            const userRoles = userData[0]?.roles || [];
+            if (!userRoles.includes('vendor')) {
+                router.replace('/vendor/onboarding');
+            }
+        }
+    }, [isUserLoading, userData, router]);
+
 
     const vendorEventsQuery = useMemoFirebase(() => {
         if (!user) return null;
@@ -49,7 +67,7 @@ export default function VendorDashboardPage() {
     }, [tickets]);
 
 
-    const isLoading = areEventsLoading || (vendorEventIds.length > 0 && areTicketsLoading);
+    const isLoading = areEventsLoading || (vendorEventIds.length > 0 && areTicketsLoading) || isUserLoading;
     
     const handleDelete = (eventId: string, eventName: string) => {
         if (!firestore) return;
