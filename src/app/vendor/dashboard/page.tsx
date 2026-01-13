@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "@/components/ui/table";
 import { BarChart2, Ticket, DollarSign, PlusCircle, QrCode, AlertTriangle, MoreHorizontal, Edit, Trash2, Palette, Calendar } from "lucide-react";
 import Link from "next/link";
-import { useUser, useFirestore, useMemoFirebase, useCollection, deleteDocumentNonBlocking } from "@/firebase";
+import { useUser, useFirestore, useMemoFirebase, useCollection, deleteDocumentNonBlocking, useDoc } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
 import type { Event, Ticket as TicketType, User as UserType } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -33,11 +33,11 @@ export default function VendorDashboardPage() {
         if (!user) return null;
         return doc(firestore, 'users', user.uid);
     }, [user, firestore]);
-    const { data: userData, isLoading: isUserLoading } = useCollection<UserType>(userDocRef as any);
+    const { data: userData, isLoading: isUserLoading } = useDoc<UserType>(userDocRef);
 
     useEffect(() => {
         if (!isUserLoading && userData) {
-            const userRoles = userData[0]?.roles || [];
+            const userRoles = userData.roles || [];
             if (!userRoles.includes('vendor')) {
                 router.replace('/vendor/onboarding');
             }
