@@ -23,8 +23,10 @@ export default function VendorLandingPage() {
       return <Button size="lg" disabled className="w-full sm:w-auto">Loading...</Button>
     }
     
-    // If the user is logged in, this page will be protected by the layout which redirects them.
-    // So the main CTA is for logged-out users to sign up.
+    if (user) {
+        return <Button size="lg" asChild className="w-full sm:w-auto"><Link href="/vendor/onboarding">Become a Vendor Today</Link></Button>
+    }
+
     return <Button size="lg" asChild className="w-full sm:w-auto"><Link href="/signup">Become a Vendor Today</Link></Button>
   }
 

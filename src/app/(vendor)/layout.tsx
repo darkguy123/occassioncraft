@@ -53,8 +53,8 @@ export default function VendorLayout({
     const isVendorRole = (userData?.roles || []).includes('vendor');
 
     if (!isVendorRole) {
-      // User is logged in but not a vendor, send them to onboarding.
-      router.push('/vendor/onboarding');
+      // User is logged in but not a vendor, send them to the vendor landing page to learn more.
+      router.push('/vendor');
       return;
     }
     
