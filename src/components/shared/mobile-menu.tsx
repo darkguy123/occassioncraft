@@ -14,7 +14,7 @@ const navItems = [
   { href: '/', icon: Home, label: 'Home' },
   { href: '/events', icon: Compass, label: 'Discover' },
   // Center button is handled separately
-  { href: '/vendor', icon: LayoutDashboard, label: 'Vendor' },
+  { href: '/vendorlanding', icon: LayoutDashboard, label: 'Vendor' },
   { href: '/validate', icon: QrCode, label: 'Scan' },
 ];
 

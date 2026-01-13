@@ -35,30 +35,31 @@ export default function VendorLayout({
   const { data: userData, isLoading: isUserDataLoading } = useDoc<User>(userDocRef);
   const { data: vendorData, isLoading: isVendorDataLoading } = useDoc<Vendor>(vendorDocRef);
   
-  const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'pending' | 'rejected'>('loading');
-
-  const isLoading = isUserLoading || isUserDataLoading || isVendorDataLoading;
+  const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized' | 'pending' | 'rejected'>('loading');
 
   useEffect(() => {
+    const isLoading = isUserLoading || isUserDataLoading || isVendorDataLoading;
+
     if (isLoading) {
       setAuthStatus('loading');
       return;
     }
 
     if (!user) {
-      router.push('/login?redirect=/vendor/dashboard');
+      router.push('/login?redirect=/vendorlanding');
+      setAuthStatus('unauthorized');
       return;
     }
       
     const isVendorRole = (userData?.roles || []).includes('vendor');
 
     if (!isVendorRole) {
-      // User is logged in but not a vendor, send them to the vendor landing page to learn more.
-      router.push('/vendor');
+      // This case is for users who are not vendors at all. They get redirected to the vendor landing page.
+      setAuthStatus('unauthorized');
+      router.push('/vendorlanding');
       return;
     }
     
-    // User has vendor role, now check their status from the vendors collection.
     if (vendorData) {
         switch (vendorData.status) {
             case 'approved':
@@ -71,17 +72,17 @@ export default function VendorLayout({
                 setAuthStatus('rejected');
                 break;
             default:
-                 // Fallback for unexpected status
                 setAuthStatus('pending');
                 break;
         }
     } else {
-        // Has 'vendor' role but no vendor document. Should not happen in normal flow,
-        // but we can treat them as pending or send to onboarding.
-        setAuthStatus('pending');
+        // This can happen if the user has the 'vendor' role but no vendor doc exists.
+        // We'll treat them as unauthorized and send to onboarding.
+        router.push('/vendor/onboarding');
+        setAuthStatus('unauthorized');
     }
 
-  }, [isLoading, user, userData, vendorData, router]);
+  }, [isUserLoading, isUserDataLoading, isVendorDataLoading, user, userData, vendorData, router]);
 
   if (authStatus === 'loading') {
     return (
@@ -107,12 +108,11 @@ export default function VendorLayout({
     )
   }
 
-  // Covers 'unauthorized' and any other state before 'authorized' is confirmed.
-  // This shows a simple loading screen during the brief moment of redirection.
+
   if (authStatus !== 'authorized') {
        return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-secondary p-4 text-center">
-             <p>Loading...</p>
+             <p>Redirecting...</p>
         </div>
       );
   }

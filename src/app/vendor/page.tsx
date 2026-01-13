@@ -1,80 +1,21 @@
 
 'use client';
 
-import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
-import Link from "next/link";
-import { useUser } from "@/firebase";
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
-const features = [
-  "Design beautiful, custom-branded tickets",
-  "Create unlimited events, big or small",
-  "Manage ticket sales and track revenue",
-  "Seamless QR code scanning for check-in",
-  "Engage with your attendees",
-  "Free to join and start selling",
-];
+export default function VendorPage() {
+  const router = useRouter();
 
-export default function VendorLandingPage() {
-  const { user, isUserLoading } = useUser();
-
-  const CtaButton = () => {
-    if (isUserLoading) {
-      return <Button size="lg" disabled className="w-full sm:w-auto">Loading...</Button>
-    }
-    
-    if (user) {
-        return <Button size="lg" asChild className="w-full sm:w-auto"><Link href="/vendor/onboarding">Become a Vendor Today</Link></Button>
-    }
-
-    return <Button size="lg" asChild className="w-full sm:w-auto"><Link href="/signup">Become a Vendor Today</Link></Button>
-  }
+  useEffect(() => {
+    router.replace('/vendor/dashboard');
+  }, [router]);
 
   return (
-    <>
-      <div className="bg-background text-foreground">
-        {/* Hero Section */}
-        <section className="py-20 md:py-32 text-center">
-          <div className="container px-4">
-            <h1 className="text-4xl md:text-6xl font-headline font-bold">Craft Beautiful Tickets, Not Just Entries</h1>
-            <p className="mt-4 text-lg md:text-xl max-w-3xl mx-auto text-muted-foreground">The ultimate platform to design, create, and manage tickets for any occasion. Go beyond the event and create a memorable experience.</p>
-            <div className="mt-8 flex items-center justify-center">
-              <CtaButton />
-            </div>
-          </div>
-        </section>
-
-        {/* Features Section */}
-        <section className="py-20 bg-secondary">
-          <div className="container px-4">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-headline font-bold">Everything You Need to Succeed</h2>
-              <p className="mt-2 text-muted-foreground max-w-xl mx-auto">OccasionCraft is free to join and packed with powerful features to make your event a success.</p>
-            </div>
-            <div className="max-w-3xl mx-auto">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
-                    {features.map((feature) => (
-                        <div key={feature} className="flex items-start">
-                            <Check className="h-5 w-5 text-green-500 mr-3 shrink-0 mt-1" />
-                            <span className="text-muted-foreground">{feature}</span>
-                        </div>
-                    ))}
-                </div>
-            </div>
-          </div>
-        </section>
-        
-        {/* Final CTA */}
-        <section className="py-20">
-            <div className="container text-center">
-                <h2 className="text-3xl font-bold font-headline">Ready to Create?</h2>
-                <p className="mt-2 text-muted-foreground max-w-lg mx-auto">Join a community of creators and start hosting your events on OccasionCraft today. It's free and easy to get started.</p>
-                 <div className="mt-8 flex items-center justify-center">
-                    <CtaButton />
-                </div>
-            </div>
-        </section>
-      </div>
-    </>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-secondary p-4 text-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Redirecting to your dashboard...</p>
+    </div>
   );
 }

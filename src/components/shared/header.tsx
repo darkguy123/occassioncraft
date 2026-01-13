@@ -38,7 +38,7 @@ export function Header() {
 
   const isVendor = userData && (userData.roles || []).includes('vendor');
   const isAdmin = userData && (userData.roles || []).includes('admin');
-  const vendorLinkHref = isVendor ? "/vendor/dashboard" : "/vendor";
+  const vendorLinkHref = isVendor ? "/vendor/dashboard" : "/vendorlanding";
   const vendorLinkText = isVendor ? "My Dashboard" : "Host Your Event";
 
   const logoUrl = siteSettings?.logoUrl || DEFAULT_LOGO_URL;
