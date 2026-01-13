@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Suspense, useMemo } from 'react';
@@ -7,7 +8,7 @@ import EventCard from '@/components/event-card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import type { Event } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,7 +20,7 @@ function EventsDisplay() {
   const firestore = useFirestore();
 
   const { data: allEvents, isLoading: isAllEventsLoading } = useCollection<Event>(
-      useMemoFirebase(() => firestore ? collection(firestore, 'events') : null, [firestore])
+      useMemoFirebase(() => firestore ? query(collection(firestore, 'events'), where('status', '==', 'published')) : null, [firestore])
   );
   
   const filteredEvents = useMemo(() => {
