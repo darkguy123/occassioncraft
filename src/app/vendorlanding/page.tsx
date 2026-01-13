@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import Link from "next/link";
 import { useUser } from "@/firebase";
+import { useState } from "react";
+import { VendorApplicationDialog } from "@/components/vendor/vendor-application-dialog";
 
 const features = [
   "Design beautiful, custom-branded tickets",
@@ -17,21 +19,30 @@ const features = [
 
 export default function VendorLandingPage() {
   const { user, isUserLoading } = useUser();
+  const [isApplicationOpen, setIsApplicationOpen] = useState(false);
 
   const CtaButton = () => {
     if (isUserLoading) {
       return <Button size="lg" disabled className="w-full sm:w-auto">Loading...</Button>
     }
     
+    // If the user is logged in, the button opens the application dialog.
     if (user) {
-        return <Button size="lg" asChild className="w-full sm:w-auto"><Link href="/vendor/onboarding">Become a Vendor Today</Link></Button>
+        return (
+            <Button size="lg" onClick={() => setIsApplicationOpen(true)} className="w-full sm:w-auto">
+                Become a Vendor Today
+            </Button>
+        )
     }
 
+    // If logged out, it links to the signup page with a vendor hint.
     return <Button size="lg" asChild className="w-full sm:w-auto"><Link href="/signup?role=vendor">Become a Vendor Today</Link></Button>
   }
 
   return (
     <>
+      <VendorApplicationDialog isOpen={isApplicationOpen} onOpenChange={setIsApplicationOpen} />
+
       <div className="bg-background text-foreground">
         {/* Hero Section */}
         <section className="py-20 md:py-32 text-center">

@@ -2,15 +2,14 @@
 'use client';
 
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useAuth, useUser, useFirestore, updateDocumentNonBlocking, setDocumentNonBlocking, useFirebase } from '@/firebase';
+import { useAuth, useUser, useFirestore, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -18,6 +17,7 @@ import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, ArrowRight, Building, Check, Eye, EyeOff } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 const step1Schema = z.object({
   companyName: z.string().min(3, { message: 'Company name must be at least 3 characters.' }),
@@ -28,25 +28,20 @@ const step2Schema = z.object({
   password: z.string().min(1, { message: 'Password is required to confirm your identity.' }),
 });
 
-const onboardingSchema = step1Schema.merge(step2Schema);
+const applicationSchema = step1Schema.merge(step2Schema);
 
-type OnboardingSchema = z.infer<typeof onboardingSchema>;
+type ApplicationSchema = z.infer<typeof applicationSchema>;
 
-const Step1 = ({ form, onNext }: { form: any, onNext: () => void }) => {
-    const { formState: { errors }, trigger, watch } = form;
-
-    const handleNext = async () => {
-        const isValid = await trigger(['companyName', 'companyDescription']);
-        if (isValid) {
-            onNext();
-        }
-    }
+// Step 1 Component
+const Step1 = ({ form, onNext }: { form: UseFormReturn<ApplicationSchema>, onNext: () => void }) => {
+    const { formState: { errors }, watch } = form;
     const companyName = watch('companyName');
-
     return (
         <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} className="space-y-4">
-            <h2 className="text-xl font-bold text-center">Tell Us About Your Business</h2>
-            <p className="text-sm text-muted-foreground text-center">This information will be displayed on your event pages.</p>
+            <div className="space-y-1">
+                <h3 className="text-lg font-semibold">Tell Us About Your Business</h3>
+                <p className="text-sm text-muted-foreground">This information will be displayed on your event pages.</p>
+            </div>
             <FormField control={form.control} name="companyName" render={({ field }) => (
                 <FormItem>
                     <FormLabel>Company Name</FormLabel>
@@ -61,19 +56,22 @@ const Step1 = ({ form, onNext }: { form: any, onNext: () => void }) => {
                     <FormMessage />
                 </FormItem>
             )} />
-            <Button type="button" onClick={handleNext} className="w-full" disabled={!companyName || !!errors.companyName}>
+            <Button type="button" onClick={onNext} className="w-full" disabled={!companyName || !!errors.companyName}>
                 Continue <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
         </motion.div>
-    )
+    );
 };
 
+// Step 2 Component
 const Step2 = ({ form }: { form: any }) => {
     const [showPassword, setShowPassword] = useState(false);
     return (
         <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} className="space-y-4">
-            <h2 className="text-xl font-bold text-center">Confirm Your Identity</h2>
-            <p className="text-sm text-muted-foreground text-center">For your security, please enter your password to complete the vendor setup.</p>
+            <div className="space-y-1">
+                <h3 className="text-lg font-semibold">Confirm Your Identity</h3>
+                <p className="text-sm text-muted-foreground">For security, please enter your password to complete the vendor setup.</p>
+            </div>
             <FormField control={form.control} name="password" render={({ field }) => (
                 <FormItem>
                     <FormLabel>Password</FormLabel>
@@ -87,11 +85,11 @@ const Step2 = ({ form }: { form: any }) => {
                 </FormItem>
             )} />
         </motion.div>
-    )
+    );
 };
 
-
-export default function VendorOnboardingPage() {
+// Main Dialog Component
+export function VendorApplicationDialog({ isOpen, onOpenChange }: { isOpen: boolean, onOpenChange: (open: boolean) => void }) {
     const [currentStep, setCurrentStep] = useState(0);
     const { user } = useUser();
     const auth = useAuth();
@@ -99,30 +97,32 @@ export default function VendorOnboardingPage() {
     const { toast } = useToast();
     const router = useRouter();
 
-    const form = useForm<OnboardingSchema>({
-        resolver: zodResolver(onboardingSchema),
+    const form = useForm<ApplicationSchema>({
+        resolver: zodResolver(applicationSchema),
         defaultValues: { companyName: '', companyDescription: '', password: '' },
         mode: 'onChange',
     });
 
-    const onSubmit = async (data: OnboardingSchema) => {
+    const handleNext = async () => {
+        const isValid = await form.trigger(['companyName', 'companyDescription']);
+        if (isValid) {
+            setCurrentStep(1);
+        }
+    };
+
+    const onSubmit = async (data: ApplicationSchema) => {
         if (!user || !firestore || !auth?.currentUser) {
             toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in.' });
             return;
         }
 
         try {
-            // Re-authenticate user
             const credential = EmailAuthProvider.credential(user.email!, data.password);
             await reauthenticateWithCredential(auth.currentUser, credential);
 
-            // Update user role to include 'vendor'
             const userRef = doc(firestore, 'users', user.uid);
-            updateDocumentNonBlocking(userRef, {
-                roles: ['user', 'vendor']
-            });
+            updateDocumentNonBlocking(userRef, { roles: ['user', 'vendor'] });
 
-            // Create vendor document with 'approved' status
             const vendorRef = doc(firestore, 'vendors', user.uid);
             setDocumentNonBlocking(vendorRef, {
                 id: user.uid,
@@ -135,11 +135,8 @@ export default function VendorOnboardingPage() {
                 pricingTier: 'Free',
             }, { merge: true });
 
-            toast({
-                title: 'Welcome, Vendor!',
-                description: "Your account has been upgraded. You're now a vendor.",
-            });
-
+            toast({ title: 'Welcome, Vendor!', description: "Your account has been upgraded." });
+            onOpenChange(false);
             router.push('/vendor/dashboard');
 
         } catch (error: any) {
@@ -147,56 +144,51 @@ export default function VendorOnboardingPage() {
             if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
                 description = 'The password you entered is incorrect. Please try again.';
                 form.setError('password', { type: 'manual', message: description });
-            } else if (error.code === 'auth/requires-recent-login') {
-                description = 'For security, please log out and log back in before becoming a vendor.';
             } else {
                  description = error.message;
             }
             toast({ variant: 'destructive', title: 'Verification Failed', description });
         }
     };
-
+    
     const handleBack = () => setCurrentStep(prev => prev - 1);
-    const steps = [<Step1 form={form} onNext={() => setCurrentStep(1)} />, <Step2 form={form} />];
-    const totalSteps = steps.length;
-    const progress = ((currentStep + 1) / totalSteps) * 100;
+    const steps = [<Step1 form={form} onNext={handleNext} />, <Step2 form={form} />];
+    const progress = ((currentStep + 1) / steps.length) * 100;
 
     return (
-        <div className="container max-w-2xl mx-auto py-12 px-4 flex items-center min-h-[calc(100vh-8rem)]">
-            <Card className="w-full">
-                <CardHeader>
-                    <Building className="mx-auto h-12 w-12 text-primary" />
-                    <CardTitle className="text-center text-2xl font-bold">Become a Vendor</CardTitle>
-                    <CardDescription className="text-center">Complete the steps below to start creating and selling events.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        <Progress value={progress} className="w-full" />
-                        <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit)}>
-                                <AnimatePresence mode="wait">
-                                    <motion.div key={currentStep}>
-                                        {steps[currentStep]}
-                                    </motion.div>
-                                </AnimatePresence>
-
-                                <div className="flex gap-4 mt-6">
-                                    {currentStep > 0 && (
-                                        <Button type="button" variant="outline" onClick={handleBack} className="w-full">
-                                            <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                                        </Button>
-                                    )}
-                                    {currentStep === totalSteps - 1 && (
-                                        <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                                            <Check className="mr-2 h-4 w-4" /> Complete Setup
-                                        </Button>
-                                    )}
-                                </div>
-                            </form>
-                        </Form>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <Building className="mx-auto h-8 w-8 text-primary mb-2" />
+                    <DialogTitle className="text-center text-2xl">Become a Vendor</DialogTitle>
+                    <DialogDescription className="text-center">Complete the steps to start creating and selling events.</DialogDescription>
+                </DialogHeader>
+                
+                <div className="py-4 space-y-4">
+                    <Progress value={progress} className="w-full" />
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)}>
+                            <AnimatePresence mode="wait">
+                                <motion.div key={currentStep}>
+                                    {steps[currentStep]}
+                                </motion.div>
+                            </AnimatePresence>
+                             <DialogFooter className="mt-6 pt-4 border-t">
+                                {currentStep > 0 && (
+                                    <Button type="button" variant="outline" onClick={handleBack}>
+                                        <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                                    </Button>
+                                )}
+                                {currentStep === steps.length - 1 && (
+                                    <Button type="submit" disabled={form.formState.isSubmitting}>
+                                        <Check className="mr-2 h-4 w-4" /> Complete Setup
+                                    </Button>
+                                )}
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </div>
+            </DialogContent>
+        </Dialog>
     );
 }
