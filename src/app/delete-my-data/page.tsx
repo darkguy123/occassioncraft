@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm, SubmitHandler } from 'react-hook-form';
@@ -33,6 +32,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import Link from 'next/link';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 
 const deleteDataSchema = z.object({
@@ -70,7 +71,7 @@ export default function DeleteDataPage() {
         };
 
         const requestsCollection = collection(firestore, 'dataDeletionRequests');
-        await addDocumentNonBlocking(requestsCollection, requestData);
+        addDocumentNonBlocking(requestsCollection, requestData);
 
         toast({
             title: 'Deletion Request Submitted',
