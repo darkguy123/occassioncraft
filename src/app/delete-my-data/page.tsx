@@ -176,7 +176,7 @@ export default function DeleteDataPage() {
                                             <input type="checkbox" checked={field.value} onChange={field.onChange} className="mt-1 h-4 w-4 shrink-0 rounded border-primary text-primary focus:ring-primary" />
                                         </FormControl>
                                         <div className="grid gap-1.5 leading-none">
-                                            <FormLabel>I understand that this action is permanent and will delete all my data.</FormLabel>
+                                            <Label htmlFor="confirmation" className="font-normal">I understand that this action is permanent and will delete all my data.</Label>
                                             <FormMessage />
                                         </div>
                                     </Alert>

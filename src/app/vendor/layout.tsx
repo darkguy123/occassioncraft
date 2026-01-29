@@ -11,7 +11,6 @@ import type { User, Vendor } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { PanelLeft } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { VendorPendingStatus } from "@/components/vendor/vendor-pending-status";
 
 export default function VendorLayout({
   children,
@@ -22,66 +21,26 @@ export default function VendorLayout({
   const firestore = useFirestore();
   const router = useRouter();
 
-  const userDocRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [firestore, user]);
-  
-  const vendorDocRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'vendors', user.uid);
-  }, [firestore, user]);
-
-  const { data: userData, isLoading: isUserDataLoading } = useDoc<User>(userDocRef);
-  const { data: vendorData, isLoading: isVendorDataLoading } = useDoc<Vendor>(vendorDocRef);
-  
-  const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized' | 'pending' | 'rejected'>('loading');
+  const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
 
   useEffect(() => {
-    const isLoading = isUserLoading || isUserDataLoading || isVendorDataLoading;
-
-    if (isLoading) {
+    if (isUserLoading) {
       setAuthStatus('loading');
       return;
     }
 
     if (!user) {
-      router.push('/login?redirect=/vendor');
+      router.push('/login?redirect=/vendor/dashboard');
       setAuthStatus('unauthorized');
-      return;
-    }
-      
-    const isVendorRole = (userData?.roles || []).includes('vendor');
-
-    if (!isVendorRole) {
-      // This case is for users who are not vendors at all. They get redirected to the vendor landing page.
-      setAuthStatus('unauthorized');
-      router.push('/vendor');
       return;
     }
     
-    if (vendorData) {
-        switch (vendorData.status) {
-            case 'approved':
-                setAuthStatus('authorized');
-                break;
-            case 'pending':
-                setAuthStatus('pending');
-                break;
-            case 'rejected':
-                setAuthStatus('rejected');
-                break;
-            default:
-                setAuthStatus('pending');
-                break;
-        }
-    } else {
-        setAuthStatus('pending');
-    }
+    // If we are here, user is logged in, so they are authorized as a vendor.
+    setAuthStatus('authorized');
 
-  }, [isUserLoading, isUserDataLoading, isVendorDataLoading, user, userData, vendorData, router]);
+  }, [isUserLoading, user, router]);
 
-  if (authStatus === 'loading') {
+  if (authStatus !== 'authorized') {
     return (
       <div className="flex min-h-screen">
         <aside className="w-64 flex-shrink-0 border-r bg-background p-4 hidden md:block">
@@ -97,21 +56,6 @@ export default function VendorLayout({
         </main>
       </div>
     );
-  }
-  
-  if (authStatus === 'pending' || authStatus === 'rejected') {
-    return (
-        <VendorPendingStatus status={authStatus} vendorData={vendorData}/>
-    )
-  }
-
-
-  if (authStatus !== 'authorized') {
-       return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-secondary p-4 text-center">
-             <p>Redirecting...</p>
-        </div>
-      );
   }
 
   return (
