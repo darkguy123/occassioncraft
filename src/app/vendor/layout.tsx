@@ -2,12 +2,10 @@
 'use client';
 
 import { VendorSidebar } from "@/components/vendor/vendor-sidebar";
-import { useUser, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { useUser } from "@/firebase";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { User, Vendor } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { PanelLeft } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -18,29 +16,20 @@ export default function VendorLayout({
   children: React.ReactNode;
 }) {
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
   const router = useRouter();
-
-  const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
 
   useEffect(() => {
     if (isUserLoading) {
-      setAuthStatus('loading');
-      return;
+      return; // Wait until user state is resolved
     }
 
     if (!user) {
       router.push('/login?redirect=/vendor/dashboard');
-      setAuthStatus('unauthorized');
       return;
     }
-    
-    // If we are here, user is logged in, so they are authorized as a vendor.
-    setAuthStatus('authorized');
-
   }, [isUserLoading, user, router]);
 
-  if (authStatus !== 'authorized') {
+  if (isUserLoading || !user) {
     return (
       <div className="flex min-h-screen">
         <aside className="w-64 flex-shrink-0 border-r bg-background p-4 hidden md:block">
