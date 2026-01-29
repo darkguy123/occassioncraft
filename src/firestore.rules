@@ -1,0 +1,103 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+  
+    // Helper function to check for admin role
+    function isAdmin() {
+      // A user is an admin if their UID is in the roles_admin collection OR if they are the hardcoded super-admin.
+      return (request.auth != null && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)))
+             || (request.auth != null && request.auth.token.email == 'valentinoboss18@gmail.com');
+    }
+  
+  	// Helper function to check if a user owns a document
+    function isOwner(userId) {
+    	return request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      // Admins can list all users.
+      allow list: if isAdmin();
+      // Users can read their own profile data.
+      allow read: if isOwner(userId) || isAdmin();
+      // Allow owner to update their profile, but NOT change their roles.
+      // Admins can change anything.
+      allow write: if isAdmin() || (isOwner(userId) && !('roles' in request.resource.data));
+    }
+    
+    // Users can read/write their own notifications.
+    match /users/{userId}/notifications/{notificationId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+
+    // Users can read/write their own tickets.
+    match /users/{userId}/tickets/{ticketId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+    
+    match /events/{eventId} {
+       // Allow public list access for anyone, but the query must filter for 'published' status.
+       allow list: if resource.data.status == 'published' || isAdmin();
+       
+       // Events are publicly readable only if they are published.
+       // Vendors can read their own non-published events.
+       // Admins can read all events regardless of status.
+       allow read: if resource.data.status == 'published'
+                    || (request.auth != null && resource.data.vendorId == request.auth.uid)
+                    || isAdmin();
+
+       // Events can be created by an authenticated user.
+       // Events can be updated by their vendor owner or an admin.
+       allow create: if request.auth != null;
+       allow update: if isAdmin() || (request.auth != null && request.resource.data.vendorId == request.auth.uid);
+       allow delete: if isAdmin() || (request.auth != null && resource.data.vendorId == request.auth.uid);
+    }
+    
+    match /categories/{categoryId} {
+    	 allow read: if true;
+       allow write: if isAdmin();
+    }
+
+    match /vendors/{vendorId} {
+      // Admins can list all vendors.
+      allow list: if isAdmin();
+      // Any authenticated user can read a vendor profile (since all are vendors)
+      // Admins have full access.
+      allow read: if request.auth != null || isAdmin();
+      // Only users can create their own vendor profile at signup, and admins can write to any.
+      allow create: if request.auth != null;
+      allow update: if isOwner(vendorId) || isAdmin();
+    }
+    
+    match /tickets/{ticketId} {
+      // Admins can list all tickets
+      allow list: if isAdmin();
+      // A user can read a ticket if they are the owner, or if they are the vendor for that event
+      allow read: if (request.auth != null && resource.data.userId == request.auth.uid) || (request.auth != null && resource.data.vendorId == request.auth.uid) || isAdmin();
+      // Allow creation for any authenticated user
+      allow create: if request.auth != null;
+      // No updates or deletes from the client
+      allow update, delete: if false;
+    }
+    
+    // Admin role definitions are readable and writable by other admins, or a user creating their own.
+    match /roles_admin/{userId} {
+    	allow read: if isAdmin();
+      allow write: if isAdmin() || isOwner(userId);
+    }
+    
+    // Site settings are publicly readable, but only writable by admins.
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /dataDeletionRequests/{requestId} {
+      // Users can create their own deletion request.
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Admins can manage all deletion requests.
+      allow list, read, update: if isAdmin();
+    }
+  }
+}

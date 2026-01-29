@@ -35,12 +35,7 @@ export function Header() {
   const handleLinkClick = () => {
     showLoader();
   };
-
-  const isVendor = userData && (userData.roles || []).includes('vendor');
-  const isAdmin = userData && (userData.roles || []).includes('admin');
-  const vendorLinkHref = isVendor ? "/vendor/dashboard" : "/vendorlanding";
-  const vendorLinkText = isVendor ? "My Dashboard" : "Host Your Event";
-
+  
   const logoUrl = siteSettings?.logoUrl || DEFAULT_LOGO_URL;
 
   return (
@@ -61,9 +56,11 @@ export function Header() {
             <Link href="/events" className="transition-colors hover:text-white text-white/80" onClick={handleLinkClick}>
               Discover Events
             </Link>
-            <Link href={vendorLinkHref} className="transition-colors hover:text-white text-white/80" onClick={handleLinkClick}>
-                {vendorLinkText}
-            </Link>
+             {user && (
+               <Link href="/vendor/dashboard" className="transition-colors hover:text-white text-white/80" onClick={handleLinkClick}>
+                  Vendor Dashboard
+              </Link>
+            )}
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-end space-x-2">
@@ -71,8 +68,7 @@ export function Header() {
           {!isUserLoading &&
             (user ? (
               <>
-                {(isVendor || isAdmin) && (
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                     <Button asChild variant="destructive" size="sm" className="relative">
                         <Link href="/create-event" onClick={handleLinkClick}>
                             <span className="md:hidden"><PlusCircle className="h-5 w-5" /></span>
@@ -94,7 +90,6 @@ export function Header() {
                       </Link>
                     </Button>
                   </div>
-                )}
                  {canInstall && (
                     <Button onClick={triggerInstall} variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white hidden md:inline-flex">
                         <Download className="h-5 w-5" />

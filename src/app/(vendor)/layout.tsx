@@ -2,16 +2,13 @@
 'use client';
 
 import { VendorSidebar } from "@/components/vendor/vendor-sidebar";
-import { useUser, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { useUser } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { User, Vendor } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { PanelLeft } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { VendorPendingStatus } from "@/components/vendor/vendor-pending-status";
 
 export default function VendorLayout({
   children,
@@ -19,72 +16,26 @@ export default function VendorLayout({
   children: React.ReactNode;
 }) {
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
   const router = useRouter();
 
-  const userDocRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [firestore, user]);
-  
-  const vendorDocRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'vendors', user.uid);
-  }, [firestore, user]);
-
-  const { data: userData, isLoading: isUserDataLoading } = useDoc<User>(userDocRef);
-  const { data: vendorData, isLoading: isVendorDataLoading } = useDoc<Vendor>(vendorDocRef);
-  
-  const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized' | 'pending' | 'rejected'>('loading');
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    const isLoading = isUserLoading || isUserDataLoading || isVendorDataLoading;
-
-    if (isLoading) {
-      setAuthStatus('loading');
-      return;
+    if (isUserLoading) {
+      return; // Wait until user state is resolved
     }
 
     if (!user) {
-      router.push('/login?redirect=/vendorlanding');
-      setAuthStatus('unauthorized');
-      return;
-    }
-      
-    const isVendorRole = (userData?.roles || []).includes('vendor');
-
-    if (!isVendorRole) {
-      // This case is for users who are not vendors at all. They get redirected to the vendor landing page.
-      setAuthStatus('unauthorized');
-      router.push('/vendorlanding');
+      router.push('/login?redirect=/vendor/dashboard');
       return;
     }
     
-    if (vendorData) {
-        switch (vendorData.status) {
-            case 'approved':
-                setAuthStatus('authorized');
-                break;
-            case 'pending':
-                setAuthStatus('pending');
-                break;
-            case 'rejected':
-                setAuthStatus('rejected');
-                break;
-            default:
-                setAuthStatus('pending');
-                break;
-        }
-    } else {
-        // This can happen if the user has the 'vendor' role but no vendor doc exists.
-        // We'll treat them as unauthorized and send to onboarding.
-        router.push('/vendor/onboarding');
-        setAuthStatus('unauthorized');
-    }
+    // If we are here, user is logged in, so they are authorized as a vendor.
+    setIsAuthorized(true);
 
-  }, [isUserLoading, isUserDataLoading, isVendorDataLoading, user, userData, vendorData, router]);
+  }, [isUserLoading, user, router]);
 
-  if (authStatus === 'loading') {
+  if (!isAuthorized) {
     return (
       <div className="flex min-h-screen">
         <aside className="w-64 flex-shrink-0 border-r bg-background p-4 hidden md:block">
@@ -100,21 +51,6 @@ export default function VendorLayout({
         </main>
       </div>
     );
-  }
-  
-  if (authStatus === 'pending' || authStatus === 'rejected') {
-    return (
-        <VendorPendingStatus status={authStatus} vendorData={vendorData}/>
-    )
-  }
-
-
-  if (authStatus !== 'authorized') {
-       return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-secondary p-4 text-center">
-             <p>Redirecting...</p>
-        </div>
-      );
   }
 
   return (
