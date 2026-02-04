@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import Image from "next/image";
 import {
   AlertDialog,
@@ -83,8 +83,6 @@ export default function SignupPage() {
       const user = userCredential.user;
 
       if (user) {
-        await signInWithEmailAndPassword(auth, data.email, data.password);
-        
         await updateProfile(user, {
             displayName: data.fullName,
         });
