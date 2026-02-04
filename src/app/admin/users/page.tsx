@@ -221,7 +221,8 @@ export default function AdminUsersPage() {
                   <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                 </TableRow>
               ))}
-              {!isLoading && users?.map((user) => (
+              {!isLoading && users && users.length > 0 ? (
+                users.map((user) => (
                  <TableRow key={user.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -268,13 +269,14 @@ export default function AdminUsersPage() {
                         </DropdownMenu>
                     </TableCell>
                  </TableRow>
-              ))}
-              {!isLoading && users?.length === 0 && (
-                <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-12">
-                    No users found.
-                    </TableCell>
-                </TableRow>
+              ))) : (
+                !isLoading && (
+                    <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground py-12">
+                        No users found.
+                        </TableCell>
+                    </TableRow>
+                )
               )}
             </TableBody>
           </Table>

@@ -6,9 +6,8 @@ service cloud.firestore {
   
     // Helper function to check for admin role
     function isAdmin() {
-      // A user is an admin if their UID is in the roles_admin collection OR if they are the hardcoded super-admin.
-      return (request.auth != null && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)))
-             || (request.auth != null && request.auth.token.email == 'valentinoboss18@gmail.com');
+      // A user is an admin if their UID is in the roles_admin collection.
+      return request.auth != null && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
   
   	// Helper function to check if a user owns a document
@@ -16,16 +15,42 @@ service cloud.firestore {
     	return request.auth != null && request.auth.uid == userId;
     }
 
+    // Helper to check if a user is upgrading to a vendor
+    function isUpgradingToVendor(request, resource) {
+      if (resource == null || resource.data.roles == null || request.resource.data.roles == null) {
+        return false; // Can't be upgrading if docs or roles don't exist.
+      }
+      
+      let oldRoles = resource.data.roles;
+      let newRoles = request.resource.data.roles;
+      
+      // The only change allowed is adding 'vendor' to the existing roles.
+      // 1. The new roles must contain all of the old roles.
+      // 2. The new roles must be exactly one larger than the old roles.
+      // 3. The new roles must include 'vendor'.
+      // 4. The user cannot add the 'admin' role themselves.
+      return newRoles.hasAll(oldRoles) &&
+             newRoles.size() == oldRoles.size() + 1 &&
+             newRoles.hasAny(['vendor']) &&
+             // This prevents adding 'admin' if it wasn't there before.
+             (oldRoles.hasAny(['admin']) || !newRoles.hasAny(['admin']));
+    }
+
     match /users/{userId} {
       // Admins can list all users.
       allow list: if isAdmin();
       // Users can read their own profile data. Admins can read all profiles.
       allow read: if isOwner(userId) || isAdmin();
-      // A new user can create their own document during signup.
-      allow create: if isOwner(userId);
-      // An existing user can update their own profile, but cannot change their roles.
-      // Admins can update any field.
-      allow update: if isAdmin() || (isOwner(userId) && request.resource.data.roles == resource.data.roles);
+      // Allow writes (create/update) under specific conditions
+      allow write: if isAdmin() || 
+                   (isOwner(userId) && (
+                       // Case 1: Creating a new profile (resource is null means it's a create op)
+                       resource == null ||
+                       // Case 2: Updating profile but not changing roles
+                       request.resource.data.roles == resource.data.roles ||
+                       // Case 3: Upgrading to a vendor
+                       isUpgradingToVendor(request, resource)
+                   ));
     }
     
     // Users can read/write their own notifications.
@@ -40,7 +65,7 @@ service cloud.firestore {
     
     match /events/{eventId} {
        // Allow public list access for anyone, but the query must filter for 'published' status.
-       allow list: if resource.data.status == 'published' || isAdmin();
+       allow list: if request.query.filters.hasAny(['status', '==', 'published']) || isAdmin();
        
        // Events are publicly readable only if they are published.
        // Vendors can read their own non-published events.
@@ -84,10 +109,10 @@ service cloud.firestore {
       allow update, delete: if false;
     }
     
-    // Admin role definitions are readable and writable by other admins, or a user creating their own.
+    // Admin role definitions are readable and writable by other admins.
     match /roles_admin/{userId} {
     	allow read: if isAdmin();
-      allow write: if isAdmin() || isOwner(userId);
+      allow write: if isAdmin();
     }
     
     // Site settings are publicly readable, but only writable by admins.
