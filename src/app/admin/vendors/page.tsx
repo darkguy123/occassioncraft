@@ -17,7 +17,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useCollection, useFirestore, updateDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, arrayUnion } from 'firebase/firestore';
 import type { Vendor } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -76,19 +76,23 @@ export default function AdminVendorsPage() {
     if (!dialogState.vendorId || !dialogState.action || !firestore) return;
 
     const vendorRef = doc(firestore, 'vendors', dialogState.vendorId);
-    let actionPromise;
     let toastMessage = '';
 
     if (dialogState.action === 'delete') {
-      actionPromise = deleteDocumentNonBlocking(vendorRef);
+      deleteDocumentNonBlocking(vendorRef);
       toastMessage = `Vendor "${dialogState.companyName}" has been deleted.`;
     } else {
-      actionPromise = updateDocumentNonBlocking(vendorRef, { status: dialogState.action });
+      // Approve or Reject
+      updateDocumentNonBlocking(vendorRef, { status: dialogState.action });
       toastMessage = `Vendor "${dialogState.companyName}" has been ${dialogState.action}.`;
+      
+      // If approving, also update the user's roles
+      if (dialogState.action === 'approve') {
+        const userRef = doc(firestore, 'users', dialogState.vendorId);
+        updateDocumentNonBlocking(userRef, { roles: arrayUnion('vendor') });
+      }
     }
     
-    actionPromise; // This is a non-blocking call
-
     toast({
       title: "Action Successful",
       description: toastMessage,

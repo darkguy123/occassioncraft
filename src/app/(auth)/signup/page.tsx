@@ -55,6 +55,7 @@ export default function SignupPage() {
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [redirectPath, setRedirectPath] = useState('/dashboard');
+  const [welcomeDialogDescription, setWelcomeDialogDescription] = useState("Your account has been created successfully. You're now being redirected.");
   
   const auth = useAuth();
   const firestore = useFirestore();
@@ -89,10 +90,8 @@ export default function SignupPage() {
 
         const [firstName, ...lastName] = data.fullName.split(' ');
         
+        // All new users start with just the 'user' role.
         const finalRoles = ['user'];
-        if (data.accountType === 'vendor') {
-            finalRoles.push('vendor');
-        }
         
         const userRef = doc(firestore, "users", user.uid);
         const userData: any = {
@@ -100,7 +99,7 @@ export default function SignupPage() {
           firstName: firstName,
           lastName: lastName.join(' '),
           email: data.email,
-          roles: Array.from(new Set(finalRoles)),
+          roles: finalRoles,
           dateJoined: new Date().toISOString(),
         };
 
@@ -114,13 +113,15 @@ export default function SignupPage() {
                 companyName: data.companyName,
                 description: data.companyDescription,
                 contactEmail: user.email,
-                status: 'approved',
+                status: 'pending', // Vendor application starts as pending
                 createdAt: new Date().toISOString(),
                 pricingTier: 'Free',
             }, { merge: true });
-            setRedirectPath('/vendor/dashboard');
+            setRedirectPath('/dashboard');
+            setWelcomeDialogDescription("Your vendor application has been submitted for review. You can track its status from your vendor dashboard link.");
         } else {
             setRedirectPath('/dashboard');
+            setWelcomeDialogDescription("Your account has been created successfully. You're now being redirected.");
         }
         
         setShowWelcomeDialog(true);
@@ -314,7 +315,7 @@ export default function SignupPage() {
              <PartyPopper className="mx-auto h-12 w-12 text-primary" />
             <AlertDialogTitle className="text-2xl">Welcome Aboard!</AlertDialogTitle>
             <AlertDialogDescription>
-              Your account has been created successfully. You're now being redirected.
+              {welcomeDialogDescription}
             </AlertDialogDescription>
           </AlertDialogHeader>
             <AlertDialogAction onClick={() => router.push(redirectPath)} className="w-full">

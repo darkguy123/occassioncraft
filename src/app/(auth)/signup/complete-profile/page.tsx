@@ -40,9 +40,6 @@ export default function CompleteProfilePage() {
       const [firstName, ...lastName] = user.displayName?.split(' ') || ['', ''];
 
       const finalRoles = ['user'];
-      if (data.accountType === 'vendor') {
-        finalRoles.push('vendor');
-      }
 
       const userData: any = {
         id: user.uid,
@@ -64,20 +61,22 @@ export default function CompleteProfilePage() {
             companyName: `${user.displayName}'s Company`,
             description: 'Ready to host amazing events!',
             contactEmail: user.email,
-            status: 'approved',
+            status: 'pending', // Vendor application starts as pending
             createdAt: new Date().toISOString(),
             pricingTier: 'Free',
         }, { merge: true });
-        router.push('/vendor/dashboard');
+        router.push('/dashboard');
+        toast({
+            title: "Application Submitted!",
+            description: "Your vendor application is now pending review. You will be notified of any status changes."
+        });
       } else {
         router.push('/dashboard');
+        toast({
+            title: "Welcome!",
+            description: "Your profile has been created.",
+        });
       }
-
-      toast({
-        title: "Welcome!",
-        description: "Your profile has been created.",
-      });
-
     } catch (error: any) {
       toast({
         variant: "destructive",

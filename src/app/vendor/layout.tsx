@@ -2,13 +2,16 @@
 'use client';
 
 import { VendorSidebar } from "@/components/vendor/vendor-sidebar";
-import { useUser } from "@/firebase";
+import { useUser, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { doc } from 'firebase/firestore';
+import type { User as UserType, Vendor as VendorType } from '@/lib/types';
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { PanelLeft } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { VendorStatusPage } from "@/components/vendor/vendor-status-page";
 
 export default function VendorLayout({
   children,
@@ -16,20 +19,48 @@ export default function VendorLayout({
   children: React.ReactNode;
 }) {
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const router = useRouter();
 
+  const vendorDocRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'vendors', user.uid);
+  }, [user, firestore]);
+  
+  const { data: vendorData, isLoading: isVendorDataLoading } = useDoc<VendorType>(vendorDocRef);
+
+  const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized' | 'pending' | 'rejected'>('loading');
+
   useEffect(() => {
-    if (isUserLoading) {
-      return; // Wait until user state is resolved
+    const isLoading = isUserLoading || isVendorDataLoading;
+    if (isLoading) {
+      setAuthStatus('loading');
+      return;
     }
 
     if (!user) {
       router.push('/login?redirect=/vendor/dashboard');
+      setAuthStatus('unauthorized');
       return;
     }
-  }, [isUserLoading, user, router]);
+    
+    if (vendorData) {
+      if (vendorData.status === 'approved') {
+          setAuthStatus('authorized');
+      } else if (vendorData.status === 'pending') {
+          setAuthStatus('pending');
+      } else {
+          setAuthStatus('rejected');
+      }
+    } else {
+      // No vendor document exists, so they are not a vendor and have not applied
+      setAuthStatus('unauthorized');
+      router.push('/become-a-vendor');
+    }
+  }, [isUserLoading, isVendorDataLoading, user, vendorData, router]);
 
-  if (isUserLoading || !user) {
+
+  if (authStatus === 'loading' || authStatus === 'unauthorized') {
     return (
       <div className="flex min-h-screen">
         <aside className="w-64 flex-shrink-0 border-r bg-background p-4 hidden md:block">
@@ -45,6 +76,10 @@ export default function VendorLayout({
         </main>
       </div>
     );
+  }
+
+  if (authStatus === 'pending' || authStatus === 'rejected') {
+    return <VendorStatusPage status={authStatus} />;
   }
 
   return (

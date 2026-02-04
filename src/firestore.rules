@@ -16,18 +16,6 @@ service cloud.firestore {
     	return request.auth != null && request.auth.uid == userId;
     }
 
-    // Helper to check if a user is upgrading to a vendor
-    function isUpgradingToVendor(request, resource) {
-      if (resource.data.roles == null) {
-        return false; // Can't be upgrading if the doc or roles don't exist.
-      }
-      let newRoles = request.resource.data.roles;
-      let oldRoles = resource.data.roles;
-      
-      // This checks that the new roles list is exactly the old roles list plus 'vendor'.
-      return newRoles.removeAll(oldRoles).size() == 1 && newRoles.removeAll(oldRoles)[0] == 'vendor';
-    }
-
     match /users/{userId} {
       // Admins can list all users.
       allow list: if isAdmin();
@@ -35,12 +23,9 @@ service cloud.firestore {
       allow read: if isOwner(userId) || isAdmin();
       // A new user can create their own document during signup.
       allow create: if isOwner(userId);
-      // An existing user can update their own profile, but cannot change their roles
-      // unless they are upgrading to a vendor. Admins can update any field.
-      allow update: if isAdmin() || (isOwner(userId) && (
-          request.resource.data.keys().hasOnly(['firstName', 'lastName', 'profileImageUrl']) || // Allow simple profile updates
-          isUpgradingToVendor(request, resource) // Allow vendor upgrade
-      ));
+      // An existing user can update their own profile, but cannot change their roles.
+      // Admins can update any field.
+      allow update: if isAdmin() || (isOwner(userId) && request.resource.data.roles == resource.data.roles);
     }
     
     // Users can read/write their own notifications.
@@ -79,11 +64,12 @@ service cloud.firestore {
     match /vendors/{vendorId} {
       // Admins can list all vendors.
       allow list: if isAdmin();
-      // Any authenticated user can read a vendor profile (since all are vendors)
+      // Any authenticated user can read a vendor profile.
       // Admins have full access.
       allow read: if request.auth != null || isAdmin();
-      // Only users can create their own vendor profile at signup, and admins can write to any.
-      allow create: if request.auth != null;
+      // Only a user can create their own vendor application document.
+      allow create: if isOwner(vendorId);
+      // Only the owner or an admin can update the vendor profile.
       allow update: if isOwner(vendorId) || isAdmin();
     }
     
