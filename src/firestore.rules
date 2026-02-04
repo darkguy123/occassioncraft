@@ -18,15 +18,14 @@ service cloud.firestore {
 
     // Helper to check if a user is upgrading to a vendor
     function isUpgradingToVendor(request, resource) {
+      if (resource.data.roles == null) {
+        return false; // Can't be upgrading if the doc or roles don't exist.
+      }
       let newRoles = request.resource.data.roles;
       let oldRoles = resource.data.roles;
-      // Ensure 'admin' is not being added by the user
-      let isAdminRoleAdded = !oldRoles.hasAny(['admin']) && newRoles.hasAny(['admin']);
-
-      return newRoles.hasAll(oldRoles) &&
-            newRoles.size() == oldRoles.size() + 1 &&
-            newRoles.hasAny(['vendor']) &&
-            !isAdminRoleAdded;
+      
+      // This checks that the new roles list is exactly the old roles list plus 'vendor'.
+      return newRoles.removeAll(oldRoles).size() == 1 && newRoles.removeAll(oldRoles)[0] == 'vendor';
     }
 
     match /users/{userId} {
@@ -38,8 +37,10 @@ service cloud.firestore {
       allow create: if isOwner(userId);
       // An existing user can update their own profile, but cannot change their roles
       // unless they are upgrading to a vendor. Admins can update any field.
-      allow update: if isAdmin() || 
-                  (isOwner(userId) && (!('roles' in request.resource.data) || isUpgradingToVendor(request, resource) ));
+      allow update: if isAdmin() || (isOwner(userId) && (
+          request.resource.data.keys().hasOnly(['firstName', 'lastName', 'profileImageUrl']) || // Allow simple profile updates
+          isUpgradingToVendor(request, resource) // Allow vendor upgrade
+      ));
     }
     
     // Users can read/write their own notifications.
