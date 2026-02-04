@@ -10,7 +10,7 @@ import { doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { PartyPopper, AlertTriangle, UserPlus, Eye, EyeOff } from "lucide-react";
+import { PartyPopper, AlertTriangle, UserPlus, Eye, EyeOff, Building, User, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -93,9 +93,6 @@ export default function SignupPage() {
         if (data.accountType === 'vendor') {
             finalRoles.push('vendor');
         }
-        if (data.email.toLowerCase() === 'valentinoboss18@gmail.com') {
-            finalRoles.push('admin');
-        }
         
         const userRef = doc(firestore, "users", user.uid);
         const userData: any = {
@@ -108,11 +105,6 @@ export default function SignupPage() {
         };
 
         setDocumentNonBlocking(userRef, userData, { merge: true });
-
-        if (finalRoles.includes('admin')) {
-            const adminRoleRef = doc(firestore, "roles_admin", user.uid);
-            setDocumentNonBlocking(adminRoleRef, { isAdmin: true }, { merge: true });
-        }
         
         if (data.accountType === 'vendor') {
             const vendorRef = doc(firestore, 'vendors', user.uid);
@@ -188,28 +180,32 @@ export default function SignupPage() {
                                 <RadioGroup
                                 onValueChange={field.onChange}
                                 defaultValue={field.value}
-                                className="flex gap-4"
+                                className="grid grid-cols-2 gap-4"
                                 >
-                                <FormItem className="flex-1">
-                                    <FormControl>
-                                        <RadioGroupItem value="user" id="user" className="sr-only" />
-                                    </FormControl>
+                                <FormItem>
+                                    <RadioGroupItem value="user" id="user" className="sr-only peer" />
                                     <FormLabel
                                     htmlFor="user"
-                                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                                    className="flex h-full flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-green-500 peer-data-[state=checked]:shadow-md relative cursor-pointer"
                                     >
-                                    Normal User
+                                        <div className="absolute top-2 right-2 hidden h-5 w-5 items-center justify-center rounded-full bg-green-500 text-white peer-data-[state=checked]:flex">
+                                            <Check className="h-3 w-3" />
+                                        </div>
+                                        <User className="mb-3 h-8 w-8" />
+                                        <span className="font-semibold text-center">Normal User</span>
                                     </FormLabel>
                                 </FormItem>
-                                <FormItem className="flex-1">
-                                    <FormControl>
-                                        <RadioGroupItem value="vendor" id="vendor" className="sr-only" />
-                                    </FormControl>
+                                <FormItem>
+                                    <RadioGroupItem value="vendor" id="vendor" className="sr-only peer" />
                                     <FormLabel
                                     htmlFor="vendor"
-                                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                                    className="flex h-full flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-green-500 peer-data-[state=checked]:shadow-md relative cursor-pointer"
                                     >
-                                    Vendor
+                                        <div className="absolute top-2 right-2 hidden h-5 w-5 items-center justify-center rounded-full bg-green-500 text-white peer-data-[state=checked]:flex">
+                                            <Check className="h-3 w-3" />
+                                        </div>
+                                        <Building className="mb-3 h-8 w-8" />
+                                        <span className="font-semibold text-center">Vendor</span>
                                     </FormLabel>
                                 </FormItem>
                                 </RadioGroup>

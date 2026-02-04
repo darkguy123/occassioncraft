@@ -10,11 +10,10 @@ import { doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { UserCheck } from "lucide-react";
+import { UserCheck, Loader2, User, Building, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2 } from "lucide-react";
 
 const completeProfileSchema = z.object({
   accountType: z.enum(["user", "vendor"], { required_error: "Please select an account type." }),
@@ -123,30 +122,34 @@ export default function CompleteProfilePage() {
                       <RadioGroup
                         onValueChange={field.onChange}
                         defaultValue={field.value}
-                        className="flex gap-4"
+                        className="grid grid-cols-2 gap-4"
                       >
-                        <FormItem className="flex-1">
-                          <FormControl>
-                            <RadioGroupItem value="user" id="user" className="sr-only" />
-                          </FormControl>
+                        <FormItem>
+                          <RadioGroupItem value="user" id="user" className="sr-only peer" />
                           <FormLabel
                             htmlFor="user"
-                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                            className="flex h-full flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-green-500 peer-data-[state=checked]:shadow-md relative cursor-pointer"
                           >
-                            Discover Events
-                            <span className="text-xs text-muted-foreground font-normal mt-1">As a Normal User</span>
+                             <div className="absolute top-2 right-2 hidden h-5 w-5 items-center justify-center rounded-full bg-green-500 text-white peer-data-[state=checked]:flex">
+                                <Check className="h-3 w-3" />
+                            </div>
+                            <User className="mb-3 h-8 w-8" />
+                            <span className="font-semibold text-center">Discover Events</span>
+                            <span className="text-xs text-muted-foreground font-normal mt-1 text-center">As a Normal User</span>
                           </FormLabel>
                         </FormItem>
-                        <FormItem className="flex-1">
-                          <FormControl>
-                            <RadioGroupItem value="vendor" id="vendor" className="sr-only" />
-                          </FormControl>
+                        <FormItem>
+                          <RadioGroupItem value="vendor" id="vendor" className="sr-only peer" />
                           <FormLabel
                             htmlFor="vendor"
-                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                            className="flex h-full flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-green-500 peer-data-[state=checked]:shadow-md relative cursor-pointer"
                           >
-                            Create Events
-                            <span className="text-xs text-muted-foreground font-normal mt-1">As a Vendor</span>
+                            <div className="absolute top-2 right-2 hidden h-5 w-5 items-center justify-center rounded-full bg-green-500 text-white peer-data-[state=checked]:flex">
+                                <Check className="h-3 w-3" />
+                            </div>
+                            <Building className="mb-3 h-8 w-8" />
+                            <span className="font-semibold text-center">Create Events</span>
+                            <span className="text-xs text-muted-foreground font-normal mt-1 text-center">As a Vendor</span>
                           </FormLabel>
                         </FormItem>
                       </RadioGroup>
