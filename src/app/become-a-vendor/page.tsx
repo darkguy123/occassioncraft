@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -32,10 +31,12 @@ export default function BecomeAVendorPage() {
   const isVendor = vendorData?.status === 'approved';
 
   useEffect(() => {
-    if (!isLoading && isVendor) {
+    // This effect handles redirection for users who are already vendors
+    // or have a pending/rejected application.
+    if (!isLoading && (isVendor || (vendorData && (vendorData.status === 'pending' || vendorData.status === 'rejected')))) {
       router.replace('/vendor/dashboard');
     }
-  }, [isLoading, isVendor, router]);
+  }, [isLoading, isVendor, vendorData, router]);
 
   const handleUpgrade = async () => {
     if (!user || !firestore) {
@@ -81,7 +82,8 @@ export default function BecomeAVendorPage() {
     }
   };
   
-  if (isLoading || isVendor) {
+  // Show a loading spinner while data is loading or if a redirect is imminent.
+  if (isLoading || isVendor || (vendorData && (vendorData.status === 'pending' || vendorData.status === 'rejected'))) {
       return (
         <div className="flex h-screen items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -103,11 +105,6 @@ export default function BecomeAVendorPage() {
              </Card>
         </div>
       )
-  }
-
-  if (vendorData && (vendorData.status === 'pending' || vendorData.status === 'rejected')) {
-       router.replace('/vendor/dashboard');
-       return null;
   }
 
   return (
