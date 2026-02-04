@@ -19,14 +19,14 @@ service cloud.firestore {
     match /users/{userId} {
       // Admins can list all users.
       allow list: if isAdmin();
-      // Users can read their own profile data.
+      // Users can read their own profile data. Admins can read all profiles.
       allow read: if isOwner(userId) || isAdmin();
-      // Users can write to their own profile, but cannot change their roles unless they are adding 'vendor'.
-      // Admins can write any user's data.
-      allow write: if isAdmin() || 
-                  (isOwner(userId) && (
-                    request.resource.data.roles.has('admin') == (resource != null && resource.data.roles.has('admin'))
-                  ));
+      // A new user can create their own document during signup.
+      allow create: if isOwner(userId);
+      // An existing user can update their own profile, but cannot change their roles.
+      // Admins can update any field, including roles.
+      allow update: if isAdmin() || 
+                  (isOwner(userId) && !('roles' in request.resource.data));
     }
     
     // Users can read/write their own notifications.
