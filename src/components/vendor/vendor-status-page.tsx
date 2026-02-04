@@ -10,31 +10,8 @@ interface VendorStatusPageProps {
 }
 
 export function VendorStatusPage({ status }: VendorStatusPageProps) {
-  if (status === 'pending') {
-    return (
-      <div className="flex flex-1 items-center justify-center p-4 bg-muted/30 min-h-screen">
-        <Card className="max-w-md text-center">
-          <CardHeader>
-            <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-            <CardTitle className="mt-4">Application Pending</CardTitle>
-            <CardDescription>
-              Your vendor application is currently under review by our team.
-              You will receive a notification once it has been approved.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              This usually takes 1-2 business days. If you have any questions, feel free to{' '}
-              <Link href="/help-center" className="underline text-primary">
-                contact us
-              </Link>.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
+  // The 'pending' state is now handled by a dialog in the layout.
+  // This component is now only for the 'rejected' state.
   if (status === 'rejected') {
     return (
       <div className="flex flex-1 items-center justify-center p-4 bg-muted/30 min-h-screen">
@@ -57,6 +34,15 @@ export function VendorStatusPage({ status }: VendorStatusPageProps) {
         </Card>
       </div>
     );
+  }
+
+  // A fallback for the pending case, though it shouldn't be called from the layout anymore.
+  if (status === 'pending') {
+    return (
+       <div className="flex h-screen items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    )
   }
 
   return null;

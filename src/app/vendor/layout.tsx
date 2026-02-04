@@ -4,7 +4,7 @@
 import { VendorSidebar } from "@/components/vendor/vendor-sidebar";
 import { useUser, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from 'firebase/firestore';
-import type { User as UserType, Vendor as VendorType } from '@/lib/types';
+import type { Vendor as VendorType } from '@/lib/types';
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { PanelLeft } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { VendorStatusPage } from "@/components/vendor/vendor-status-page";
+import { VendorPendingDialog } from "@/components/vendor/vendor-pending-dialog";
 
 export default function VendorLayout({
   children,
@@ -78,12 +79,16 @@ export default function VendorLayout({
     );
   }
 
-  if (authStatus === 'pending' || authStatus === 'rejected') {
-    return <VendorStatusPage status={authStatus} />;
+  if (authStatus === 'rejected') {
+    return <VendorStatusPage status="rejected" />;
   }
 
+  // For both 'authorized' and 'pending', we render the main layout.
+  // The dialog will overlay on top for 'pending' users.
   return (
     <div className="flex min-h-screen">
+      {authStatus === 'pending' && <VendorPendingDialog isOpen={true} />}
+      
       <div className="hidden md:block">
         <VendorSidebar />
       </div>
