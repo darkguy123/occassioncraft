@@ -37,12 +37,16 @@ service cloud.firestore {
       allow list: if isAdmin();
       // Users can read their own profile data. Admins can read all profiles.
       allow read: if isOwner(userId) || isAdmin();
-      // A new user can create their own document during signup.
-      allow create: if isOwner(userId);
-      // An existing user can update their own profile, but cannot change their roles
-      // unless they are upgrading to a vendor. Admins can update any field.
-      allow update: if isAdmin() || 
-                  (isOwner(userId) && (!('roles' in request.resource.data) || isUpgradingToVendor(request, resource) ));
+      // Allow writes (create/update) under specific conditions
+      allow write: if isAdmin() || 
+                   (isOwner(userId) && (
+                       // Case 1: Creating a new profile (resource is null)
+                       resource == null ||
+                       // Case 2: Updating profile but not changing roles
+                       request.resource.data.roles == resource.data.roles ||
+                       // Case 3: Upgrading to a vendor
+                       isUpgradingToVendor(request, resource)
+                   ));
     }
     
     // Users can read/write their own notifications.
@@ -85,7 +89,8 @@ service cloud.firestore {
       // Admins have full access.
       allow read: if request.auth != null || isAdmin();
       // Only users can create their own vendor profile at signup, and admins can write to any.
-      allow create: if request.auth != null;
+      allow create: if isOwner(vendorId);
+      // Only the owner or an admin can update the vendor profile.
       allow update: if isOwner(vendorId) || isAdmin();
     }
     
