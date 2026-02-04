@@ -47,8 +47,8 @@ export function initiateEmailSignIn(authInstance: Auth, email: string, password:
   // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
 }
 
-/** Handle Google Sign-In and create user document if new. */
-export async function handleGoogleSignIn(auth: Auth, firestore: Firestore): Promise<void> {
+/** Handle Google Sign-In and check if the user is new. */
+export async function handleGoogleSignIn(auth: Auth, firestore: Firestore): Promise<{ isNewUser: boolean }> {
   const provider = new GoogleAuthProvider();
   try {
     const result = await signInWithPopup(auth, provider);
@@ -58,22 +58,7 @@ export async function handleGoogleSignIn(auth: Auth, firestore: Firestore): Prom
     const userRef = doc(firestore, "users", user.uid);
     const userSnap = await getDoc(userRef);
 
-    if (!userSnap.exists()) {
-      // User is new, create a document for them
-      const [firstName, ...lastName] = user.displayName?.split(' ') || ["", ""];
-      const newUser = {
-        id: user.uid,
-        firstName: firstName,
-        lastName: lastName.join(' '),
-        email: user.email,
-        roles: ['user'], // Default role
-        dateJoined: new Date().toISOString(),
-        profileImageUrl: user.photoURL,
-      };
-      // Use non-blocking write
-      setDocumentNonBlocking(userRef, newUser);
-    }
-    // If user exists, we just let them log in. Their data is already there.
+    return { isNewUser: !userSnap.exists() };
 
   } catch (error: any) {
     // Handle specific Google sign-in errors

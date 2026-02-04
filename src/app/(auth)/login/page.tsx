@@ -91,12 +91,16 @@ export default function LoginPage() {
   const onGoogleLogin = async () => {
     if (!auth || !firestore) return;
     try {
-      await handleGoogleSignIn(auth, firestore);
-      toast({
-        title: "Login Successful",
-        description: "You are now logged in with Google.",
-      });
-      router.push('/dashboard');
+      const { isNewUser } = await handleGoogleSignIn(auth, firestore);
+      if (isNewUser) {
+        router.push('/signup/complete-profile');
+      } else {
+        toast({
+          title: "Login Successful",
+          description: "You are now logged in with Google.",
+        });
+        router.push('/dashboard');
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
