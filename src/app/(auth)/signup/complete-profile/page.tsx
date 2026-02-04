@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -31,6 +31,12 @@ export default function CompleteProfilePage() {
     resolver: zodResolver(completeProfileSchema),
     mode: "onChange",
   });
+  
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
+  }, [isUserLoading, user, router]);
 
   const onSubmit = async (data: CompleteProfileSchema) => {
     if (!user || !firestore) return;
@@ -65,7 +71,7 @@ export default function CompleteProfilePage() {
             createdAt: new Date().toISOString(),
             pricingTier: 'Free',
         }, { merge: true });
-        router.push('/dashboard');
+        router.push('/vendor/dashboard');
         toast({
             title: "Application Submitted!",
             description: "Your vendor application is now pending review. You will be notified of any status changes."
@@ -86,17 +92,12 @@ export default function CompleteProfilePage() {
     }
   };
 
-  if (isUserLoading) {
+  if (isUserLoading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
-  }
-
-  if (!user && !isUserLoading) {
-    router.push('/login');
-    return null;
   }
 
   return (
