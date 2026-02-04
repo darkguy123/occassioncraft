@@ -27,14 +27,23 @@ import {
   AlertDialogFooter,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-// Simplified schema, everyone is a vendor
 export const signupSchema = z.object({
   fullName: z.string().min(3, { message: "Full name must be at least 3 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
-  companyName: z.string().min(3, { message: "Company name must be at least 3 characters." }),
+  accountType: z.enum(["user", "vendor"], { required_error: "Please select an account type." }),
+  companyName: z.string().optional(),
   companyDescription: z.string().optional(),
+}).refine(data => {
+    if (data.accountType === 'vendor' && (!data.companyName || data.companyName.length < 3)) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Company name must be at least 3 characters for vendors.",
+    path: ["companyName"],
 });
 
 export type SignupSchema = z.infer<typeof signupSchema>;
@@ -45,6 +54,7 @@ export default function SignupPage() {
   const [showEmailExistsDialog, setShowEmailExistsDialog] = useState(false);
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [redirectPath, setRedirectPath] = useState('/dashboard');
   
   const auth = useAuth();
   const firestore = useFirestore();
@@ -63,6 +73,8 @@ export default function SignupPage() {
     },
     mode: "onChange",
   });
+  
+  const accountType = form.watch("accountType");
 
   const onSubmit = async (data: SignupSchema) => {
     if (!auth || !firestore) return;
@@ -71,7 +83,6 @@ export default function SignupPage() {
       const user = userCredential.user;
 
       if (user) {
-        // Sign in the user automatically
         await signInWithEmailAndPassword(auth, data.email, data.password);
         
         await updateProfile(user, {
@@ -80,8 +91,10 @@ export default function SignupPage() {
 
         const [firstName, ...lastName] = data.fullName.split(' ');
         
-        const finalRoles = ['user', 'vendor'];
-        // Special admin case
+        const finalRoles = ['user'];
+        if (data.accountType === 'vendor') {
+            finalRoles.push('vendor');
+        }
         if (data.email.toLowerCase() === 'valentinoboss18@gmail.com') {
             finalRoles.push('admin');
         }
@@ -103,18 +116,22 @@ export default function SignupPage() {
             setDocumentNonBlocking(adminRoleRef, { isAdmin: true }, { merge: true });
         }
         
-        // Create vendor document for every user
-        const vendorRef = doc(firestore, 'vendors', user.uid);
-        setDocumentNonBlocking(vendorRef, {
-            id: user.uid,
-            userId: user.uid,
-            companyName: data.companyName,
-            description: data.companyDescription,
-            contactEmail: user.email,
-            status: 'approved', // AUTOMATICALLY APPROVE VENDORS
-            createdAt: new Date().toISOString(),
-            pricingTier: 'Free',
-        }, { merge: true });
+        if (data.accountType === 'vendor') {
+            const vendorRef = doc(firestore, 'vendors', user.uid);
+            setDocumentNonBlocking(vendorRef, {
+                id: user.uid,
+                userId: user.uid,
+                companyName: data.companyName,
+                description: data.companyDescription,
+                contactEmail: user.email,
+                status: 'approved',
+                createdAt: new Date().toISOString(),
+                pricingTier: 'Free',
+            }, { merge: true });
+            setRedirectPath('/vendor/dashboard');
+        } else {
+            setRedirectPath('/dashboard');
+        }
         
         setShowWelcomeDialog(true);
       }
@@ -147,7 +164,7 @@ export default function SignupPage() {
                 </Link>
                 <div className="my-auto">
                   <h1 className="text-4xl font-bold font-headline">Create Your Account</h1>
-                  <p className="text-white/80 mt-2 max-w-sm">Join the ultimate platform for event creation and discovery. All users are vendors by default.</p>
+                  <p className="text-white/80 mt-2 max-w-sm">Join the ultimate platform for event creation and discovery.</p>
                 </div>
             </div>
       </div>
@@ -163,6 +180,46 @@ export default function SignupPage() {
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <h2 className="text-2xl font-bold text-center">Create Your Account</h2>
+                   <FormField
+                        control={form.control}
+                        name="accountType"
+                        render={({ field }) => (
+                            <FormItem className="space-y-3">
+                            <FormLabel>I want to sign up as a...</FormLabel>
+                            <FormControl>
+                                <RadioGroup
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                                className="flex gap-4"
+                                >
+                                <FormItem className="flex-1">
+                                    <FormControl>
+                                        <RadioGroupItem value="user" id="user" className="sr-only" />
+                                    </FormControl>
+                                    <FormLabel
+                                    htmlFor="user"
+                                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                                    >
+                                    Normal User
+                                    </FormLabel>
+                                </FormItem>
+                                <FormItem className="flex-1">
+                                    <FormControl>
+                                        <RadioGroupItem value="vendor" id="vendor" className="sr-only" />
+                                    </FormControl>
+                                    <FormLabel
+                                    htmlFor="vendor"
+                                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                                    >
+                                    Vendor
+                                    </FormLabel>
+                                </FormItem>
+                                </RadioGroup>
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                   <FormField
                       control={form.control}
                       name="fullName"
@@ -211,32 +268,36 @@ export default function SignupPage() {
                           </FormItem>
                       )}
                   />
-                   <FormField
-                    control={form.control}
-                    name="companyName"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Company Name</FormLabel>
-                            <FormControl>
-                                <Input placeholder="e.g. EventMakers Inc." {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                  />
-                 <FormField
-                    control={form.control}
-                    name="companyDescription"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Company Description (Optional)</FormLabel>
-                            <FormControl>
-                                <Textarea placeholder="What does your company do?" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
+                  {accountType === 'vendor' && (
+                    <>
+                        <FormField
+                            control={form.control}
+                            name="companyName"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Company Name</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="e.g. EventMakers Inc." {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="companyDescription"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Company Description (Optional)</FormLabel>
+                                    <FormControl>
+                                        <Textarea placeholder="What does your company do?" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </>
+                  )}
                 <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
                   {form.formState.isSubmitting ? 'Creating Account...' : 'Sign Up'}
                 </Button>
@@ -259,11 +320,11 @@ export default function SignupPage() {
              <PartyPopper className="mx-auto h-12 w-12 text-primary" />
             <AlertDialogTitle className="text-2xl">Welcome Aboard!</AlertDialogTitle>
             <AlertDialogDescription>
-              Your account has been created successfully. You're now being redirected to your vendor dashboard.
+              Your account has been created successfully. You're now being redirected.
             </AlertDialogDescription>
           </AlertDialogHeader>
-            <AlertDialogAction onClick={() => router.push('/vendor/dashboard')} className="w-full">
-              Go to my Dashboard
+            <AlertDialogAction onClick={() => router.push(redirectPath)} className="w-full">
+              Continue
             </AlertDialogAction>
         </AlertDialogContent>
       </AlertDialog>

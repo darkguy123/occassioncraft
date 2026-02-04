@@ -10,7 +10,7 @@ import type { User } from '@/lib/types';
 import { useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Notifications } from './notifications';
-import { PlusCircle, ShoppingCart, Download } from 'lucide-react';
+import { PlusCircle, ShoppingCart, Download, UserUp } from 'lucide-react';
 import { useLoader } from '@/context/loader-context';
 import { useCart } from '@/context/cart-context';
 import { usePwaInstall } from '@/context/pwa-install-context';
@@ -31,6 +31,7 @@ export function Header() {
   }, [firestore, user]);
 
   const { data: userData } = useDoc<User>(userDocRef);
+  const isVendor = userData?.roles?.includes('vendor');
 
   const handleLinkClick = () => {
     showLoader();
@@ -56,9 +57,14 @@ export function Header() {
             <Link href="/events" className="transition-colors hover:text-white text-white/80" onClick={handleLinkClick}>
               Discover Events
             </Link>
-             {user && (
+             {user && isVendor && (
                <Link href="/vendor/dashboard" className="transition-colors hover:text-white text-white/80" onClick={handleLinkClick}>
                   Vendor Dashboard
+              </Link>
+            )}
+             {user && !isVendor && (
+               <Link href="/become-a-vendor" className="transition-colors hover:text-white text-white/80" onClick={handleLinkClick}>
+                  Become a Vendor
               </Link>
             )}
           </nav>
@@ -69,15 +75,17 @@ export function Header() {
             (user ? (
               <>
                 <div className="flex items-center gap-2">
-                    <Button asChild variant="destructive" size="sm" className="relative">
-                        <Link href="/create-event" onClick={handleLinkClick}>
-                            <span className="md:hidden"><PlusCircle className="h-5 w-5" /></span>
-                            <span className="hidden md:flex items-center">
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Create Event
-                            </span>
-                        </Link>
-                    </Button>
+                    {isVendor && (
+                      <Button asChild variant="destructive" size="sm" className="relative">
+                          <Link href="/create-event" onClick={handleLinkClick}>
+                              <span className="md:hidden"><PlusCircle className="h-5 w-5" /></span>
+                              <span className="hidden md:flex items-center">
+                                  <PlusCircle className="mr-2 h-4 w-4" />
+                                  Create Event
+                              </span>
+                          </Link>
+                      </Button>
+                    )}
                      <Button variant="ghost" size="icon" className="relative text-white hover:bg-white/20 hover:text-white" asChild>
                       <Link href="/vendor/checkout">
                         <ShoppingCart className="h-5 w-5" />

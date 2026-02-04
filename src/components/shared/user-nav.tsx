@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LayoutDashboard, LogOut, Ticket, Shield, Settings, QrCode } from 'lucide-react';
+import { LayoutDashboard, LogOut, Ticket, Shield, Settings, QrCode, UserPlus } from 'lucide-react';
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { User } from '@/lib/types';
@@ -74,11 +74,18 @@ export function UserNav() {
               <span>My Tickets</span>
             </Link>
           </DropdownMenuItem>
-          {isVendor && (
+          {isVendor ? (
             <DropdownMenuItem asChild>
               <Link href="/vendor/dashboard">
                 <LayoutDashboard className="mr-2 h-4 w-4" />
                 <span>Vendor Dashboard</span>
+              </Link>
+            </DropdownMenuItem>
+          ) : (
+             <DropdownMenuItem asChild>
+              <Link href="/become-a-vendor">
+                <UserPlus className="mr-2 h-4 w-4" />
+                <span>Become a Vendor</span>
               </Link>
             </DropdownMenuItem>
           )}

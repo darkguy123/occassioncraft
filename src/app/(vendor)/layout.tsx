@@ -2,7 +2,9 @@
 'use client';
 
 import { VendorSidebar } from "@/components/vendor/vendor-sidebar";
-import { useUser } from "@/firebase";
+import { useUser, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { doc } from 'firebase/firestore';
+import type { User as UserType } from '@/lib/types';
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,26 +18,43 @@ export default function VendorLayout({
   children: React.ReactNode;
 }) {
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const router = useRouter();
 
-  const [isAuthorized, setIsAuthorized] = useState(false);
+  const userDocRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+  
+  const { data: userData, isLoading: isUserDataLoading } = useDoc<UserType>(userDocRef);
+
+  const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
 
   useEffect(() => {
-    if (isUserLoading) {
-      return; // Wait until user state is resolved
+    const isLoading = isUserLoading || isUserDataLoading;
+    if (isLoading) {
+      setAuthStatus('loading');
+      return;
     }
 
     if (!user) {
       router.push('/login?redirect=/vendor/dashboard');
+      setAuthStatus('unauthorized');
       return;
     }
     
-    // If we are here, user is logged in, so they are authorized as a vendor.
-    setIsAuthorized(true);
+    const isVendor = (userData?.roles || []).includes('vendor');
 
-  }, [isUserLoading, user, router]);
+    if (isVendor) {
+        setAuthStatus('authorized');
+    } else {
+        setAuthStatus('unauthorized');
+        router.push('/become-a-vendor');
+    }
+  }, [isUserLoading, isUserDataLoading, user, userData, router]);
 
-  if (!isAuthorized) {
+
+  if (authStatus !== 'authorized') {
     return (
       <div className="flex min-h-screen">
         <aside className="w-64 flex-shrink-0 border-r bg-background p-4 hidden md:block">
