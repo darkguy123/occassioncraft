@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -17,7 +16,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useCollection, useFirestore, updateDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase } from '@/firebase';
-import { collection, doc, arrayUnion } from 'firebase/firestore';
+import { collection, doc, arrayUnion, query, orderBy } from 'firebase/firestore';
 import type { Vendor } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -32,7 +31,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function AdminVendorsPage() {
   const firestore = useFirestore();
-  const vendorsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'vendors') : null, [firestore]);
+  const vendorsCollection = useMemoFirebase(() => firestore ? query(collection(firestore, 'vendors'), orderBy('createdAt', 'desc')) : null, [firestore]);
   const { data: vendors, isLoading } = useCollection<Vendor>(vendorsCollection);
   const { toast } = useToast();
 
