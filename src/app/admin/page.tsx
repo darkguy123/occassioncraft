@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -13,10 +12,10 @@ import {
     ResponsiveContainer,
     BarChart,
 } from 'recharts';
-import { DollarSign, Users, Calendar, AlertTriangle } from 'lucide-react';
+import { DollarSign, Users, Calendar, AlertTriangle, Building } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection } from "firebase/firestore";
-import type { Event, User, Vendor, UserTicket } from "@/lib/types";
+import type { Event, User, Vendor, Ticket } from "@/lib/types";
 import { useMemo } from "react";
 import { format, getMonth, parseISO } from "date-fns";
 
@@ -28,21 +27,21 @@ export default function AdminDashboardPage() {
   const { data: events } = useCollection<Event>(useMemoFirebase(() => firestore ? collection(firestore, 'events') : null, [firestore]));
   const { data: users } = useCollection<User>(useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]));
   const { data: vendors } = useCollection<Vendor>(useMemoFirebase(() => firestore ? collection(firestore, 'vendors') : null, [firestore]));
-  const { data: tickets } = useCollection<UserTicket>(useMemoFirebase(() => firestore ? collection(firestore, 'tickets') : null, [firestore]));
+  const { data: tickets } = useCollection<Ticket>(useMemoFirebase(() => firestore ? collection(firestore, 'tickets') : null, [firestore]));
 
-  const { totalRevenue, salesData, totalUsers, usersData, totalEvents, pendingApprovals } = useMemo(() => {
-    const revenue = tickets?.reduce((acc, ticket) => {
-        const event = events?.find(e => e.id === ticket.eventId);
-        return acc + (event?.price || 0);
-    }, 0) || 0;
+  const { totalRevenue, salesData, totalUsers, usersData, totalEvents, pendingApprovals, totalVendors, vendorsData } = useMemo(() => {
+    const revenue = tickets?.reduce((acc, ticket) => acc + (ticket.price || 0), 0) || 0;
 
     const monthlySales = monthNames.map(month => ({ month, revenue: 0 }));
-    if (tickets && events) {
+    if (tickets) {
       tickets.forEach(ticket => {
-        const event = events.find(e => e.id === ticket.eventId);
-        if (event) {
-          const monthIndex = getMonth(parseISO(ticket.purchaseDate));
-          monthlySales[monthIndex].revenue += event.price;
+        if(ticket.purchaseDate) {
+            try {
+                const monthIndex = getMonth(parseISO(ticket.purchaseDate));
+                monthlySales[monthIndex].revenue += ticket.price || 0;
+            } catch (e) {
+                // Ignore invalid date formats
+            }
         }
       });
     }
@@ -51,8 +50,26 @@ export default function AdminDashboardPage() {
     if (users) {
         users.forEach(user => {
             if (user.dateJoined) {
-                const monthIndex = getMonth(parseISO(user.dateJoined));
-                monthlyUsers[monthIndex].users += 1;
+                try {
+                    const monthIndex = getMonth(parseISO(user.dateJoined));
+                    monthlyUsers[monthIndex].users += 1;
+                } catch (e) {
+                    // Ignore invalid date formats
+                }
+            }
+        });
+    }
+    
+    const monthlyVendors = monthNames.map(month => ({ month, vendors: 0 }));
+    if (vendors) {
+        vendors.forEach(vendor => {
+            if (vendor.createdAt) {
+                 try {
+                    const monthIndex = getMonth(parseISO(vendor.createdAt));
+                    monthlyVendors[monthIndex].vendors += 1;
+                } catch (e) {
+                    // Ignore invalid date formats
+                }
             }
         });
     }
@@ -64,18 +81,31 @@ export default function AdminDashboardPage() {
       salesData: monthlySales.slice(0, 6), // First 6 months for demo
       totalUsers: users?.length || 0,
       usersData: monthlyUsers.slice(0, 6),
+      totalVendors: vendors?.length || 0,
+      vendorsData: monthlyVendors.slice(0, 6),
       totalEvents: events?.length || 0,
       pendingApprovals: pendingVendorCount,
     }
   }, [events, users, vendors, tickets]);
 
+  const getPercentageChange = (currentMonth: number, lastMonth: number) => {
+    if (lastMonth > 0) {
+      return ((currentMonth - lastMonth) / lastMonth) * 100;
+    }
+    return currentMonth > 0 ? 100 : 0;
+  }
+
   const lastMonthSales = salesData.length > 1 ? salesData[salesData.length - 2].revenue : 0;
   const currentMonthSales = salesData.length > 0 ? salesData[salesData.length - 1].revenue : 0;
-  const salesPercentageChange = lastMonthSales > 0 ? ((currentMonthSales - lastMonthSales) / lastMonthSales) * 100 : 0;
+  const salesPercentageChange = getPercentageChange(currentMonthSales, lastMonthSales);
 
   const lastMonthUsers = usersData.length > 1 ? usersData[usersData.length - 2].users : 0;
   const currentMonthUsers = usersData.length > 0 ? usersData[usersData.length - 1].users : 0;
-  const usersPercentageChange = lastMonthUsers > 0 ? ((currentMonthUsers - lastMonthUsers) / lastMonthUsers) * 100 : 0;
+  const usersPercentageChange = getPercentageChange(currentMonthUsers, lastMonthUsers);
+
+  const lastMonthVendors = vendorsData.length > 1 ? vendorsData[vendorsData.length - 2].vendors : 0;
+  const currentMonthVendors = vendorsData.length > 0 ? vendorsData[vendorsData.length - 1].vendors : 0;
+  const vendorsPercentageChange = getPercentageChange(currentMonthVendors, lastMonthVendors);
 
 
   return (
@@ -84,7 +114,7 @@ export default function AdminDashboardPage() {
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">Here&apos;s a quick overview of your platform.</p>
       </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
@@ -106,6 +136,18 @@ export default function AdminDashboardPage() {
             <div className="text-3xl font-bold">{totalUsers}</div>
             <p className="text-xs text-muted-foreground">
                 {usersPercentageChange >= 0 ? '+' : ''}{usersPercentageChange.toFixed(1)}% from last month
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Vendors</CardTitle>
+            <Building className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{totalVendors}</div>
+            <p className="text-xs text-muted-foreground">
+                {vendorsPercentageChange >= 0 ? '+' : ''}{vendorsPercentageChange.toFixed(1)}% from last month
             </p>
           </CardContent>
         </Card>
@@ -218,5 +260,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-    
