@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -20,9 +19,12 @@ import type { Ticket as TicketType } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { useParams } from 'next/navigation';
 
-export default function ManageTicketsPage({ params: { eventId } }: { params: { eventId: string } }) {
+export default function ManageTicketsPage() {
   const firestore = useFirestore();
+  const params = useParams();
+  const eventId = params.eventId as string;
 
   const ticketsQuery = useMemoFirebase(() => {
     if (!firestore || !eventId) return null;

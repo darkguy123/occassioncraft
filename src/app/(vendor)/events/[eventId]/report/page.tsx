@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -22,8 +21,10 @@ import { format, parseISO } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { useParams } from 'next/navigation';
 
-export default function VendorEventReportPage({ params: { eventId } }: { params: { eventId: string } }) {
+export default function VendorEventReportPage() {
   const firestore = useFirestore();
+  const params = useParams();
+  const eventId = params.eventId as string;
 
   const ticketsQuery = useMemoFirebase(() => {
     if (!firestore || !eventId) return null;
