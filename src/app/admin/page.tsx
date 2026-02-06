@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -14,10 +15,11 @@ import {
 } from 'recharts';
 import { DollarSign, Users, Calendar, AlertTriangle, Building } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { collection, query, where } from "firebase/firestore";
 import type { Event, User, Vendor, Ticket } from "@/lib/types";
 import { useMemo } from "react";
 import { format, getMonth, parseISO } from "date-fns";
+import Link from "next/link";
 
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -161,16 +163,18 @@ export default function AdminDashboardPage() {
             <p className="text-xs text-muted-foreground">Live on the platform</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
-             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{pendingApprovals}</div>
-            <p className="text-xs text-muted-foreground">Vendor applications awaiting review</p>
-          </CardContent>
-        </Card>
+        <Link href="/admin/approvals">
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{pendingApprovals}</div>
+              <p className="text-xs text-muted-foreground">Vendor applications awaiting review</p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

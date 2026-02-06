@@ -4,10 +4,15 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Calendar, Ticket, Building, Settings, ShieldCheck, Image } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Ticket, Building, Settings, ShieldCheck, Image, MailCheck } from 'lucide-react';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import type { Vendor } from '@/lib/types';
+import { Badge } from '@/components/ui/badge';
 
 const navItems = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
+    { href: '/admin/approvals', icon: MailCheck, label: 'Approvals' },
     { href: '/admin/events', icon: Calendar, label: 'Events' },
     { href: '/admin/users', icon: Users, label: 'Users' },
     { href: '/admin/vendors', icon: Building, label: 'Vendors' },
@@ -18,6 +23,15 @@ const navItems = [
 
 export function AdminSidebar() {
     const pathname = usePathname();
+    const firestore = useFirestore();
+
+    const pendingVendorsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(collection(firestore, 'vendors'), where('status', '==', 'pending'));
+    }, [firestore]);
+
+    const { data: pendingVendors } = useCollection<Vendor>(pendingVendorsQuery);
+    const pendingCount = pendingVendors?.length || 0;
 
     return (
         <aside className="w-full h-full md:w-64 flex-shrink-0 border-r bg-background">
@@ -36,12 +50,17 @@ export function AdminSidebar() {
                                 key={item.label}
                                 href={item.href || '#'}
                                 className={cn(
-                                    "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-muted",
+                                    "flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-muted",
                                     isActive && "text-primary bg-muted"
                                 )}
                             >
-                                <item.icon className="h-4 w-4" />
-                                <span>{item.label}</span>
+                                <div className="flex items-center gap-3">
+                                    <item.icon className="h-4 w-4" />
+                                    <span>{item.label}</span>
+                                </div>
+                                {item.label === 'Approvals' && pendingCount > 0 && (
+                                    <Badge variant="destructive" className="h-5 w-5 p-0 flex items-center justify-center">{pendingCount}</Badge>
+                                )}
                             </Link>
                         );
                     })}

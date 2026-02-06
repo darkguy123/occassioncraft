@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -20,7 +21,7 @@ interface VendorDetailsDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onUpdateStatus: (vendorId: string, companyName: string, status: 'approved' | 'rejected') => void;
-  onDelete: (vendorId: string, companyName: string) => void;
+  onDelete?: (vendorId: string, companyName: string) => void;
   getBadgeVariant: (status?: 'approved' | 'pending' | 'rejected') => "default" | "secondary" | "destructive" | "outline" | null | undefined;
 }
 
@@ -85,9 +86,11 @@ export function VendorDetailsDialog({
                     </Button>
                 </>
             )}
-            <Button variant="destructive" size="sm" onClick={() => onDelete(vendor.id, vendor.companyName)}>
-                <Trash2 className="mr-2 h-4 w-4" /> Delete
-            </Button>
+            {onDelete && (
+              <Button variant="destructive" size="sm" onClick={() => onDelete(vendor.id, vendor.companyName)}>
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+              </Button>
+            )}
             </div>
         </DialogFooter>
       </DialogContent>
