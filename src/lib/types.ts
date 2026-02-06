@@ -1,6 +1,3 @@
-
-import { FirebaseStorage } from "firebase/storage";
-
 export type UserRole = 'user' | 'vendor' | 'admin' | 'scanner';
 
 export type User = {
@@ -33,7 +30,7 @@ export type Event = {
 
 export type Ticket = {
   id: string;
-  eventId: string;
+  eventId?: string; // Optional: Tickets can be created without an event
   vendorId: string; // Denormalized for security rules
   userId: string; // The user who bought/owns the ticket
   purchaseDate: string; // ISO 8601 string
@@ -124,3 +121,11 @@ export type SiteSettings = {
   aboutUs?: string;
 }
 
+export type DataDeletionRequest = {
+    id: string;
+    userId: string;
+    email: string;
+    reason: string;
+    status: 'pending' | 'completed' | 'rejected';
+    createdAt: string; // ISO 8601 string
+}

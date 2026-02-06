@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
-import type { User as UserType, Event as EventType, Vendor as VendorType } from "@/lib/types";
+import type { User as UserType, Event as EventType } from "@/lib/types";
 import { doc, collection, addDoc } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useEffect, useState } from "react";
@@ -32,10 +32,13 @@ const eventFormSchema = z.object({
   startTime: z.string().min(1, "Start time is required."),
   endTime: z.string().optional(),
   isOnline: z.boolean().default(false),
-  location: z.string().min(1, "Location is required."),
+  location: z.string().optional(),
   description: z.string().optional(),
   bannerUrl: z.string().optional(),
   isPrivate: z.boolean().default(false),
+}).refine(data => !data.isOnline ? !!data.location : true, {
+    message: "Location is required for physical events.",
+    path: ["location"],
 });
 
 export type EventFormValues = z.infer<typeof eventFormSchema>;
@@ -56,14 +59,8 @@ export default function CreateEventPage() {
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
-  const vendorDocRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'vendors', user.uid);
-  }, [firestore, user]);
-
   const { data: userData, isLoading: isUserDataLoading } = useDoc<UserType>(userDocRef);
-  const { data: vendorData, isLoading: isVendorDataLoading } = useDoc<VendorType>(vendorDocRef);
-
+  
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
     defaultValues: {
@@ -86,9 +83,10 @@ export default function CreateEventPage() {
     }
     const eventCollectionRef = collection(firestore, 'events');
 
-    const eventData: Omit<EventType, 'id'> & { bannerUrl?: string } = {
+    const eventData: Omit<EventType, 'id'> = {
         ...data,
         date: data.date.toISOString(),
+        location: data.isOnline ? 'Online Event' : data.location || '',
         vendorId: user.uid,
         organizer: user.displayName || 'Unnamed Organizer',
         status: 'published',
@@ -102,6 +100,10 @@ export default function CreateEventPage() {
         const docRef = await addDoc(eventCollectionRef, eventData);
         setCreatedEvent({ id: docRef.id, ...eventData });
         setIsSuccessDialogOpen(true);
+        toast({
+            title: "Event Published!",
+            description: "Your event is now live.",
+        });
     } catch (error: any) {
         console.error("Error creating event: ", error);
         toast({
@@ -113,7 +115,7 @@ export default function CreateEventPage() {
   }
 
   useEffect(() => {
-    const isLoading = isUserLoading || isUserDataLoading || isVendorDataLoading;
+    const isLoading = isUserLoading || isUserDataLoading;
     if (isLoading) {
       setAuthStatus('loading');
       return;
@@ -125,42 +127,19 @@ export default function CreateEventPage() {
       return;
     }
     
-    const isAdmin = (userData?.roles || []).includes('admin');
+    const isAuthorized = (userData?.roles || []).some(role => ['admin', 'vendor'].includes(role));
     
-    if (isAdmin) {
-      setAuthStatus('authorized');
-      return;
-    }
-
-    if (vendorData) {
-      if (vendorData.status === 'approved') {
+    if (isAuthorized) {
         setAuthStatus('authorized');
-      } else if (vendorData.status === 'pending' || vendorData.status === 'rejected') {
-        router.push('/vendor/dashboard');
-        setAuthStatus('unauthorized');
-      } else {
-        setAuthStatus('unauthorized');
-        toast({
-            variant: "destructive",
-            title: "Unauthorized",
-            description: "You do not have permission to create an event.",
-        });
-        router.push('/dashboard');
-      }
     } else {
-      setAuthStatus('unauthorized');
-      toast({
-          variant: "destructive",
-          title: "Unauthorized",
-          description: "You must be an approved vendor to create an event.",
-      });
-      router.push('/become-a-vendor');
+        router.push('/vendor/dashboard'); // Redirect to dashboard which shows pending status
+        setAuthStatus('unauthorized');
     }
-  }, [isUserLoading, isUserDataLoading, isVendorDataLoading, user, userData, vendorData, router, toast]);
+  }, [isUserLoading, isUserDataLoading, user, userData, router]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || !user) return;
 
     if (file.size > 4 * 1024 * 1024) { // 4MB limit
         toast({ variant: 'destructive', title: 'File too large', description: 'Image must be smaller than 4MB.' });
@@ -169,7 +148,7 @@ export default function CreateEventPage() {
 
     setIsUploading(true);
     const storage = getStorage();
-    const storageRef = ref(storage, `banners/${user?.uid}/${uuidv4()}-${file.name}`);
+    const storageRef = ref(storage, `banners/${user.uid}/${uuidv4()}-${file.name}`);
 
     try {
         await uploadBytes(storageRef, file);
@@ -406,7 +385,7 @@ export default function CreateEventPage() {
                 <PartyPopper className="h-12 w-12 text-primary" />
                 <AlertDialogTitle className="text-2xl">Event Published!</AlertDialogTitle>
                 <AlertDialogDescription>
-                    Your event has been successfully created and published. You can now craft tickets for it.
+                    Your event has been successfully created and is now live. You can now craft tickets for it.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             
