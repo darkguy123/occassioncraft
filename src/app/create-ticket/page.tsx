@@ -299,12 +299,16 @@ export default function CreateTicketPage() {
                           className="grid grid-cols-2 gap-4"
                         >
                           {Object.keys(packages).map((p) => (
-                             <FormItem key={p} className="flex-1">
-                                <FormControl>
-                                   <RadioGroupItem value={p} id={p} className="sr-only" />
-                                </FormControl>
-                                <Label htmlFor={p} className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer">
-                                  <span className="font-semibold">{p}</span>
+                             <FormItem key={p}>
+                                <RadioGroupItem value={p} id={p} className="sr-only peer" />
+                                <Label 
+                                  htmlFor={p} 
+                                  className="flex h-full flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-destructive peer-data-[state=checked]:shadow-md relative cursor-pointer"
+                                >
+                                  <div className="absolute top-2 right-2 hidden h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground peer-data-[state=checked]:flex">
+                                      <Check className="h-3 w-3" />
+                                  </div>
+                                  <span className="font-semibold text-center">{p}</span>
                                 </Label>
                               </FormItem>
                           ))}
