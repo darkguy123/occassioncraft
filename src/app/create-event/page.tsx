@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -17,7 +16,7 @@ import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
-import type { User as UserType, Event as EventType } from "@/lib/types";
+import type { User as UserType, Event as EventType, Vendor as VendorType } from "@/lib/types";
 import { doc, collection, addDoc } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useEffect, useState } from "react";
@@ -57,7 +56,13 @@ export default function CreateEventPage() {
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
+  const vendorDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'vendors', user.uid);
+  }, [firestore, user]);
+
   const { data: userData, isLoading: isUserDataLoading } = useDoc<UserType>(userDocRef);
+  const { data: vendorData, isLoading: isVendorDataLoading } = useDoc<VendorType>(vendorDocRef);
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
@@ -108,32 +113,50 @@ export default function CreateEventPage() {
   }
 
   useEffect(() => {
-    const isLoading = isUserLoading || isUserDataLoading;
+    const isLoading = isUserLoading || isUserDataLoading || isVendorDataLoading;
     if (isLoading) {
       setAuthStatus('loading');
       return;
     }
 
     if (!user) {
-      router.push('/login');
+      router.push('/login?redirect=/create-event');
       setAuthStatus('unauthorized');
       return;
     }
     
-    const isAuthorized = (userData?.roles || []).includes('admin') || (userData?.roles || []).includes('vendor');
+    const isAdmin = (userData?.roles || []).includes('admin');
+    
+    if (isAdmin) {
+      setAuthStatus('authorized');
+      return;
+    }
 
-    if (isAuthorized) {
+    if (vendorData) {
+      if (vendorData.status === 'approved') {
         setAuthStatus('authorized');
-    } else {
+      } else if (vendorData.status === 'pending' || vendorData.status === 'rejected') {
+        router.push('/vendor/dashboard');
+        setAuthStatus('unauthorized');
+      } else {
         setAuthStatus('unauthorized');
         toast({
             variant: "destructive",
             title: "Unauthorized",
-            description: "You must be a vendor or admin to create an event.",
+            description: "You do not have permission to create an event.",
         });
         router.push('/dashboard');
+      }
+    } else {
+      setAuthStatus('unauthorized');
+      toast({
+          variant: "destructive",
+          title: "Unauthorized",
+          description: "You must be an approved vendor to create an event.",
+      });
+      router.push('/become-a-vendor');
     }
-  }, [isUserLoading, isUserDataLoading, user, userData, router, toast]);
+  }, [isUserLoading, isUserDataLoading, isVendorDataLoading, user, userData, vendorData, router, toast]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

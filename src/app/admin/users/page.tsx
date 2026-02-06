@@ -21,7 +21,7 @@ import type { User } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MoreHorizontal, UserPlus } from 'lucide-react';
+import { MoreHorizontal, UserPlus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
@@ -30,6 +30,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { useState, useMemo } from 'react';
+
 
 const adminSeederSchema = z.object({
   uid: z.string().min(1, "User ID is required."),
@@ -41,6 +43,7 @@ type AdminSeederValues = z.infer<typeof adminSeederSchema>;
 export default function AdminUsersPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState('');
   
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -48,6 +51,18 @@ export default function AdminUsersPage() {
   }, [firestore]);
 
   const { data: users, isLoading } = useCollection<User>(usersQuery);
+
+  const filteredUsers = useMemo(() => {
+    if (!users) return [];
+    if (!searchTerm) return users;
+
+    const lowercasedFilter = searchTerm.toLowerCase();
+    return users.filter(user =>
+      (user.firstName?.toLowerCase() || '').includes(lowercasedFilter) ||
+      (user.lastName?.toLowerCase() || '').includes(lowercasedFilter) ||
+      (user.email?.toLowerCase() || '').includes(lowercasedFilter)
+    );
+  }, [users, searchTerm]);
 
   const seederForm = useForm<AdminSeederValues>({
     resolver: zodResolver(adminSeederSchema),
@@ -198,6 +213,15 @@ export default function AdminUsersPage() {
           <CardDescription>
             A list of all user accounts.
           </CardDescription>
+          <div className="pt-4 relative">
+             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+             <Input 
+                placeholder="Search by name or email..."
+                className="max-w-sm pl-9"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -220,8 +244,8 @@ export default function AdminUsersPage() {
                   <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                 </TableRow>
               ))}
-              {!isLoading && users && users.length > 0 ? (
-                users.map((user) => (
+              {!isLoading && filteredUsers && filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
                  <TableRow key={user.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -272,7 +296,7 @@ export default function AdminUsersPage() {
                 !isLoading && (
                     <TableRow>
                         <TableCell colSpan={5} className="text-center text-muted-foreground py-12">
-                        No users found.
+                        {searchTerm ? `No users found for "${searchTerm}".` : "No users found."}
                         </TableCell>
                     </TableRow>
                 )

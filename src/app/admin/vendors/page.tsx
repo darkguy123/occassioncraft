@@ -20,17 +20,19 @@ import { collection, doc, arrayUnion, query, orderBy } from 'firebase/firestore'
 import type { Vendor } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Eye } from 'lucide-react';
+import { MoreHorizontal, Eye, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { VendorDetailsDialog } from '@/components/admin/vendor-details-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
 
 export default function AdminVendorsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState('');
 
   const vendorsQuery = useMemoFirebase(() => {
       if (!firestore) return null;
@@ -38,6 +40,17 @@ export default function AdminVendorsPage() {
   }, [firestore]);
 
   const { data: vendors, isLoading } = useCollection<Vendor>(vendorsQuery);
+
+  const filteredVendors = useMemo(() => {
+    if (!vendors) return [];
+    if (!searchTerm) return vendors;
+
+    const lowercasedFilter = searchTerm.toLowerCase();
+    return vendors.filter(vendor =>
+      (vendor.companyName?.toLowerCase() || '').includes(lowercasedFilter) ||
+      (vendor.contactEmail?.toLowerCase() || '').includes(lowercasedFilter)
+    );
+  }, [vendors, searchTerm]);
 
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -129,6 +142,15 @@ export default function AdminVendorsPage() {
               <CardDescription>
                 A list of all vendors on the platform and their application status.
               </CardDescription>
+              <div className="pt-4 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                    placeholder="Search by company or email..."
+                    className="max-w-sm pl-9"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -150,7 +172,7 @@ export default function AdminVendorsPage() {
                           <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto"/></TableCell>
                       </TableRow>
                     ))}
-                    {!isLoading && vendors?.map((vendor) => (
+                    {!isLoading && filteredVendors?.map((vendor) => (
                       <TableRow key={vendor.id}>
                           <TableCell className="font-medium">{vendor.companyName}</TableCell>
                           <TableCell className="hidden sm:table-cell">{vendor.contactEmail}</TableCell>
@@ -183,10 +205,10 @@ export default function AdminVendorsPage() {
                           </TableCell>
                       </TableRow>
                     ))}
-                    {!isLoading && vendors?.length === 0 && (
+                    {!isLoading && filteredVendors?.length === 0 && (
                         <TableRow>
                           <TableCell colSpan={4} className="text-center text-muted-foreground py-12">
-                            No vendors found.
+                             {searchTerm ? `No vendors found for "${searchTerm}".` : "No vendors found."}
                           </TableCell>
                         </TableRow>
                     )}
