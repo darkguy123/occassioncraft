@@ -18,7 +18,7 @@ import { useForm, SubmitHandler } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { useAuth, useFirebase } from "@/firebase";
-import { initiateEmailSignIn, handleGoogleSignIn } from "@/firebase/non-blocking-login";
+import { initiateEmailSignIn } from "@/firebase/non-blocking-login";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -83,28 +83,6 @@ export default function LoginPage() {
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: error.message,
-      });
-    }
-  };
-  
-  const onGoogleLogin = async () => {
-    if (!auth || !firestore) return;
-    try {
-      const { isNewUser } = await handleGoogleSignIn(auth, firestore);
-      if (isNewUser) {
-        router.push('/signup/complete-profile');
-      } else {
-        toast({
-          title: "Login Successful",
-          description: "You are now logged in with Google.",
-        });
-        router.push('/dashboard');
-      }
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Google Login Failed",
         description: error.message,
       });
     }
@@ -195,9 +173,6 @@ export default function LoginPage() {
                 </div>
               <Button type="submit" className="w-full">
                 Login
-              </Button>
-              <Button variant="outline" className="w-full" type="button" onClick={onGoogleLogin}>
-                Login with Google
               </Button>
             </form>
             <div className="mt-4 text-center text-sm">

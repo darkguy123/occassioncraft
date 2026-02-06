@@ -137,7 +137,7 @@
       "required": ["id", "userId", "email", "reason", "status", "createdAt"]
     }
   },
-  "auth": { "providers": ["password", "anonymous", "google.com"] },
+  "auth": { "providers": ["password", "anonymous"] },
   "firestore": {
     "structure": [
       { "path": "/users/{userId}", "definition": { "entityName": "User", "schema": { "$ref": "#/backend/entities/User" } } },

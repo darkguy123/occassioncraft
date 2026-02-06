@@ -5,12 +5,8 @@ import {
   signInAnonymously,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, Firestore } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
-import { setDocumentNonBlocking } from './non-blocking-updates';
 
 
 /** Initiate anonymous sign-in (non-blocking). */
@@ -45,29 +41,4 @@ export function initiateEmailSignIn(authInstance: Auth, email: string, password:
         });
     });
   // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
-}
-
-/** Handle Google Sign-In and check if the user is new. */
-export async function handleGoogleSignIn(auth: Auth, firestore: Firestore): Promise<{ isNewUser: boolean }> {
-  const provider = new GoogleAuthProvider();
-  try {
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-
-    // Check if user document already exists
-    const userRef = doc(firestore, "users", user.uid);
-    const userSnap = await getDoc(userRef);
-
-    return { isNewUser: !userSnap.exists() };
-
-  } catch (error: any) {
-    // Handle specific Google sign-in errors
-    if (error.code === 'auth/popup-closed-by-user') {
-      throw new Error('Sign-in process was cancelled.');
-    }
-    if (error.code === 'auth/account-exists-with-different-credential') {
-        throw new Error('An account already exists with the same email address but different sign-in credentials.');
-    }
-    throw error; // Re-throw other errors to be caught by the caller
-  }
 }
