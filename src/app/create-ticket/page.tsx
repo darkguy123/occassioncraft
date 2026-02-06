@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const ticketFormSchema = z.object({
-  eventId: z.string().min(1, "Please select an event to link this ticket to."),
+  eventId: z.string().optional(),
   package: z.enum(["Regular", "Premium Individual", "Premium General", "Tiered"]),
   tier: z.string().optional(),
   class: z.string().optional(),
@@ -138,21 +138,14 @@ export default function CreateTicketPage() {
   const onSubmit = (data: TicketFormValues) => {
     if (!user) return;
     const linkedEvent = vendorEvents?.find(e => e.id === data.eventId);
-    if (!linkedEvent) {
-      toast({
-        variant: "destructive",
-        title: "Event Not Selected",
-        description: "You must link this ticket to an event.",
-      });
-      return;
-    }
 
     const cartItem: CartItem = {
       id: uuidv4(),
       ...data,
+      eventId: data.eventId || '',
       price: currentPriceDetails.price,
       quantity: currentPriceDetails.tickets,
-      eventName: linkedEvent.name,
+      eventName: linkedEvent?.name || 'Standalone Ticket',
     };
     
     addToCart(cartItem);
@@ -262,7 +255,7 @@ export default function CreateTicketPage() {
                   name="eventId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Link to Event</FormLabel>
+                      <FormLabel>Link to Event (Optional)</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>

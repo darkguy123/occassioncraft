@@ -45,7 +45,7 @@
         "maxScans": { "type": "number", "description": "Maximum number of allowed scans." },
         "lastScannedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "eventId", "vendorId", "purchaseDate", "package", "scans", "maxScans"]
+      "required": ["id", "vendorId", "purchaseDate", "package", "scans", "maxScans"]
     },
     "UserTicket": {
       "$schema": "http://json-schema.org/draft-07/schema#",

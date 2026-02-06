@@ -37,20 +37,13 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Admins can list all users.
       allow list: if isAdmin();
-      // Users can read their own profile data. Admins can read all profiles.
       allow read: if isOwner(userId) || isAdmin();
-      // Allow writes (create/update) under specific conditions
-      allow write: if isAdmin() || 
-                   (isOwner(userId) && (
-                       // Case 1: Creating a new profile (resource is null means it's a create op)
-                       resource == null ||
-                       // Case 2: Updating profile but not changing roles
-                       request.resource.data.roles == resource.data.roles ||
-                       // Case 3: Upgrading to a vendor
-                       isUpgradingToVendor(request, resource)
-                   ));
+      // Allow user to create their own profile, but not assign roles.
+      allow create: if isOwner(userId) && request.resource.data.roles.size() == 1 && request.resource.data.roles[0] == 'user';
+      // Allow user to update their own profile, but not change their roles.
+      // Admins can update roles.
+      allow update: if isOwner(userId) && request.resource.data.roles == resource.data.roles || isAdmin();
     }
     
     // Users can read/write their own notifications.
@@ -74,9 +67,11 @@ service cloud.firestore {
                     || (request.auth != null && resource.data.vendorId == request.auth.uid)
                     || isAdmin();
 
-       // Events can be created by an authenticated user.
+       // An authenticated user can create an event for themself.
+       // An admin can create an event for anyone.
+       allow create: if request.auth != null && request.resource.data.vendorId == request.auth.uid || isAdmin();
+       
        // Events can be updated by their vendor owner or an admin.
-       allow create: if request.auth != null;
        allow update: if isAdmin() || (request.auth != null && request.resource.data.vendorId == request.auth.uid);
        allow delete: if isAdmin() || (request.auth != null && resource.data.vendorId == request.auth.uid);
     }

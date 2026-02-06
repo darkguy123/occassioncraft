@@ -86,7 +86,7 @@ export default function CreateEventPage() {
         date: data.date.toISOString(),
         vendorId: user.uid,
         organizer: user.displayName || 'Unnamed Organizer',
-        status: 'pending',
+        status: 'published',
     };
     
     if (!eventData.endTime) {
@@ -381,9 +381,9 @@ export default function CreateEventPage() {
         <AlertDialogContent>
             <AlertDialogHeader className="text-center items-center">
                 <PartyPopper className="h-12 w-12 text-primary" />
-                <AlertDialogTitle className="text-2xl">Event Created Successfully!</AlertDialogTitle>
+                <AlertDialogTitle className="text-2xl">Event Published!</AlertDialogTitle>
                 <AlertDialogDescription>
-                    Your event has been created and is now pending admin approval. You can still proceed to craft tickets for it.
+                    Your event has been successfully created and published. You can now craft tickets for it.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             
