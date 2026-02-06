@@ -63,19 +63,17 @@ function TicketValidator() {
         setAuthChecked(true);
     }, [scannerUser, isScannerLoading]);
     
-     // Get camera permission and start video stream
-    useEffect(() => {
-        const getCameraPermission = async () => {
-          try {
+    const handleEnableCamera = async () => {
+        try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
             setHasCameraPermission(true);
             setVideoStream(stream);
-    
+
             if (videoRef.current) {
-              videoRef.current.srcObject = stream;
+                videoRef.current.srcObject = stream;
             }
-             setIsScanning(true);
-          } catch (error) {
+            setIsScanning(true);
+        } catch (error) {
             console.error('Error accessing camera:', error);
             setHasCameraPermission(false);
             toast({
@@ -83,20 +81,18 @@ function TicketValidator() {
               title: 'Camera Access Denied',
               description: 'Please enable camera permissions in your browser settings to use this app.',
             });
-          }
-        };
-
-        if (validationStatus === 'idle') {
-            getCameraPermission();
         }
-
-        // Cleanup: stop video stream when component unmounts
+    };
+    
+     // Cleanup: stop video stream when component unmounts
+    useEffect(() => {
         return () => {
             if (videoStream) {
                 videoStream.getTracks().forEach(track => track.stop());
             }
         }
-    }, [validationStatus, toast]);
+    }, [videoStream]);
+
 
     // Check for torch support
     useEffect(() => {
@@ -291,7 +287,10 @@ function TicketValidator() {
         setScanResult(null);
         setValidationStatus('idle');
         setManualTicketId('');
-        setIsScanning(true);
+        // Restart scanning if camera is still permitted
+        if (hasCameraPermission) {
+            setIsScanning(true);
+        }
     }
     
     const handleManualSubmit = (e: React.FormEvent) => {
@@ -347,16 +346,16 @@ function TicketValidator() {
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
-                        {scanResult && (validationStatus === 'success' || validationStatus === 'error') ? (
+                        {validationStatus === 'success' || validationStatus === 'error' ? (
                              <div className="flex flex-col items-center justify-center text-center p-4 rounded-lg bg-secondary">
-                                {scanResult.status === 'success' ? (
+                                {scanResult?.status === 'success' ? (
                                     <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
                                 ) : (
                                     <XCircle className="h-16 w-16 text-destructive mb-4" />
                                 )}
-                                <h3 className={`text-2xl font-bold ${scanResult.status === 'success' ? 'text-green-600' : 'text-destructive'}`}>{scanResult.message}</h3>
+                                <h3 className={`text-2xl font-bold ${scanResult?.status === 'success' ? 'text-green-600' : 'text-destructive'}`}>{scanResult?.message}</h3>
                                 
-                                {scanResult.details && (
+                                {scanResult?.details && (
                                     <Card className="mt-4 p-4 w-full max-w-sm">
                                         <div className="flex items-center gap-4">
                                             <Avatar className="h-16 w-16">
@@ -376,40 +375,40 @@ function TicketValidator() {
                                 <Button onClick={resetScanner} className="mt-6">Scan Next Ticket</Button>
                             </div>
                         ) : (
-                             <div className="w-full aspect-square bg-black rounded-lg overflow-hidden relative flex items-center justify-center">
-                                <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
-                                <canvas ref={canvasRef} className="hidden" />
-
-                                <div className="absolute inset-0 border-8 border-white/20 rounded-lg" style={{ clipPath: 'polygon(0% 0%, 0% 100%, 25% 100%, 25% 25%, 75% 25%, 75% 75%, 25% 75%, 25% 100%, 100% 100%, 100% 0%)' }} />
-
-                                {validationStatus === 'loading' && <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white"><Loader2 className="h-10 w-10 animate-spin mb-2" />Validating...</div>}
-                                
-                                {isTorchSupported && (
-                                     <Button
-                                        size="icon"
-                                        variant={isTorchOn ? "secondary" : "outline"}
-                                        onClick={toggleTorch}
-                                        className="absolute top-4 right-4 z-10"
-                                     >
-                                        {isTorchOn ? <ZapOff /> : <Zap />}
-                                        <span className="sr-only">Toggle Flashlight</span>
-                                     </Button>
-                                )}
-                                
-                               {hasCameraPermission === false && (
-                                  <Alert variant="destructive" className="absolute inset-x-4 bottom-4 w-auto z-10">
-                                      <VideoOff className="h-4 w-4" />
-                                      <AlertTitle>Camera Access Required</AlertTitle>
-                                      <AlertDescription>
-                                          Please allow camera access to use this feature.
-                                      </AlertDescription>
-                                  </Alert>
-                                )}
-                                {hasCameraPermission === null && !isScannerLoading && (
-                                     <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white">
-                                        <Loader2 className="h-10 w-10 animate-spin mb-2" />
-                                        <p>Requesting camera access...</p>
-                                    </div>
+                            <div className="w-full aspect-square bg-black rounded-lg overflow-hidden relative flex flex-col items-center justify-center p-4 text-center">
+                                {hasCameraPermission ? (
+                                     <>
+                                        <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover" autoPlay playsInline muted />
+                                        <canvas ref={canvasRef} className="hidden" />
+                                        <div className="absolute inset-0 border-8 border-white/20 rounded-lg" style={{ clipPath: 'polygon(0% 0%, 0% 100%, 25% 100%, 25% 25%, 75% 25%, 75% 75%, 25% 75%, 25% 100%, 100% 100%, 100% 0%)' }} />
+                                        {validationStatus === 'loading' && <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white"><Loader2 className="h-10 w-10 animate-spin mb-2" />Validating...</div>}
+                                        {isTorchSupported && (
+                                             <Button
+                                                size="icon"
+                                                variant={isTorchOn ? "secondary" : "outline"}
+                                                onClick={toggleTorch}
+                                                className="absolute top-4 right-4 z-10"
+                                             >
+                                                {isTorchOn ? <ZapOff /> : <Zap />}
+                                                <span className="sr-only">Toggle Flashlight</span>
+                                             </Button>
+                                        )}
+                                    </>
+                                ) : hasCameraPermission === false ? (
+                                    <>
+                                        <VideoOff className="h-12 w-12 text-destructive mb-4" />
+                                        <h3 className="text-xl font-bold text-white">Camera Access Denied</h3>
+                                        <p className="text-muted-foreground mt-2">To scan tickets, OccasionCraft needs access to your camera. Please enable camera permissions in your browser settings and refresh the page.</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Camera className="h-12 w-12 text-muted-foreground mb-4" />
+                                        <h3 className="text-xl font-bold text-white">Ready to Scan</h3>
+                                        <p className="text-muted-foreground mt-2 max-w-sm">This tool uses your device's camera to scan QR codes on event tickets for fast and secure validation.</p>
+                                        <Button onClick={handleEnableCamera} className="mt-6">
+                                            Enable Camera & Start Scanning
+                                        </Button>
+                                    </>
                                 )}
                             </div>
                         )}
@@ -454,3 +453,5 @@ export default function ValidatePage() {
         </Suspense>
     )
 }
+
+    
