@@ -14,32 +14,30 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from '@/components/ui/card';
-import { useFirestore, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, doc, arrayUnion, query, orderBy, getDocs, limit, startAfter, type QueryDocumentSnapshot } from 'firebase/firestore';
+import { useFirestore, updateDocumentNonBlocking, deleteDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc, arrayUnion, query, orderBy } from 'firebase/firestore';
 import type { Vendor } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Eye, Loader2 } from 'lucide-react';
+import { MoreHorizontal, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { VendorDetailsDialog } from '@/components/admin/vendor-details-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-
-const VENDORS_PER_PAGE = 15;
 
 export default function AdminVendorsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot | null>(null);
-  const [hasMore, setHasMore] = useState(true);
+  const vendorsQuery = useMemoFirebase(() => {
+      if (!firestore) return null;
+      return query(collection(firestore, 'vendors'), orderBy('createdAt', 'desc'));
+  }, [firestore]);
+
+  const { data: vendors, isLoading } = useCollection<Vendor>(vendorsQuery);
 
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -52,65 +50,6 @@ export default function AdminVendorsPage() {
     action?: DialogAction;
   }
   const [dialogState, setDialogState] = useState<DialogState>({ isOpen: false });
-  
-  const fetchVendors = useCallback(async () => {
-    if (!firestore) return;
-    setIsLoading(true);
-    try {
-        const first = query(collection(firestore, 'vendors'), orderBy('createdAt', 'desc'), limit(VENDORS_PER_PAGE));
-        const documentSnapshots = await getDocs(first);
-
-        const newVendors = documentSnapshots.docs.map(doc => ({ id: doc.id, ...doc.data() } as Vendor));
-        setVendors(newVendors);
-
-        const lastDoc = documentSnapshots.docs[documentSnapshots.docs.length - 1];
-        setLastVisible(lastDoc);
-
-        if (documentSnapshots.empty || documentSnapshots.size < VENDORS_PER_PAGE) {
-            setHasMore(false);
-        } else {
-            setHasMore(true);
-        }
-    } catch (error) {
-        console.error("Error fetching vendors:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch vendors.' });
-    } finally {
-        setIsLoading(false);
-    }
-  }, [firestore, toast]);
-    
-  useEffect(() => {
-    fetchVendors();
-  }, [fetchVendors]);
-
-  const loadMoreVendors = async () => {
-    if (!firestore || !lastVisible || !hasMore) return;
-    setIsLoadingMore(true);
-    try {
-        const next = query(collection(firestore, 'vendors'), orderBy('createdAt', 'desc'), startAfter(lastVisible), limit(VENDORS_PER_PAGE));
-        const documentSnapshots = await getDocs(next);
-
-        if (documentSnapshots.empty) {
-            setHasMore(false);
-            return;
-        }
-
-        const newVendors = documentSnapshots.docs.map(doc => ({ id: doc.id, ...doc.data() } as Vendor));
-        setVendors(prevVendors => [...prevVendors, ...newVendors]);
-
-        const lastDoc = documentSnapshots.docs[documentSnapshots.docs.length - 1];
-        setLastVisible(lastDoc);
-        
-        if (documentSnapshots.size < VENDORS_PER_PAGE) {
-            setHasMore(false);
-        }
-    } catch (error) {
-         console.error("Error fetching more vendors:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not load more vendors.' });
-    } finally {
-        setIsLoadingMore(false);
-    }
-  };
 
   const getBadgeVariant = (status?: 'approved' | 'pending' | 'rejected') => {
     switch (status) {
@@ -144,12 +83,12 @@ export default function AdminVendorsPage() {
 
     if (dialogState.action === 'delete') {
       deleteDocumentNonBlocking(vendorRef);
-      setVendors(v => v.filter(vendor => vendor.id !== dialogState.vendorId));
+      // No need to manually update state, useCollection will do it
       toastMessage = `Vendor "${dialogState.companyName}" has been deleted.`;
     } else {
       // Approve or Reject
       updateDocumentNonBlocking(vendorRef, { status: dialogState.action });
-       setVendors(v => v.map(vendor => vendor.id === dialogState.vendorId ? { ...vendor, status: dialogState.action as 'approved' | 'rejected' } : vendor));
+      // No need to manually update state, useCollection will do it
       toastMessage = `Vendor "${dialogState.companyName}" has been ${dialogState.action}.`;
       
       // If approving, also update the user's roles
@@ -173,7 +112,6 @@ export default function AdminVendorsPage() {
       delete: { title: "Delete Vendor", description: "This action cannot be undone. This will permanently delete the vendor and all their associated data. Are you sure?" }
   }
   const currentDialog = dialogState.action ? dialogContent[dialogState.action] : null;
-
 
   return (
       <>
@@ -256,14 +194,6 @@ export default function AdminVendorsPage() {
                 </Table>
               </div>
             </CardContent>
-            {hasMore && (
-                <CardFooter>
-                    <Button onClick={loadMoreVendors} disabled={isLoadingMore} className="w-full">
-                        {isLoadingMore && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Load More
-                    </Button>
-                </CardFooter>
-            )}
           </Card>
         </div>
 
