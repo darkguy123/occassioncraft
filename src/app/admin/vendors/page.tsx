@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -16,7 +17,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useFirestore, updateDocumentNonBlocking, deleteDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, arrayUnion, query, orderBy } from 'firebase/firestore';
+import { collection, doc, arrayUnion, query } from 'firebase/firestore';
 import type { Vendor } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -36,21 +37,30 @@ export default function AdminVendorsPage() {
 
   const vendorsQuery = useMemoFirebase(() => {
       if (!firestore) return null;
-      return query(collection(firestore, 'vendors'), orderBy('createdAt', 'desc'));
+      return query(collection(firestore, 'vendors'));
   }, [firestore]);
 
-  const { data: vendors, isLoading } = useCollection<Vendor>(vendorsQuery);
+  const { data: unsortedVendors, isLoading } = useCollection<Vendor>(vendorsQuery);
+
+  const sortedVendors = useMemo(() => {
+    if (!unsortedVendors) return [];
+    return [...unsortedVendors].sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+    });
+  }, [unsortedVendors]);
 
   const filteredVendors = useMemo(() => {
-    if (!vendors) return [];
-    if (!searchTerm) return vendors;
+    if (!sortedVendors) return [];
+    if (!searchTerm) return sortedVendors;
 
     const lowercasedFilter = searchTerm.toLowerCase();
-    return vendors.filter(vendor =>
+    return sortedVendors.filter(vendor =>
       (vendor.companyName?.toLowerCase() || '').includes(lowercasedFilter) ||
       (vendor.contactEmail?.toLowerCase() || '').includes(lowercasedFilter)
     );
-  }, [vendors, searchTerm]);
+  }, [sortedVendors, searchTerm]);
 
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);

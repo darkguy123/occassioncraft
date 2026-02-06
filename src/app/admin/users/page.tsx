@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -16,7 +17,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, query, doc, getDoc, orderBy } from 'firebase/firestore';
+import { collection, query, doc, getDoc } from 'firebase/firestore';
 import type { User } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
@@ -47,22 +48,32 @@ export default function AdminUsersPage() {
   
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'users'), orderBy('dateJoined', 'desc'));
+    return query(collection(firestore, 'users'));
   }, [firestore]);
 
-  const { data: users, isLoading } = useCollection<User>(usersQuery);
+  const { data: unsortedUsers, isLoading } = useCollection<User>(usersQuery);
+
+  const sortedUsers = useMemo(() => {
+    if (!unsortedUsers) return [];
+    // Sort on client-side to handle potentially missing dateJoined fields
+    return [...unsortedUsers].sort((a, b) => {
+        const dateA = a.dateJoined ? new Date(a.dateJoined).getTime() : 0;
+        const dateB = b.dateJoined ? new Date(b.dateJoined).getTime() : 0;
+        return dateB - dateA;
+    });
+  }, [unsortedUsers]);
 
   const filteredUsers = useMemo(() => {
-    if (!users) return [];
-    if (!searchTerm) return users;
+    if (!sortedUsers) return [];
+    if (!searchTerm) return sortedUsers;
 
     const lowercasedFilter = searchTerm.toLowerCase();
-    return users.filter(user =>
+    return sortedUsers.filter(user =>
       (user.firstName?.toLowerCase() || '').includes(lowercasedFilter) ||
       (user.lastName?.toLowerCase() || '').includes(lowercasedFilter) ||
       (user.email?.toLowerCase() || '').includes(lowercasedFilter)
     );
-  }, [users, searchTerm]);
+  }, [sortedUsers, searchTerm]);
 
   const seederForm = useForm<AdminSeederValues>({
     resolver: zodResolver(adminSeederSchema),
