@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -15,10 +16,10 @@ import { CalendarIcon, Image as ImageIcon, MapPin, Plus, Save, PartyPopper, Load
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
-import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
+import { useFirebase, useDoc, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
 import type { User as UserType, Event as EventType } from "@/lib/types";
 import { doc, collection, addDoc } from "firebase/firestore";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
 import Image from "next/image"
@@ -46,8 +47,7 @@ export type EventFormValues = z.infer<typeof eventFormSchema>;
 export default function CreateEventPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
+  const { user, isUserLoading, firestore, storage } = useFirebase();
   
   const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
@@ -139,7 +139,7 @@ export default function CreateEventPage() {
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !user) return;
+    if (!file || !user || !storage) return;
 
     if (file.size > 4 * 1024 * 1024) { // 4MB limit
         toast({ variant: 'destructive', title: 'File too large', description: 'Image must be smaller than 4MB.' });
@@ -147,7 +147,6 @@ export default function CreateEventPage() {
     }
 
     setIsUploading(true);
-    const storage = getStorage();
     const storageRef = ref(storage, `banners/${user.uid}/${uuidv4()}-${file.name}`);
 
     try {

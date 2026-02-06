@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -8,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
-import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
+import { useFirebase, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import type { User as UserType, Event as EventType, Ticket } from "@/lib/types";
 import { doc, collection, query, where } from "firebase/firestore";
 import { useEffect, useState, useMemo } from "react";
@@ -22,7 +23,7 @@ import { TicketStylePreview } from "@/components/ticket-style-preview"
 import Image from "next/image"
 import { generateTicketImage } from "@/ai/flows/generate-ticket-image-flow"
 import { Loader2, Wand2, Info, Plus, Upload, ShoppingCart, Check, PartyPopper } from "lucide-react"
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
 import { useCart, type CartItem } from "@/context/cart-context"
 import Link from "next/link";
@@ -73,8 +74,7 @@ const packages = {
 export default function CreateTicketPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
+  const { user, isUserLoading, firestore, storage } = useFirebase();
   const { addToCart } = useCart();
   
   const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
@@ -185,13 +185,12 @@ export default function CreateTicketPage() {
   }, [isUserLoading, isUserDataLoading, user, userData, router, toast]);
 
   const handleFileUpload = async (file: File, field: keyof TicketFormValues) => {
-    if (!user) return;
+    if (!user || !storage) return;
     if (file.size > 4 * 1024 * 1024) {
         toast({ variant: 'destructive', title: 'File too large', description: 'Image must be smaller than 4MB.' });
         return;
     }
     setIsUploading(true);
-    const storage = getStorage();
     const storageRef = ref(storage, `ticket-assets/${user.uid}/${uuidv4()}-${file.name}`);
     try {
         await uploadBytes(storageRef, file);

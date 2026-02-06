@@ -20,9 +20,9 @@ import { Skeleton } from "@/components/ui/skeleton"
 import Image from "next/image"
 import type { Event, User as UserType } from "@/lib/types";
 import Link from "next/link";
-import { useFirestore, useDoc, updateDocumentNonBlocking, useMemoFirebase, useUser } from "@/firebase";
+import { useFirebase, useDoc, updateDocumentNonBlocking, useMemoFirebase } from "@/firebase";
 import { doc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -44,8 +44,7 @@ export type EventFormValues = z.infer<typeof eventFormSchema>;
 export default function AdminEditEventPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const firestore = useFirestore();
-  const { user } = useUser();
+  const { firestore, user, storage } = useFirebase();
   const params = useParams();
   const eventId = params.eventId as string;
 
@@ -107,7 +106,7 @@ export default function AdminEditEventPage() {
   
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !user) return;
+    if (!file || !user || !storage) return;
 
     if (file.size > 4 * 1024 * 1024) { // 4MB limit
         toast({ variant: 'destructive', title: 'File too large', description: 'Image must be smaller than 4MB.' });
@@ -115,7 +114,6 @@ export default function AdminEditEventPage() {
     }
 
     setIsUploading(true);
-    const storage = getStorage();
     const storageRef = ref(storage, `banners/${user.uid}/${eventId}/${uuidv4()}-${file.name}`);
 
     try {
