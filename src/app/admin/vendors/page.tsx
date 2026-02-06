@@ -106,12 +106,10 @@ export default function AdminVendorsPage() {
 
     if (dialogState.action === 'delete') {
       deleteDocumentNonBlocking(vendorRef);
-      // No need to manually update state, useCollection will do it
       toastMessage = `Vendor "${dialogState.companyName}" has been deleted.`;
     } else {
       // Approve or Reject
       updateDocumentNonBlocking(vendorRef, { status: dialogState.action });
-      // No need to manually update state, useCollection will do it
       toastMessage = `Vendor "${dialogState.companyName}" has been ${dialogState.action}.`;
       
       // If approving, also update the user's roles
