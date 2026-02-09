@@ -4,27 +4,24 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     
-    // Public assets are readable by anyone.
-    match /public/{allPaths=**} {
-      allow read;
-    }
+    // Allow public read access for all files. This is necessary for images to be
+    // displayed in the app after they are uploaded.
+    allow read;
 
-    // Banners can be written by the user who owns the folder.
-    // Anyone can read them after they are uploaded.
-    match /banners/{userId}/{allPaths=**} {
-      allow read;
+    // Default deny all writes unless explicitly allowed by a more specific rule.
+    allow write: if false;
+
+    // Allow authenticated users to write to their own folders within specific directories.
+    // Using {fileName} is more specific than a general wildcard.
+    match /banners/{userId}/{fileName} {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Avatars follow the same pattern.
-    match /avatars/{userId}/{allPaths=**} {
-      allow read;
+    match /avatars/{userId}/{fileName} {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
-
-    // Ticket assets follow the same pattern.
-    match /ticket-assets/{userId}/{allPaths=**} {
-      allow read;
+    
+    match /ticket-assets/{userId}/{fileName} {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
   }
