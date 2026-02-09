@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { PanelLeft } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { VendorStatusPage } from "@/components/vendor/vendor-status-page";
-import { VendorPendingDialog } from "@/components/vendor/vendor-pending-dialog";
 
 export default function VendorLayout({
   children,
@@ -78,17 +77,17 @@ export default function VendorLayout({
       </div>
     );
   }
+  
+  if (authStatus === 'pending') {
+    return <VendorStatusPage status="pending" />;
+  }
 
   if (authStatus === 'rejected') {
     return <VendorStatusPage status="rejected" />;
   }
 
-  // For both 'authorized' and 'pending', we render the main layout.
-  // The dialog will overlay on top for 'pending' users.
   return (
     <div className="flex min-h-screen">
-      {authStatus === 'pending' && <VendorPendingDialog isOpen={true} />}
-      
       <div className="hidden md:block">
         <VendorSidebar />
       </div>

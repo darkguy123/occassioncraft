@@ -4,14 +4,16 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, XCircle } from 'lucide-react';
 import Link from 'next/link';
+import { Button } from '../ui/button';
+import { useRouter } from 'next/navigation';
 
 interface VendorStatusPageProps {
   status: 'pending' | 'rejected';
 }
 
 export function VendorStatusPage({ status }: VendorStatusPageProps) {
-  // The 'pending' state is now handled by a dialog in the layout.
-  // This component is now only for the 'rejected' state.
+    const router = useRouter();
+
   if (status === 'rejected') {
     return (
       <div className="flex flex-1 items-center justify-center p-4 bg-muted/30 min-h-screen">
@@ -36,12 +38,22 @@ export function VendorStatusPage({ status }: VendorStatusPageProps) {
     );
   }
 
-  // A fallback for the pending case, though it shouldn't be called from the layout anymore.
   if (status === 'pending') {
     return (
-       <div className="flex h-screen items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+       <div className="flex flex-1 items-center justify-center p-4 bg-muted/30 min-h-screen">
+        <Card className="max-w-md text-center">
+          <CardHeader>
+            <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+            <CardTitle className="mt-4">Application Pending</CardTitle>
+            <CardDescription>
+              Your vendor application is currently under review. You will be notified by email once a decision has been made.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => router.push('/')}>Go to Homepage</Button>
+          </CardContent>
+        </Card>
+      </div>
     )
   }
 
