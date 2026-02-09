@@ -104,7 +104,7 @@ export default function VendorEditEventPage() {
     router.push('/vendor/dashboard');
   };
   
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user || !storage) return;
 
@@ -117,23 +117,17 @@ export default function VendorEditEventPage() {
     const storageRef = ref(storage, `banners/${user.uid}/${eventId}/${uuidv4()}-${file.name}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
     
-    uploadTask.on('state_changed',
-        (snapshot) => {
-            // Optional: handle progress updates
-        },
-        (error) => {
-            console.error("Error uploading file:", error);
-            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload the banner image.' });
-            setIsUploading(false);
-        },
-        () => {
-            getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-                form.setValue('bannerUrl', downloadURL, { shouldValidate: true });
-                toast({ title: 'Banner Uploaded', description: 'Your new banner has been saved.' });
-                setIsUploading(false);
-            });
-        }
-    );
+    try {
+      const snapshot = await uploadTask;
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      form.setValue('bannerUrl', downloadURL, { shouldValidate: true });
+      toast({ title: 'Banner Uploaded', description: 'Your new banner has been saved.' });
+    } catch (error: any) {
+        console.error("Error uploading file:", error);
+        toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload the banner image.' });
+    } finally {
+        setIsUploading(false);
+    }
   };
 
   const handleAddScanner = async () => {

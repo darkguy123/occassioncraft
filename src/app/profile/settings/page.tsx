@@ -87,21 +87,17 @@ export default function ProfileSettingsPage() {
     const storageRef = ref(storage, `avatars/${user.uid}/profile.png`);
     const uploadTask = uploadBytesResumable(storageRef, blob);
 
-    uploadTask.on('state_changed',
-        () => {},
-        (error) => {
-            console.error("Error uploading avatar:", error);
-            toast({ variant: 'destructive', title: 'Avatar Upload Failed', description: 'Could not save your new picture.' });
-            setIsAvatarUploading(false);
-        },
-        () => {
-            getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-                form.setValue('profileImageUrl', downloadURL);
-                toast({ title: 'Avatar Updated', description: 'Click "Save Changes" to apply your new picture.' });
-                setIsAvatarUploading(false);
-            });
-        }
-    );
+    try {
+      const snapshot = await uploadTask;
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      form.setValue('profileImageUrl', downloadURL);
+      toast({ title: 'Avatar Updated', description: 'Click "Save Changes" to apply your new picture.' });
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      toast({ variant: 'destructive', title: 'Avatar Upload Failed', description: 'Could not save your new picture.' });
+    } finally {
+      setIsAvatarUploading(false);
+    }
   };
   
   const handleEmailChangeRequest = async (newEmail: string) => {
@@ -302,7 +298,7 @@ export default function ProfileSettingsPage() {
 
               <div className="flex justify-end pt-4 border-t">
                 <Button type="submit" disabled={isAvatarUploading || form.formState.isSubmitting}>
-                    {isAvatarUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {isAvatarUploading || form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     Save Changes
                 </Button>
               </div>
