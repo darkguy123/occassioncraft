@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -6,11 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "@/components/ui/table";
 import { BarChart2, Ticket, DollarSign, PlusCircle, QrCode, AlertTriangle, MoreHorizontal, Edit, Trash2, Palette, Calendar } from "lucide-react";
 import Link from "next/link";
-import { useUser, useFirestore, useMemoFirebase, useCollection, deleteDocumentNonBlocking, useDoc } from "@/firebase";
+import { useUser, useFirestore, useMemoFirebase, useCollection, deleteDocumentNonBlocking } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
-import type { Event, Ticket as TicketType, User as UserType } from "@/lib/types";
+import type { Event, Ticket as TicketType } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useMemo, useEffect } from "react";
+import { useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
     DropdownMenu,
@@ -21,29 +20,11 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge";
-import { useRouter } from "next/navigation";
 
 export default function VendorDashboardPage() {
-    const { user } = useUser();
+    const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
-    const router = useRouter();
-
-    const userDocRef = useMemoFirebase(() => {
-        if (!user) return null;
-        return doc(firestore, 'users', user.uid);
-    }, [user, firestore]);
-    const { data: userData, isLoading: isUserLoading } = useDoc<UserType>(userDocRef);
-
-    useEffect(() => {
-        if (!isUserLoading && userData) {
-            const userRoles = userData.roles || [];
-            if (!userRoles.includes('vendor')) {
-                router.replace('/vendor/onboarding');
-            }
-        }
-    }, [isUserLoading, userData, router]);
-
 
     const vendorEventsQuery = useMemoFirebase(() => {
         if (!user) return null;
