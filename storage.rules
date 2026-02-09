@@ -4,24 +4,19 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     
-    // Allow public read access for all files. This is necessary for images to be
-    // displayed in the app after they are uploaded.
+    // Allow public read access for all files.
     allow read;
 
-    // Default deny all writes unless explicitly allowed by a more specific rule.
-    allow write: if false;
-
-    // Allow authenticated users to write to their own folders within specific directories.
-    // Using {fileName} is more specific than a general wildcard.
-    match /banners/{userId}/{fileName} {
+    // Use a recursive wildcard {allPaths=**} to match nested paths like /banners/{userId}/EVENT_ID/file.jpg
+    match /banners/{userId}/{allPaths=**} {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
-    match /avatars/{userId}/{fileName} {
+    match /avatars/{userId}/{allPaths=**} {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
     
-    match /ticket-assets/{userId}/{fileName} {
+    match /ticket-assets/{userId}/{allPaths=**} {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
   }
