@@ -8,3 +8,4 @@ export const firebaseConfig = {
   "measurementId": "",
   "messagingSenderId": "916715795833"
 };
+
