@@ -9,20 +9,24 @@ service firebase.storage {
       allow read: if true;
     }
 
-    // User-uploaded banners are publicly readable but only writable by the owner.
-    match /banners/{userId}/{allPaths=**} {
+    // Banners can be uploaded to a root folder or a nested event folder.
+    match /banners/{userId}/{fileId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /banners/{userId}/{eventId}/{fileId} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
     // User-uploaded ticket assets are publicly readable but only writable by the owner.
-    match /ticket-assets/{userId}/{allPaths=**} {
+    match /ticket-assets/{userId}/{fileId} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
     
     // User-uploaded avatars are publicly readable but only writable by the owner.
-    match /avatars/{userId}/{allPaths=**} {
+    match /avatars/{userId}/{fileId} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
