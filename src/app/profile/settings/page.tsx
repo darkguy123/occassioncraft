@@ -7,7 +7,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { updateProfile, getAuth, verifyBeforeUpdateEmail } from 'firebase/auth';
+import { getAuth, updateProfile, verifyBeforeUpdateEmail } from 'firebase/auth';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Edit, Upload } from 'lucide-react';
+import { Edit, Upload, Loader2 } from 'lucide-react';
 import { ImageCropperDialog } from '@/components/shared/image-cropper-dialog';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Label } from '@/components/ui/label';
@@ -25,18 +26,19 @@ const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required."),
   lastName: z.string().min(1, "Last name is required."),
   email: z.string().email(),
+  profileImageUrl: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function ProfileSettingsPage() {
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
+  const { firestore, storage } = useFirebase();
   const { toast } = useToast();
 
   const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [croppedAvatarUrl, setCroppedAvatarUrl] = useState<string | null>(null);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
 
   const userRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
@@ -48,6 +50,7 @@ export default function ProfileSettingsPage() {
       firstName: '',
       lastName: '',
       email: '',
+      profileImageUrl: '',
     },
   });
 
@@ -57,10 +60,8 @@ export default function ProfileSettingsPage() {
         firstName: userData.firstName,
         lastName: userData.lastName,
         email: userData.email,
+        profileImageUrl: userData.profileImageUrl,
       });
-      if (userData.profileImageUrl) {
-        setCroppedAvatarUrl(userData.profileImageUrl);
-      }
     }
   }, [userData, form]);
 
@@ -76,9 +77,31 @@ export default function ProfileSettingsPage() {
     }
   };
 
-  const onCrop = (croppedImageUrl: string) => {
-    setCroppedAvatarUrl(croppedImageUrl);
+  const onCrop = async (croppedImageBase64: string) => {
     setIsCropperOpen(false);
+    if (!user || !storage) return;
+
+    const blob = await fetch(croppedImageBase64).then(res => res.blob());
+
+    setIsAvatarUploading(true);
+    const storageRef = ref(storage, `avatars/${user.uid}/profile.png`);
+    const uploadTask = uploadBytesResumable(storageRef, blob);
+
+    uploadTask.on('state_changed',
+        () => {},
+        (error) => {
+            console.error("Error uploading avatar:", error);
+            toast({ variant: 'destructive', title: 'Avatar Upload Failed', description: 'Could not save your new picture.' });
+            setIsAvatarUploading(false);
+        },
+        () => {
+            getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                form.setValue('profileImageUrl', downloadURL);
+                toast({ title: 'Avatar Updated', description: 'Click "Save Changes" to apply your new picture.' });
+                setIsAvatarUploading(false);
+            });
+        }
+    );
   };
   
   const handleEmailChangeRequest = async (newEmail: string) => {
@@ -89,7 +112,6 @@ export default function ProfileSettingsPage() {
       try {
           await verifyBeforeUpdateEmail(currentUser, newEmail);
           
-          // Also update the email in the Firestore document
           const userDocRef = doc(firestore, 'users', currentUser.uid);
           updateDocumentNonBlocking(userDocRef, { email: newEmail });
 
@@ -98,7 +120,6 @@ export default function ProfileSettingsPage() {
               description: `A verification link has been sent to ${newEmail}. Please check your inbox to complete the change.`,
           });
           setIsEmailDialogOpen(false);
-          // Optimistically update form
           form.setValue('email', newEmail);
       } catch (error: any) {
           toast({
@@ -116,27 +137,18 @@ export default function ProfileSettingsPage() {
     try {
       const auth = getAuth();
       const currentUser = auth.currentUser;
-
-      if (currentUser) {
-          // Update display name in Firebase Auth
-          await updateProfile(currentUser, { 
-              displayName: `${data.firstName} ${data.lastName}`,
-          });
+      let displayName = `${data.firstName} ${data.lastName}`;
+      let photoURL = data.profileImageUrl || currentUser?.photoURL;
+      
+      if (currentUser && (currentUser.displayName !== displayName || currentUser.photoURL !== photoURL)) {
+          await updateProfile(currentUser, { displayName, photoURL });
       }
 
-      // Prepare data for Firestore update
-      const firestoreUpdateData: any = {
+      updateDocumentNonBlocking(userRef, {
         firstName: data.firstName,
         lastName: data.lastName,
-        // Email is handled separately now
-      };
-
-      if (croppedAvatarUrl) {
-        firestoreUpdateData.profileImageUrl = croppedAvatarUrl;
-      }
-      
-      // Update the user document in Firestore
-      updateDocumentNonBlocking(userRef, firestoreUpdateData);
+        profileImageUrl: data.profileImageUrl,
+      });
 
       toast({
         title: 'Profile Updated',
@@ -223,13 +235,13 @@ export default function ProfileSettingsPage() {
                 <div className="flex items-center gap-6">
                      <div className="relative group">
                         <Avatar className="h-24 w-24">
-                            <AvatarImage src={croppedAvatarUrl || userData?.profileImageUrl || user?.photoURL || ''} />
+                            <AvatarImage src={form.watch('profileImageUrl') || user?.photoURL || ''} />
                             <AvatarFallback>
                                 {userData?.firstName?.[0]}{userData?.lastName?.[0]}
                             </AvatarFallback>
                         </Avatar>
                         <label htmlFor="avatar-upload" className="absolute inset-0 bg-black/40 flex items-center justify-center text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                            <Edit className="h-8 w-8" />
+                            {isAvatarUploading ? <Loader2 className="h-8 w-8 animate-spin" /> : <Edit className="h-8 w-8" />}
                         </label>
                     </div>
                     <div>
@@ -241,7 +253,7 @@ export default function ProfileSettingsPage() {
                                 </div>
                             </Button>
                         </Label>
-                        <Input id="avatar-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                        <Input id="avatar-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange} disabled={isAvatarUploading}/>
                         <p className="text-xs text-muted-foreground mt-2">Recommended: a square 400x400px image.</p>
                     </div>
                 </div>
@@ -289,7 +301,10 @@ export default function ProfileSettingsPage() {
                 </div>
 
               <div className="flex justify-end pt-4 border-t">
-                <Button type="submit">Save Changes</Button>
+                <Button type="submit" disabled={isAvatarUploading || form.formState.isSubmitting}>
+                    {isAvatarUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Save Changes
+                </Button>
               </div>
             </form>
           </Form>

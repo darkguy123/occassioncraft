@@ -19,7 +19,7 @@ import { useRouter } from "next/navigation"
 import { useFirebase, useDoc, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
 import type { User as UserType, Event as EventType } from "@/lib/types";
 import { doc, collection, addDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
 import Image from "next/image"
@@ -137,7 +137,7 @@ export default function CreateEventPage() {
     }
   }, [isUserLoading, isUserDataLoading, user, userData, router]);
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user || !storage) return;
 
@@ -148,18 +148,25 @@ export default function CreateEventPage() {
 
     setIsUploading(true);
     const storageRef = ref(storage, `banners/${user.uid}/${uuidv4()}-${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
 
-    try {
-        await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(storageRef);
-        form.setValue('bannerUrl', downloadURL, { shouldValidate: true });
-        toast({ title: 'Banner Uploaded', description: 'Your new banner has been saved.' });
-    } catch (error) {
-        console.error("Error uploading file:", error);
-        toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload the banner image.' });
-    } finally {
-        setIsUploading(false);
-    }
+    uploadTask.on('state_changed',
+        (snapshot) => {
+            // Optional: handle progress updates
+        },
+        (error) => {
+            console.error("Error uploading file:", error);
+            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload the banner image.' });
+            setIsUploading(false);
+        },
+        () => {
+            getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                form.setValue('bannerUrl', downloadURL, { shouldValidate: true });
+                toast({ title: 'Banner Uploaded', description: 'Your new banner has been saved.' });
+                setIsUploading(false);
+            });
+        }
+    );
   };
   
   const handleCreateAnother = () => {

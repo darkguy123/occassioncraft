@@ -23,7 +23,7 @@ import { TicketStylePreview } from "@/components/ticket-style-preview"
 import Image from "next/image"
 import { generateTicketImage } from "@/ai/flows/generate-ticket-image-flow"
 import { Loader2, Wand2, Info, Plus, Upload, ShoppingCart, Check, PartyPopper } from "lucide-react"
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
 import { useCart, type CartItem } from "@/context/cart-context"
 import Link from "next/link";
@@ -184,7 +184,7 @@ export default function CreateTicketPage() {
     }
   }, [isUserLoading, isUserDataLoading, user, userData, router, toast]);
 
-  const handleFileUpload = async (file: File, field: keyof TicketFormValues) => {
+  const handleFileUpload = (file: File, field: keyof TicketFormValues) => {
     if (!user || !storage) return;
     if (file.size > 4 * 1024 * 1024) {
         toast({ variant: 'destructive', title: 'File too large', description: 'Image must be smaller than 4MB.' });
@@ -192,16 +192,23 @@ export default function CreateTicketPage() {
     }
     setIsUploading(true);
     const storageRef = ref(storage, `ticket-assets/${user.uid}/${uuidv4()}-${file.name}`);
-    try {
-        await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(storageRef);
-        form.setValue(field, downloadURL, { shouldValidate: true });
-        toast({ title: 'Image Uploaded', description: 'Your image has been saved.' });
-    } catch (error) {
-        toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload the image.' });
-    } finally {
-        setIsUploading(false);
-    }
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    uploadTask.on('state_changed',
+        (snapshot) => {},
+        (error) => {
+            console.error("Upload error:", error);
+            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload the image.' });
+            setIsUploading(false);
+        },
+        () => {
+            getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                form.setValue(field, downloadURL, { shouldValidate: true });
+                toast({ title: 'Image Uploaded', description: 'Your image has been saved.' });
+                setIsUploading(false);
+            });
+        }
+    );
   };
   
   const handleGenerateImage = async () => {
