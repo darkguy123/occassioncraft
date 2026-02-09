@@ -6,28 +6,14 @@ service firebase.storage {
     
     // Public assets are readable by anyone.
     match /public/{allPaths=**} {
-      allow read: if true;
+      allow read;
     }
 
-    // Banners can be uploaded to a root folder or a nested event folder.
-    match /banners/{userId}/{fileId} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-    match /banners/{userId}/{eventId}/{fileId} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // User-uploaded ticket assets are publicly readable but only writable by the owner.
-    match /ticket-assets/{userId}/{fileId} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // User-uploaded avatars are publicly readable but only writable by the owner.
-    match /avatars/{userId}/{fileId} {
-      allow read: if true;
+    // Any file inside a folder named with a user's ID can only be written to by that user.
+    // This covers /banners/{userId}, /ticket-assets/{userId}, and /avatars/{userId}.
+    // Files are publicly readable after upload.
+    match /{path}/{userId}/{allPaths=**} {
+      allow read;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
   }
