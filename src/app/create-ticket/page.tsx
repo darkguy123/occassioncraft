@@ -191,7 +191,7 @@ export default function CreateTicketPage() {
         return;
     }
     setIsUploading(true);
-    const storageRef = ref(storage, `ticket-assets/${user.uid}/${uuidv4()}-${file.name}`);
+    const storageRef = ref(storage, `public-uploads/ticket-assets/${uuidv4()}-${file.name}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
     uploadTask.on('state_changed',

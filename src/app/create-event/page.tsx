@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -146,7 +147,7 @@ export default function CreateEventPage() {
     }
 
     setIsUploading(true);
-    const storageRef = ref(storage, `banners/${user.uid}/${uuidv4()}-${file.name}`);
+    const storageRef = ref(storage, `public-uploads/banners/${uuidv4()}-${file.name}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
     uploadTask.on('state_changed',

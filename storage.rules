@@ -7,17 +7,12 @@ service firebase.storage {
     // Allow public read access for all files.
     allow read;
 
-    // Use a recursive wildcard {allPaths=**} to match nested paths like /banners/{userId}/EVENT_ID/file.jpg
-    match /banners/{userId}/{allPaths=**} {
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    match /avatars/{userId}/{allPaths=**} {
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    match /ticket-assets/{userId}/{allPaths=**} {
-      allow write: if request.auth != null && request.auth.uid == userId;
+    // Any authenticated user can write to the "public-uploads" folder.
+    // The use of UUIDs in filenames by the app prevents collisions.
+    // Deletion is disallowed from the client to prevent malicious or accidental removal.
+    match /public-uploads/{allPaths=**} {
+      allow write: if request.auth != null;
+      allow delete: if false; 
     }
   }
 }

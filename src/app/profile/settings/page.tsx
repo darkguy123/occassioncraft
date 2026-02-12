@@ -84,7 +84,7 @@ export default function ProfileSettingsPage() {
     const blob = await fetch(croppedImageBase64).then(res => res.blob());
 
     setIsAvatarUploading(true);
-    const storageRef = ref(storage, `avatars/${user.uid}/profile.png`);
+    const storageRef = ref(storage, `public-uploads/avatars/${user.uid}/profile.png`);
     const uploadTask = uploadBytesResumable(storageRef, blob);
 
     uploadTask.on('state_changed',
