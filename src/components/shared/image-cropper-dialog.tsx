@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -11,9 +12,10 @@ interface ImageCropperDialogProps {
   onClose: () => void;
   imageSrc: string;
   onCrop: (croppedImageUrl: string) => void;
+  aspectRatio?: number;
 }
 
-export function ImageCropperDialog({ isOpen, onClose, imageSrc, onCrop }: ImageCropperDialogProps) {
+export function ImageCropperDialog({ isOpen, onClose, imageSrc, onCrop, aspectRatio = 1 }: ImageCropperDialogProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
@@ -26,6 +28,7 @@ export function ImageCropperDialog({ isOpen, onClose, imageSrc, onCrop }: ImageC
     return new Promise((resolve, reject) => {
       const image = new Image();
       image.src = imageSrc;
+      image.crossOrigin = 'anonymous';
       image.onload = () => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -35,8 +38,8 @@ export function ImageCropperDialog({ isOpen, onClose, imageSrc, onCrop }: ImageC
           return;
         }
         
-        canvas.width = 400;
-        canvas.height = 400;
+        canvas.width = pixelCrop.width;
+        canvas.height = pixelCrop.height;
 
         ctx.drawImage(
           image,
@@ -46,8 +49,8 @@ export function ImageCropperDialog({ isOpen, onClose, imageSrc, onCrop }: ImageC
           pixelCrop.height,
           0,
           0,
-          400,
-          400
+          pixelCrop.width,
+          pixelCrop.height
         );
 
         resolve(canvas.toDataURL('image/png'));
@@ -74,8 +77,8 @@ export function ImageCropperDialog({ isOpen, onClose, imageSrc, onCrop }: ImageC
             image={imageSrc}
             crop={crop}
             zoom={zoom}
-            aspect={1}
-            cropShape="round"
+            aspect={aspectRatio}
+            cropShape={aspectRatio === 1 ? 'round' : 'rect'}
             onCropChange={setCrop}
             onCropComplete={onCropComplete}
             onZoomChange={setZoom}

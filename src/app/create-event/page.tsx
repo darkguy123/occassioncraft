@@ -26,6 +26,7 @@ import Image from "next/image"
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import Link from "next/link"
 import { v4 as uuidv4 } from 'uuid';
+import { ImageCropperDialog } from "@/components/shared/image-cropper-dialog";
 
 const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters."),
@@ -53,6 +54,8 @@ export default function CreateEventPage() {
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [createdEvent, setCreatedEvent] = useState<EventType | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -137,26 +140,23 @@ export default function CreateEventPage() {
     }
   }, [isUserLoading, isUserDataLoading, user, userData, router]);
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !user || !storage) return;
+   const onCrop = async (croppedImageBase64: string) => {
+    setIsCropperOpen(false);
+    if (!user || !storage) return;
 
-    if (file.size > 4 * 1024 * 1024) { // 4MB limit
-        toast({ variant: 'destructive', title: 'File too large', description: 'Image must be smaller than 4MB.' });
-        return;
-    }
-
+    const blob = await fetch(croppedImageBase64).then(res => res.blob());
+    
     setIsUploading(true);
-    const storageRef = ref(storage, `public-uploads/banners/${uuidv4()}-${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
+    const storageRef = ref(storage, `public-uploads/banners/${uuidv4()}-banner.png`);
+    const uploadTask = uploadBytesResumable(storageRef, blob);
 
     uploadTask.on('state_changed',
         (snapshot) => {
-            // Can be used to show progress
+            // Progress can be shown here
         },
         (error) => {
             console.error("Error uploading file:", error);
-            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload the banner image. Please try again.' });
+            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload the banner image.' });
             setIsUploading(false);
         },
         async () => {
@@ -164,14 +164,29 @@ export default function CreateEventPage() {
                 const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                 form.setValue('bannerUrl', downloadURL, { shouldValidate: true });
                 toast({ title: 'Banner Uploaded', description: 'Your new banner has been saved.' });
-            } catch (error: any) {
-                console.error("Error getting download URL:", error);
-                toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not get the banner image URL.' });
+            } catch (error) {
+                toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not get image URL.' });
             } finally {
                 setIsUploading(false);
             }
         }
     );
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 4 * 1024 * 1024) { // 4MB limit
+        toast({ variant: 'destructive', title: 'File too large', description: 'Image must be smaller than 4MB.' });
+        return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+        setImageSrc(reader.result as string);
+        setIsCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
   };
   
   const handleCreateAnother = () => {
@@ -198,6 +213,15 @@ export default function CreateEventPage() {
 
   return (
     <>
+    {imageSrc && (
+        <ImageCropperDialog
+            isOpen={isCropperOpen}
+            onClose={() => setIsCropperOpen(false)}
+            imageSrc={imageSrc}
+            onCrop={onCrop}
+            aspectRatio={16 / 7}
+        />
+    )}
     <div className="container max-w-2xl mx-auto py-10 px-4">
         <div className="space-y-2 mb-8">
             <h1 className="text-4xl font-bold font-headline">Create a New Event</h1>
