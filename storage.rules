@@ -3,16 +3,10 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // A single rule to govern all paths
     match /{allPaths=**} {
-      // Anyone can read any file. This is necessary for images to be
-      // displayed in the app.
-      allow read;
-
-      // Any authenticated user can write files. The app's logic ensures
-      // that filenames are unique, preventing users from overwriting
-      // each other's files.
-      allow write: if request.auth != null;
+      // Temporary rule for debugging: Allow all reads and writes.
+      // This is insecure and should be changed back.
+      allow read, write;
     }
   }
 }
