@@ -144,33 +144,23 @@ export default function CreateEventPage() {
     setIsCropperOpen(false);
     if (!user || !storage) return;
 
-    const blob = await fetch(croppedImageBase64).then(res => res.blob());
-    
     setIsUploading(true);
-    const storageRef = ref(storage, `public-uploads/banners/${uuidv4()}-banner.png`);
-    const uploadTask = uploadBytesResumable(storageRef, blob);
+    try {
+        const blob = await fetch(croppedImageBase64).then(res => res.blob());
+        const storageRef = ref(storage, `public-uploads/banners/${uuidv4()}-banner.png`);
+        
+        const uploadTask = await uploadBytesResumable(storageRef, blob);
+        const downloadURL = await getDownloadURL(uploadTask.ref);
 
-    uploadTask.on('state_changed',
-        (snapshot) => {
-            // Progress can be shown here
-        },
-        (error) => {
-            console.error("Error uploading file:", error);
-            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload the banner image.' });
-            setIsUploading(false);
-        },
-        async () => {
-            try {
-                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                form.setValue('bannerUrl', downloadURL, { shouldValidate: true });
-                toast({ title: 'Banner Uploaded', description: 'Your new banner has been saved.' });
-            } catch (error) {
-                toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not get image URL.' });
-            } finally {
-                setIsUploading(false);
-            }
-        }
-    );
+        form.setValue('bannerUrl', downloadURL, { shouldValidate: true });
+        toast({ title: 'Banner Uploaded', description: 'Your new banner has been saved.' });
+
+    } catch (error: any) {
+        console.error("Error uploading file:", error);
+        toast({ variant: 'destructive', title: 'Upload Failed', description: error.message || 'Could not upload the banner image.' });
+    } finally {
+        setIsUploading(false);
+    }
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {

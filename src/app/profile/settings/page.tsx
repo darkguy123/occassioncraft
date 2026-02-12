@@ -81,31 +81,22 @@ export default function ProfileSettingsPage() {
     setIsCropperOpen(false);
     if (!user || !storage) return;
 
-    const blob = await fetch(croppedImageBase64).then(res => res.blob());
-
     setIsAvatarUploading(true);
-    const storageRef = ref(storage, `public-uploads/avatars/${user.uid}/profile.png`);
-    const uploadTask = uploadBytesResumable(storageRef, blob);
+    try {
+        const blob = await fetch(croppedImageBase64).then(res => res.blob());
+        const storageRef = ref(storage, `public-uploads/avatars/${user.uid}/profile.png`);
+        const uploadTask = await uploadBytesResumable(storageRef, blob);
+        const downloadURL = await getDownloadURL(uploadTask.ref);
+        
+        form.setValue('profileImageUrl', downloadURL);
+        toast({ title: 'Avatar Updated', description: 'Click "Save Changes" to apply your new picture.' });
 
-    uploadTask.on('state_changed',
-        (snapshot) => {},
-        (error) => {
-            console.error("Error uploading avatar:", error);
-            toast({ variant: 'destructive', title: 'Avatar Upload Failed', description: 'Could not save your new picture.' });
-            setIsAvatarUploading(false);
-        },
-        async () => {
-            try {
-                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                form.setValue('profileImageUrl', downloadURL);
-                toast({ title: 'Avatar Updated', description: 'Click "Save Changes" to apply your new picture.' });
-            } catch (error) {
-                 toast({ variant: 'destructive', title: 'Avatar Upload Failed', description: 'Could not get image URL.' });
-            } finally {
-                setIsAvatarUploading(false);
-            }
-        }
-    );
+    } catch (error: any) {
+        console.error("Error uploading avatar:", error);
+        toast({ variant: 'destructive', title: 'Avatar Upload Failed', description: error.message || 'Could not save your new picture.' });
+    } finally {
+        setIsAvatarUploading(false);
+    }
   };
   
   const handleEmailChangeRequest = async (newEmail: string) => {

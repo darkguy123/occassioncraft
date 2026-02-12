@@ -190,30 +190,21 @@ export default function CreateTicketPage() {
         toast({ variant: 'destructive', title: 'File too large', description: 'Image must be smaller than 4MB.' });
         return;
     }
+    
     setIsUploading(true);
-    const storageRef = ref(storage, `public-uploads/ticket-assets/${uuidv4()}-${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
+    try {
+        const storageRef = ref(storage, `public-uploads/ticket-assets/${uuidv4()}-${file.name}`);
+        const uploadTask = await uploadBytesResumable(storageRef, file);
+        const downloadURL = await getDownloadURL(uploadTask.ref);
 
-    uploadTask.on('state_changed',
-        (snapshot) => {},
-        (error) => {
-            console.error("Upload error:", error);
-            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload the image.' });
-            setIsUploading(false);
-        },
-        async () => {
-            try {
-                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                form.setValue(field, downloadURL, { shouldValidate: true });
-                toast({ title: 'Image Uploaded', description: 'Your image has been saved.' });
-            } catch (error) {
-                console.error("URL error:", error);
-                toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not retrieve image URL.' });
-            } finally {
-                setIsUploading(false);
-            }
-        }
-    );
+        form.setValue(field, downloadURL, { shouldValidate: true });
+        toast({ title: 'Image Uploaded', description: 'Your image has been saved.' });
+    } catch (error: any) {
+        console.error("Upload error:", error);
+        toast({ variant: 'destructive', title: 'Upload Failed', description: error.message || 'Could not upload the image.' });
+    } finally {
+        setIsUploading(false);
+    }
   };
   
   const handleGenerateImage = async () => {

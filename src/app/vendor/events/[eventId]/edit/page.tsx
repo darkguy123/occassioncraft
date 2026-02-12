@@ -114,30 +114,19 @@ export default function VendorEditEventPage() {
     }
 
     setIsUploading(true);
-    const storageRef = ref(storage, `public-uploads/banners/${uuidv4()}-${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
-    
-    uploadTask.on('state_changed',
-      (snapshot) => {
-        // Progress
-      },
-      (error) => {
+    try {
+        const storageRef = ref(storage, `public-uploads/banners/${uuidv4()}-${file.name}`);
+        const uploadTask = await uploadBytesResumable(storageRef, file);
+        const downloadURL = await getDownloadURL(uploadTask.ref);
+        
+        form.setValue('bannerUrl', downloadURL, { shouldValidate: true });
+        toast({ title: 'Banner Uploaded', description: 'Your new banner has been saved.' });
+    } catch (error: any) {
         console.error("Error uploading file:", error);
-        toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload the banner image.' });
+        toast({ variant: 'destructive', title: 'Upload Failed', description: error.message || 'Could not upload the banner image.' });
+    } finally {
         setIsUploading(false);
-      },
-      async () => {
-        try {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            form.setValue('bannerUrl', downloadURL, { shouldValidate: true });
-            toast({ title: 'Banner Uploaded', description: 'Your new banner has been saved.' });
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not get image URL.' });
-        } finally {
-            setIsUploading(false);
-        }
-      }
-    );
+    }
   };
 
   const handleAddScanner = async () => {
