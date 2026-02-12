@@ -87,17 +87,25 @@ export default function ProfileSettingsPage() {
     const storageRef = ref(storage, `avatars/${user.uid}/profile.png`);
     const uploadTask = uploadBytesResumable(storageRef, blob);
 
-    try {
-      const snapshot = await uploadTask;
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      form.setValue('profileImageUrl', downloadURL);
-      toast({ title: 'Avatar Updated', description: 'Click "Save Changes" to apply your new picture.' });
-    } catch (error) {
-      console.error("Error uploading avatar:", error);
-      toast({ variant: 'destructive', title: 'Avatar Upload Failed', description: 'Could not save your new picture.' });
-    } finally {
-      setIsAvatarUploading(false);
-    }
+    uploadTask.on('state_changed',
+        (snapshot) => {},
+        (error) => {
+            console.error("Error uploading avatar:", error);
+            toast({ variant: 'destructive', title: 'Avatar Upload Failed', description: 'Could not save your new picture.' });
+            setIsAvatarUploading(false);
+        },
+        async () => {
+            try {
+                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                form.setValue('profileImageUrl', downloadURL);
+                toast({ title: 'Avatar Updated', description: 'Click "Save Changes" to apply your new picture.' });
+            } catch (error) {
+                 toast({ variant: 'destructive', title: 'Avatar Upload Failed', description: 'Could not get image URL.' });
+            } finally {
+                setIsAvatarUploading(false);
+            }
+        }
+    );
   };
   
   const handleEmailChangeRequest = async (newEmail: string) => {

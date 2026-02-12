@@ -135,15 +135,22 @@ export default function EventDetailsPage() {
                 </AlertDialogContent>
             </AlertDialog>
             <div>
-                <section className="relative w-full h-[60vh]">
-                    <Image
-                        src={eventData.bannerUrl || 'https://picsum.photos/seed/event/1200/800'}
-                        alt={eventData.name}
-                        fill
-                        className="object-cover"
-                        data-ai-hint={eventData.name}
-                        priority
-                    />
+                <section className="relative w-full h-[60vh] bg-secondary">
+                    {eventData.bannerUrl ? (
+                        <Image
+                            src={eventData.bannerUrl}
+                            alt={eventData.name}
+                            fill
+                            className="object-cover"
+                            priority
+                        />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                            <span className="text-9xl font-bold text-muted-foreground">
+                                {eventData.name ? eventData.name.charAt(0).toUpperCase() : '?'}
+                            </span>
+                        </div>
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                     <div className="relative z-10 flex flex-col items-start justify-end h-full p-8 md:p-12 container mx-auto">
                         <h1 className="text-4xl md:text-6xl font-headline font-bold text-white shadow-lg">{eventData.name}</h1>

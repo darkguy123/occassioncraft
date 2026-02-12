@@ -117,17 +117,27 @@ export default function VendorEditEventPage() {
     const storageRef = ref(storage, `banners/${user.uid}/${eventId}/${uuidv4()}-${file.name}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
     
-    try {
-      const snapshot = await uploadTask;
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      form.setValue('bannerUrl', downloadURL, { shouldValidate: true });
-      toast({ title: 'Banner Uploaded', description: 'Your new banner has been saved.' });
-    } catch (error: any) {
+    uploadTask.on('state_changed',
+      (snapshot) => {
+        // Progress
+      },
+      (error) => {
         console.error("Error uploading file:", error);
         toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload the banner image.' });
-    } finally {
         setIsUploading(false);
-    }
+      },
+      async () => {
+        try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            form.setValue('bannerUrl', downloadURL, { shouldValidate: true });
+            toast({ title: 'Banner Uploaded', description: 'Your new banner has been saved.' });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not get image URL.' });
+        } finally {
+            setIsUploading(false);
+        }
+      }
+    );
   };
 
   const handleAddScanner = async () => {
@@ -217,8 +227,10 @@ export default function VendorEditEventPage() {
                         <Image src={form.watch('bannerUrl')!} alt="Banner preview" layout="fill" objectFit="cover" />
                     ) : (
                          <div className="text-center text-muted-foreground">
-                            <Plus className="mx-auto h-12 w-12" />
-                            <p className="mt-2 text-sm font-semibold">Add a cover photo</p>
+                            <span className="text-5xl font-bold">
+                                {form.watch('name') ? form.watch('name').charAt(0).toUpperCase() : '?'}
+                            </span>
+                            <p className="mt-2 text-sm font-semibold">No banner uploaded</p>
                         </div>
                     )}
                      {isUploading && (

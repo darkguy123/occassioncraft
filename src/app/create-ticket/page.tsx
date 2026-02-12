@@ -194,17 +194,26 @@ export default function CreateTicketPage() {
     const storageRef = ref(storage, `ticket-assets/${user.uid}/${uuidv4()}-${file.name}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
-    try {
-      const snapshot = await uploadTask;
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      form.setValue(field, downloadURL, { shouldValidate: true });
-      toast({ title: 'Image Uploaded', description: 'Your image has been saved.' });
-    } catch (error) {
-      console.error("Upload error:", error);
-      toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload the image.' });
-    } finally {
-      setIsUploading(false);
-    }
+    uploadTask.on('state_changed',
+        (snapshot) => {},
+        (error) => {
+            console.error("Upload error:", error);
+            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload the image.' });
+            setIsUploading(false);
+        },
+        async () => {
+            try {
+                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                form.setValue(field, downloadURL, { shouldValidate: true });
+                toast({ title: 'Image Uploaded', description: 'Your image has been saved.' });
+            } catch (error) {
+                console.error("URL error:", error);
+                toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not retrieve image URL.' });
+            } finally {
+                setIsUploading(false);
+            }
+        }
+    );
   };
   
   const handleGenerateImage = async () => {

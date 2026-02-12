@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -150,19 +149,28 @@ export default function CreateEventPage() {
     const storageRef = ref(storage, `banners/${user.uid}/${uuidv4()}-${file.name}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
-    try {
-      const snapshot = await uploadTask;
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      
-      form.setValue('bannerUrl', downloadURL, { shouldValidate: true });
-      toast({ title: 'Banner Uploaded', description: 'Your new banner has been saved.' });
-
-    } catch (error: any) {
-      console.error("Error uploading file:", error);
-      toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload the banner image.' });
-    } finally {
-      setIsUploading(false);
-    }
+    uploadTask.on('state_changed',
+        (snapshot) => {
+            // Can be used to show progress
+        },
+        (error) => {
+            console.error("Error uploading file:", error);
+            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload the banner image. Please try again.' });
+            setIsUploading(false);
+        },
+        async () => {
+            try {
+                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                form.setValue('bannerUrl', downloadURL, { shouldValidate: true });
+                toast({ title: 'Banner Uploaded', description: 'Your new banner has been saved.' });
+            } catch (error: any) {
+                console.error("Error getting download URL:", error);
+                toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not get the banner image URL.' });
+            } finally {
+                setIsUploading(false);
+            }
+        }
+    );
   };
   
   const handleCreateAnother = () => {
@@ -192,13 +200,13 @@ export default function CreateEventPage() {
     <div className="container max-w-2xl mx-auto py-10 px-4">
         <div className="space-y-2 mb-8">
             <h1 className="text-4xl font-bold font-headline">Create a New Event</h1>
-            <p className="text-muted-foreground">First, create the event shell. You'll design and create tickets for it in the next step.</p>
+            <p className="text-muted-foreground">First, create the event shell. You can add an optional banner image now or later.</p>
         </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <div className="space-y-2">
-                <FormLabel>Event Banner</FormLabel>
+                <FormLabel>Event Banner (Optional)</FormLabel>
                 <FormControl>
                   <div className="w-full aspect-[16/7] bg-card rounded-lg border-2 border-dashed flex items-center justify-center relative overflow-hidden">
                       {form.watch('bannerUrl') ? (
@@ -207,7 +215,7 @@ export default function CreateEventPage() {
                           <div className="text-center text-muted-foreground">
                               <ImageIcon className="mx-auto h-12 w-12" />
                               <p className="mt-2 text-sm font-semibold">Add a cover photo</p>
-                              <p className="text-xs">Recommended size: 1600x900px</p>
+                              <p className="text-xs">You can add this later.</p>
                           </div>
                       )}
                       {isUploading && (

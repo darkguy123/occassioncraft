@@ -17,14 +17,21 @@ interface UpcomingEventCardProps {
 export function UpcomingEventCard({ event, ticket }: UpcomingEventCardProps) {
   return (
     <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-card/60 backdrop-blur-sm rounded-xl flex flex-col">
-        <div className="relative h-48 w-full">
-            <Image
-                src={event.bannerUrl || 'https://picsum.photos/seed/default/600/400'}
-                alt={event.name}
-                fill
-                className="object-cover"
-                data-ai-hint={event.name}
-            />
+        <div className="relative h-48 w-full bg-secondary">
+            {event.bannerUrl ? (
+              <Image
+                  src={event.bannerUrl}
+                  alt={event.name}
+                  fill
+                  className="object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <span className="text-5xl font-bold text-muted-foreground">
+                  {event.name ? event.name.charAt(0).toUpperCase() : '?'}
+                </span>
+              </div>
+            )}
              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
              <div className="absolute bottom-4 left-4">
                 <h3 className="font-headline font-semibold text-2xl leading-tight text-white">{event.name}</h3>
