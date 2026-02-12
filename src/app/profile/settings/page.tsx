@@ -8,7 +8,6 @@ import * as z from 'zod';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { getAuth, updateProfile, verifyBeforeUpdateEmail } from 'firebase/auth';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +20,8 @@ import { ImageCropperDialog } from '@/components/shared/image-cropper-dialog';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Label } from '@/components/ui/label';
 import { ChangeEmailDialog } from '@/components/profile/change-email-dialog';
+import { v4 as uuidv4 } from 'uuid';
+import { uploadFile } from '@/ai/flows/upload-file-flow';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required."),
@@ -79,14 +80,12 @@ export default function ProfileSettingsPage() {
 
   const onCrop = async (croppedImageBase64: string) => {
     setIsCropperOpen(false);
-    if (!user || !storage) return;
+    if (!user) return;
 
     setIsAvatarUploading(true);
     try {
-        const blob = await fetch(croppedImageBase64).then(res => res.blob());
-        const storageRef = ref(storage, `public-uploads/avatars/${user.uid}/profile.png`);
-        const uploadResult = await uploadBytes(storageRef, blob);
-        const downloadURL = await getDownloadURL(uploadResult.ref);
+        const filePath = `public-uploads/avatars/${user.uid}/profile.png`;
+        const downloadURL = await uploadFile({ dataUri: croppedImageBase64, path: filePath });
         
         form.setValue('profileImageUrl', downloadURL);
         toast({ title: 'Avatar Updated', description: 'Click "Save Changes" to apply your new picture.' });
@@ -309,5 +308,3 @@ export default function ProfileSettingsPage() {
     </>
   );
 }
-
-    

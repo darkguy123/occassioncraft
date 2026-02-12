@@ -136,7 +136,7 @@ export default function EventDetailsPage() {
             </AlertDialog>
             <div>
                 <section className="relative w-full h-[60vh] bg-secondary">
-                    {eventData.bannerUrl ? (
+                    {eventData.bannerUrl && (
                         <Image
                             src={eventData.bannerUrl}
                             alt={eventData.name}
@@ -144,12 +144,6 @@ export default function EventDetailsPage() {
                             className="object-cover"
                             priority
                         />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                            <span className="text-9xl font-bold text-muted-foreground">
-                                {eventData.name ? eventData.name.charAt(0).toUpperCase() : '?'}
-                            </span>
-                        </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                     <div className="relative z-10 flex flex-col items-start justify-end h-full p-8 md:p-12 container mx-auto">

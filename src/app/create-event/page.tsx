@@ -19,7 +19,6 @@ import { useRouter } from "next/navigation"
 import { useFirebase, useDoc, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
 import type { User as UserType, Event as EventType } from "@/lib/types";
 import { doc, collection, addDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
 import Image from "next/image"
@@ -27,6 +26,8 @@ import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFoo
 import Link from "next/link"
 import { v4 as uuidv4 } from 'uuid';
 import { ImageCropperDialog } from "@/components/shared/image-cropper-dialog";
+import { uploadFile } from "@/ai/flows/upload-file-flow";
+import { generateBackgroundImage } from "@/ai/flows/generate-background-image-flow";
 
 const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters."),
@@ -84,22 +85,30 @@ export default function CreateEventPage() {
         toast({ variant: 'destructive', title: 'Error', description: 'Authentication or database error.' });
         return;
     }
-    const eventCollectionRef = collection(firestore, 'events');
-
-    const eventData: Omit<EventType, 'id'> = {
-        ...data,
-        date: data.date.toISOString(),
-        location: data.isOnline ? 'Online Event' : data.location || '',
-        vendorId: user.uid,
-        organizer: user.displayName || 'Unnamed Organizer',
-        status: 'published',
-    };
     
-    if (!eventData.endTime) {
-      delete eventData.endTime;
-    }
+    let finalBannerUrl = data.bannerUrl;
 
     try {
+        if (!finalBannerUrl) {
+            toast({ title: 'Generating AI Banner...', description: 'Please wait while we create a unique banner for your event.' });
+            finalBannerUrl = await generateBackgroundImage("A vibrant, colorful bokeh effect, suitable as a background. Abstract and visually pleasing. Aspect ratio 16:9.");
+        }
+
+        const eventCollectionRef = collection(firestore, 'events');
+        const eventData: Omit<EventType, 'id'> = {
+            ...data,
+            bannerUrl: finalBannerUrl,
+            date: data.date.toISOString(),
+            location: data.isOnline ? 'Online Event' : data.location || '',
+            vendorId: user.uid,
+            organizer: user.displayName || 'Unnamed Organizer',
+            status: 'published',
+        };
+        
+        if (!eventData.endTime) {
+          delete eventData.endTime;
+        }
+
         const docRef = await addDoc(eventCollectionRef, eventData);
         setCreatedEvent({ id: docRef.id, ...eventData });
         setIsSuccessDialogOpen(true);
@@ -107,6 +116,7 @@ export default function CreateEventPage() {
             title: "Event Published!",
             description: "Your event is now live.",
         });
+
     } catch (error: any) {
         console.error("Error creating event: ", error);
         toast({
@@ -142,16 +152,13 @@ export default function CreateEventPage() {
 
    const onCrop = async (croppedImageBase64: string) => {
     setIsCropperOpen(false);
-    if (!user || !storage) return;
+    if (!user) return;
 
     setIsUploading(true);
     try {
-        const blob = await fetch(croppedImageBase64).then(res => res.blob());
-        const storageRef = ref(storage, `public-uploads/banners/${uuidv4()}-banner.png`);
+        const filePath = `public-uploads/banners/${uuidv4()}-banner.png`;
+        const downloadURL = await uploadFile({ dataUri: croppedImageBase64, path: filePath });
         
-        const uploadResult = await uploadBytes(storageRef, blob);
-        const downloadURL = await getDownloadURL(uploadResult.ref);
-
         form.setValue('bannerUrl', downloadURL, { shouldValidate: true });
         toast({ title: 'Banner Uploaded', description: 'Your new banner has been saved.' });
 
@@ -228,10 +235,8 @@ export default function CreateEventPage() {
                           <Image src={form.watch('bannerUrl')!} alt="Banner" fill className="object-cover" />
                       ) : (
                           <div className="text-center text-muted-foreground">
-                              <span className="text-5xl font-bold">
-                                {form.watch('name') ? form.watch('name').charAt(0).toUpperCase() : '?'}
-                              </span>
-                              <p className="mt-2 text-sm font-semibold">No banner uploaded</p>
+                              <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground/30" />
+                              <p className="mt-2 text-sm font-semibold">Upload a banner or we'll generate one!</p>
                           </div>
                       )}
                       {isUploading && (
@@ -444,5 +449,3 @@ export default function CreateEventPage() {
     </>
   );
 }
-
-    

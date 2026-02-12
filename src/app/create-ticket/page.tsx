@@ -21,9 +21,8 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { TicketStylePreview } from "@/components/ticket-style-preview"
 import Image from "next/image"
-import { generateTicketImage } from "@/ai/flows/generate-ticket-image-flow"
+import { generateBackgroundImage } from "@/ai/flows/generate-background-image-flow"
 import { Loader2, Wand2, Info, Plus, Upload, ShoppingCart, Check, PartyPopper } from "lucide-react"
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
 import { useCart, type CartItem } from "@/context/cart-context"
 import Link from "next/link";
@@ -38,6 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { uploadFile } from "@/ai/flows/upload-file-flow";
 
 const ticketFormSchema = z.object({
   eventId: z.string().optional(),
@@ -185,7 +185,7 @@ export default function CreateTicketPage() {
   }, [isUserLoading, isUserDataLoading, user, userData, router, toast]);
 
   const handleFileUpload = async (file: File, field: keyof TicketFormValues) => {
-    if (!user || !storage) return;
+    if (!user) return;
     if (file.size > 4 * 1024 * 1024) {
         toast({ variant: 'destructive', title: 'File too large', description: 'Image must be smaller than 4MB.' });
         return;
@@ -193,12 +193,16 @@ export default function CreateTicketPage() {
     
     setIsUploading(true);
     try {
-        const storageRef = ref(storage, `public-uploads/ticket-assets/${uuidv4()}-${file.name}`);
-        const uploadResult = await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(uploadResult.ref);
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = async () => {
+            const dataUri = reader.result as string;
+            const filePath = `public-uploads/ticket-assets/${uuidv4()}-${file.name}`;
+            const downloadURL = await uploadFile({ dataUri, path: filePath });
 
-        form.setValue(field, downloadURL, { shouldValidate: true });
-        toast({ title: 'Image Uploaded', description: 'Your image has been saved.' });
+            form.setValue(field, downloadURL, { shouldValidate: true });
+            toast({ title: 'Image Uploaded', description: 'Your image has been saved.' });
+        };
     } catch (error: any) {
         console.error("Upload error:", error);
         toast({ variant: 'destructive', title: 'Upload Failed', description: error.message || 'Could not upload the image.' });
@@ -208,10 +212,10 @@ export default function CreateTicketPage() {
   };
   
   const handleGenerateImage = async () => {
-    const prompt = "abstract background for an event ticket";
+    const prompt = "abstract background for an event ticket, aspect ratio 2:3";
     setIsGenerating(true);
     try {
-      const imageUrl = await generateTicketImage(prompt);
+      const imageUrl = await generateBackgroundImage(prompt);
       form.setValue('ticketImageUrl', imageUrl, { shouldValidate: true });
       toast({ title: "AI Background Generated!", description: "A new background image has been applied." });
     } catch (error) {
@@ -606,5 +610,3 @@ export default function CreateTicketPage() {
     </>
   );
 }
-
-    

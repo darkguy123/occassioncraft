@@ -5,7 +5,6 @@ import type { Event } from '@/lib/types';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Lock, MapPin, Ticket } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 
 type EventCardProps = {
@@ -23,7 +22,7 @@ export default function EventCard({ event }: EventCardProps) {
             width={600}
             height={400}
             className="w-full h-48 object-cover"
-            data-ai-hint={event.name}
+            data-ai-hint="event banner"
           />
         </CardHeader>
         <CardContent className="p-4 flex-grow">
