@@ -1,3 +1,4 @@
+
 import type { NextConfig } from 'next';
 
 const withPWA = require('@ducanh2912/next-pwa').default({
@@ -21,6 +22,9 @@ const nextConfig: NextConfig = {
   },
   eslint: {
     ignoreDuringBuilds: true,
+  },
+  serverActions: {
+    bodySizeLimit: '4mb',
   },
   images: {
     remotePatterns: [
