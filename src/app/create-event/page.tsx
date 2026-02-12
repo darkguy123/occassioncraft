@@ -26,8 +26,8 @@ import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFoo
 import Link from "next/link"
 import { v4 as uuidv4 } from 'uuid';
 import { ImageCropperDialog } from "@/components/shared/image-cropper-dialog";
-import { uploadFile } from "@/ai/flows/upload-file-flow";
 import { generateBackgroundImage } from "@/ai/flows/generate-ticket-image-flow";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters."),
@@ -152,12 +152,31 @@ export default function CreateEventPage() {
 
    const onCrop = async (croppedImageBase64: string) => {
     setIsCropperOpen(false);
-    if (!user) return;
+    if (!user || !storage) {
+      toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to upload images.' });
+      return;
+    }
+
+    // Helper to convert Data URI to Blob
+    const dataURItoBlob = (dataURI: string): Blob => {
+        const byteString = atob(dataURI.split(',')[1]);
+        const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+        }
+        return new Blob([ab], {type: mimeString});
+    };
 
     setIsUploading(true);
     try {
+        const blob = dataURItoBlob(croppedImageBase64);
         const filePath = `public-uploads/banners/${uuidv4()}-banner.png`;
-        const downloadURL = await uploadFile({ dataUri: croppedImageBase64, path: filePath });
+        const storageRef = ref(storage, filePath);
+
+        const uploadResult = await uploadBytes(storageRef, blob);
+        const downloadURL = await getDownloadURL(uploadResult.ref);
         
         form.setValue('bannerUrl', downloadURL, { shouldValidate: true });
         toast({ title: 'Banner Uploaded', description: 'Your new banner has been saved.' });
@@ -449,3 +468,5 @@ export default function CreateEventPage() {
     </>
   );
 }
+
+    

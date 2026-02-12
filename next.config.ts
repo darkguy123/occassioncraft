@@ -23,9 +23,6 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  serverActions: {
-    bodySizeLimit: 8 * 1024 * 1024, // 8MB
-  },
   images: {
     remotePatterns: [
       {
@@ -46,3 +43,5 @@ const nextConfig: NextConfig = {
 };
 
 export default withPWA(nextConfig);
+
+    

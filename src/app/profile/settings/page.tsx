@@ -21,7 +21,7 @@ import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Label } from '@/components/ui/label';
 import { ChangeEmailDialog } from '@/components/profile/change-email-dialog';
 import { v4 as uuidv4 } from 'uuid';
-import { uploadFile } from '@/ai/flows/upload-file-flow';
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required."),
@@ -80,12 +80,31 @@ export default function ProfileSettingsPage() {
 
   const onCrop = async (croppedImageBase64: string) => {
     setIsCropperOpen(false);
-    if (!user) return;
+    if (!user || !storage) {
+      toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to upload images.' });
+      return;
+    }
+    
+    // Helper to convert Data URI to Blob
+    const dataURItoBlob = (dataURI: string): Blob => {
+        const byteString = atob(dataURI.split(',')[1]);
+        const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+        }
+        return new Blob([ab], {type: mimeString});
+    };
 
     setIsAvatarUploading(true);
     try {
+        const blob = dataURItoBlob(croppedImageBase64);
         const filePath = `public-uploads/avatars/${user.uid}/profile.png`;
-        const downloadURL = await uploadFile({ dataUri: croppedImageBase64, path: filePath });
+        const storageRef = ref(storage, filePath);
+        
+        const uploadResult = await uploadBytes(storageRef, blob);
+        const downloadURL = await getDownloadURL(uploadResult.ref);
         
         form.setValue('profileImageUrl', downloadURL);
         toast({ title: 'Avatar Updated', description: 'Click "Save Changes" to apply your new picture.' });
@@ -308,3 +327,5 @@ export default function ProfileSettingsPage() {
     </>
   );
 }
+
+    
