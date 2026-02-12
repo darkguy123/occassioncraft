@@ -19,7 +19,7 @@ import { useRouter } from "next/navigation"
 import { useFirebase, useDoc, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
 import type { User as UserType, Event as EventType } from "@/lib/types";
 import { doc, collection, addDoc } from "firebase/firestore";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
 import Image from "next/image"
@@ -149,8 +149,8 @@ export default function CreateEventPage() {
         const blob = await fetch(croppedImageBase64).then(res => res.blob());
         const storageRef = ref(storage, `public-uploads/banners/${uuidv4()}-banner.png`);
         
-        const uploadTask = await uploadBytesResumable(storageRef, blob);
-        const downloadURL = await getDownloadURL(uploadTask.ref);
+        const uploadResult = await uploadBytes(storageRef, blob);
+        const downloadURL = await getDownloadURL(uploadResult.ref);
 
         form.setValue('bannerUrl', downloadURL, { shouldValidate: true });
         toast({ title: 'Banner Uploaded', description: 'Your new banner has been saved.' });
@@ -228,9 +228,10 @@ export default function CreateEventPage() {
                           <Image src={form.watch('bannerUrl')!} alt="Banner" fill className="object-cover" />
                       ) : (
                           <div className="text-center text-muted-foreground">
-                              <ImageIcon className="mx-auto h-12 w-12" />
-                              <p className="mt-2 text-sm font-semibold">Add a cover photo</p>
-                              <p className="text-xs">You can add this later.</p>
+                              <span className="text-5xl font-bold">
+                                {form.watch('name') ? form.watch('name').charAt(0).toUpperCase() : '?'}
+                              </span>
+                              <p className="mt-2 text-sm font-semibold">No banner uploaded</p>
                           </div>
                       )}
                       {isUploading && (
@@ -443,3 +444,5 @@ export default function CreateEventPage() {
     </>
   );
 }
+
+    

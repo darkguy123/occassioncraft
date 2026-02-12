@@ -8,7 +8,7 @@ import * as z from 'zod';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { getAuth, updateProfile, verifyBeforeUpdateEmail } from 'firebase/auth';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -85,8 +85,8 @@ export default function ProfileSettingsPage() {
     try {
         const blob = await fetch(croppedImageBase64).then(res => res.blob());
         const storageRef = ref(storage, `public-uploads/avatars/${user.uid}/profile.png`);
-        const uploadTask = await uploadBytesResumable(storageRef, blob);
-        const downloadURL = await getDownloadURL(uploadTask.ref);
+        const uploadResult = await uploadBytes(storageRef, blob);
+        const downloadURL = await getDownloadURL(uploadResult.ref);
         
         form.setValue('profileImageUrl', downloadURL);
         toast({ title: 'Avatar Updated', description: 'Click "Save Changes" to apply your new picture.' });
@@ -309,3 +309,5 @@ export default function ProfileSettingsPage() {
     </>
   );
 }
+
+    

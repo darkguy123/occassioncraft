@@ -22,7 +22,7 @@ import type { Event, User as UserType } from "@/lib/types";
 import Link from "next/link";
 import { useFirebase, useDoc, updateDocumentNonBlocking, useMemoFirebase } from "@/firebase";
 import { doc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -116,8 +116,8 @@ export default function AdminEditEventPage() {
     setIsUploading(true);
     try {
       const storageRef = ref(storage, `public-uploads/banners/${uuidv4()}-${file.name}`);
-      const uploadTask = await uploadBytesResumable(storageRef, file);
-      const downloadURL = await getDownloadURL(uploadTask.ref);
+      const uploadResult = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(uploadResult.ref);
       
       form.setValue('bannerUrl', downloadURL, { shouldValidate: true });
       toast({ title: 'Banner Uploaded', description: 'Your new banner has been saved.' });
@@ -366,3 +366,5 @@ export default function AdminEditEventPage() {
     </div>
   );
 }
+
+    

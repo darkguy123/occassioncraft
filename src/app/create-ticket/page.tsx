@@ -23,7 +23,7 @@ import { TicketStylePreview } from "@/components/ticket-style-preview"
 import Image from "next/image"
 import { generateTicketImage } from "@/ai/flows/generate-ticket-image-flow"
 import { Loader2, Wand2, Info, Plus, Upload, ShoppingCart, Check, PartyPopper } from "lucide-react"
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
 import { useCart, type CartItem } from "@/context/cart-context"
 import Link from "next/link";
@@ -194,8 +194,8 @@ export default function CreateTicketPage() {
     setIsUploading(true);
     try {
         const storageRef = ref(storage, `public-uploads/ticket-assets/${uuidv4()}-${file.name}`);
-        const uploadTask = await uploadBytesResumable(storageRef, file);
-        const downloadURL = await getDownloadURL(uploadTask.ref);
+        const uploadResult = await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(uploadResult.ref);
 
         form.setValue(field, downloadURL, { shouldValidate: true });
         toast({ title: 'Image Uploaded', description: 'Your image has been saved.' });
@@ -606,3 +606,5 @@ export default function CreateTicketPage() {
     </>
   );
 }
+
+    
