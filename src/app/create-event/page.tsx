@@ -12,22 +12,19 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon, Image as ImageIcon, MapPin, Plus, Save, PartyPopper, Loader2 } from "lucide-react"
+import { CalendarIcon, MapPin, Save, PartyPopper, Sparkles } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
-import { useFirebase, useDoc, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
+import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
 import type { User as UserType, Event as EventType } from "@/lib/types";
 import { doc, collection, addDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
-import Image from "next/image"
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import Link from "next/link"
-import { v4 as uuidv4 } from 'uuid';
-import { ImageCropperDialog } from "@/components/shared/image-cropper-dialog";
 import { generateBackgroundImage } from "@/ai/flows/generate-ticket-image-flow";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters."),
@@ -37,7 +34,6 @@ const eventFormSchema = z.object({
   isOnline: z.boolean().default(false),
   location: z.string().optional(),
   description: z.string().optional(),
-  bannerUrl: z.string().optional(),
   isPrivate: z.boolean().default(false),
 }).refine(data => !data.isOnline ? !!data.location : true, {
     message: "Location is required for physical events.",
@@ -49,14 +45,11 @@ export type EventFormValues = z.infer<typeof eventFormSchema>;
 export default function CreateEventPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { user, isUserLoading, firestore, storage } = useFirebase();
+  const { user, isUserLoading, firestore } = useFirebase();
   
   const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [createdEvent, setCreatedEvent] = useState<EventType | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [isCropperOpen, setIsCropperOpen] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -86,13 +79,9 @@ export default function CreateEventPage() {
         return;
     }
     
-    let finalBannerUrl = data.bannerUrl;
-
     try {
-        if (!finalBannerUrl) {
-            toast({ title: 'Generating AI Banner...', description: 'Please wait while we create a unique banner for your event.' });
-            finalBannerUrl = await generateBackgroundImage("A vibrant, colorful bokeh effect, suitable as a background. Abstract and visually pleasing. Aspect ratio 16:9.");
-        }
+        toast({ title: 'Generating AI Banner...', description: 'Please wait while we create a unique banner for your event.' });
+        const finalBannerUrl = await generateBackgroundImage("A vibrant, colorful bokeh effect, suitable as a background. Abstract and visually pleasing. Aspect ratio 16:9.");
 
         const eventCollectionRef = collection(firestore, 'events');
         const eventData: Omit<EventType, 'id'> = {
@@ -149,61 +138,6 @@ export default function CreateEventPage() {
         setAuthStatus('unauthorized');
     }
   }, [isUserLoading, isUserDataLoading, user, userData, router]);
-
-   const onCrop = async (croppedImageBase64: string) => {
-    setIsCropperOpen(false);
-    if (!user || !storage) {
-      toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to upload images.' });
-      return;
-    }
-
-    // Helper to convert Data URI to Blob
-    const dataURItoBlob = (dataURI: string): Blob => {
-        const byteString = atob(dataURI.split(',')[1]);
-        const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
-        const ab = new ArrayBuffer(byteString.length);
-        const ia = new Uint8Array(ab);
-        for (let i = 0; i < byteString.length; i++) {
-            ia[i] = byteString.charCodeAt(i);
-        }
-        return new Blob([ab], {type: mimeString});
-    };
-
-    setIsUploading(true);
-    try {
-        const blob = dataURItoBlob(croppedImageBase64);
-        const filePath = `public-uploads/banners/${uuidv4()}-banner.png`;
-        const storageRef = ref(storage, filePath);
-
-        const uploadResult = await uploadBytes(storageRef, blob);
-        const downloadURL = await getDownloadURL(uploadResult.ref);
-        
-        form.setValue('bannerUrl', downloadURL, { shouldValidate: true });
-        toast({ title: 'Banner Uploaded', description: 'Your new banner has been saved.' });
-
-    } catch (error: any) {
-        console.error("Error uploading file:", error);
-        toast({ variant: 'destructive', title: 'Upload Failed', description: error.message || 'Could not upload the banner image.' });
-    } finally {
-        setIsUploading(false);
-    }
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 4 * 1024 * 1024) { // 4MB limit
-        toast({ variant: 'destructive', title: 'File too large', description: 'Image must be smaller than 4MB.' });
-        return;
-    }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-        setImageSrc(reader.result as string);
-        setIsCropperOpen(true);
-    };
-    reader.readAsDataURL(file);
-  };
   
   const handleCreateAnother = () => {
       form.reset();
@@ -229,49 +163,21 @@ export default function CreateEventPage() {
 
   return (
     <>
-    {imageSrc && (
-        <ImageCropperDialog
-            isOpen={isCropperOpen}
-            onClose={() => setIsCropperOpen(false)}
-            imageSrc={imageSrc}
-            onCrop={onCrop}
-            aspectRatio={16 / 7}
-        />
-    )}
     <div className="container max-w-2xl mx-auto py-10 px-4">
         <div className="space-y-2 mb-8">
             <h1 className="text-4xl font-bold font-headline">Create a New Event</h1>
-            <p className="text-muted-foreground">First, create the event shell. You can add an optional banner image now or later.</p>
+            <p className="text-muted-foreground">Fill in the details below. A beautiful banner will be automatically generated for you.</p>
         </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="space-y-2">
-                <FormLabel>Event Banner (Optional)</FormLabel>
-                <FormControl>
-                  <div className="w-full aspect-[16/7] bg-card rounded-lg border-2 border-dashed flex items-center justify-center relative overflow-hidden">
-                      {form.watch('bannerUrl') ? (
-                          <Image src={form.watch('bannerUrl')!} alt="Banner" fill className="object-cover" />
-                      ) : (
-                          <div className="text-center text-muted-foreground">
-                              <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground/30" />
-                              <p className="mt-2 text-sm font-semibold">Upload a banner or we'll generate one!</p>
-                          </div>
-                      )}
-                      {isUploading && (
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                            <Loader2 className="h-8 w-8 text-white animate-spin" />
-                        </div>
-                      )}
-                  </div>
-                </FormControl>
-                <Button asChild variant="outline" size="sm">
-                    <label htmlFor="banner-upload" className="cursor-pointer w-full">
-                        <Plus className="mr-2 h-4 w-4"/> Upload Banner
-                    </label>
-                </Button>
-                <Input id="banner-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange} disabled={isUploading} />
-            </div>
+            <Alert>
+              <Sparkles className="h-4 w-4" />
+              <AlertTitle>AI-Generated Banner</AlertTitle>
+              <AlertDescription>
+                You no longer need to upload a banner. We will automatically create a unique and beautiful banner for your event using AI.
+              </AlertDescription>
+            </Alert>
 
             <FormField
               control={form.control}
@@ -421,7 +327,7 @@ export default function CreateEventPage() {
             />
 
             <div className="flex justify-end pt-4 border-t">
-                <Button type="submit" size="lg" disabled={form.formState.isSubmitting || isUploading}>
+                <Button type="submit" size="lg" disabled={form.formState.isSubmitting}>
                     {form.formState.isSubmitting ? 'Saving...' : <><Save className="mr-2 h-4 w-4" /> Save Event</>}
                 </Button>
             </div>
@@ -468,5 +374,3 @@ export default function CreateEventPage() {
     </>
   );
 }
-
-    

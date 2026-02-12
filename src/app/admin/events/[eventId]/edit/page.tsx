@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon, ArrowLeft, Plus, Loader2, UserPlus, Trash2 } from "lucide-react"
+import { CalendarIcon, ArrowLeft, Loader2, UserPlus, Trash2, Sparkles } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter, useParams } from "next/navigation"
 import { useEffect, useState } from "react";
@@ -22,11 +22,9 @@ import type { Event, User as UserType } from "@/lib/types";
 import Link from "next/link";
 import { useFirebase, useDoc, updateDocumentNonBlocking, useMemoFirebase } from "@/firebase";
 import { doc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-
+import { generateBackgroundImage } from "@/ai/flows/generate-ticket-image-flow";
 
 const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters."),
@@ -44,11 +42,11 @@ export type EventFormValues = z.infer<typeof eventFormSchema>;
 export default function AdminEditEventPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { firestore, user, storage } = useFirebase();
+  const { firestore, user } = useFirebase();
   const params = useParams();
   const eventId = params.eventId as string;
 
-  const [isUploading, setIsUploading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [newScannerId, setNewScannerId] = useState('');
   
   const eventDocRef = useMemoFirebase(() => {
@@ -103,32 +101,21 @@ export default function AdminEditEventPage() {
     });
     router.push('/admin/events');
   };
-  
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !user || !storage) return;
 
-    if (file.size > 4 * 1024 * 1024) { // 4MB limit
-        toast({ variant: 'destructive', title: 'File too large', description: 'Image must be smaller than 4MB.' });
-        return;
-    }
-
-    setIsUploading(true);
+  const handleGenerateNewBanner = async () => {
+    setIsGenerating(true);
+    toast({ title: 'Generating New Banner...', description: 'Please wait a moment.' });
     try {
-      const storageRef = ref(storage, `public-uploads/banners/${uuidv4()}-${file.name}`);
-      const uploadResult = await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(uploadResult.ref);
-      
-      form.setValue('bannerUrl', downloadURL, { shouldValidate: true });
-      toast({ title: 'Banner Uploaded', description: 'Your new banner has been saved.' });
+      const newBannerUrl = await generateBackgroundImage("A vibrant, colorful bokeh effect, suitable as a background. Abstract and visually pleasing. Aspect ratio 16:9.");
+      form.setValue('bannerUrl', newBannerUrl, { shouldValidate: true, shouldDirty: true });
+      toast({ title: 'New Banner Generated!', description: 'The new banner has been applied. Remember to save your changes.' });
     } catch (error: any) {
-      console.error("Error uploading file:", error);
-      toast({ variant: 'destructive', title: 'Upload Failed', description: error.message || 'Could not upload the banner image.' });
+        toast({ variant: 'destructive', title: 'Generation Failed', description: error.message || 'Could not generate a new banner.' });
     } finally {
-      setIsUploading(false);
+        setIsGenerating(false);
     }
-  };
-
+  }
+  
   const handleAddScanner = async () => {
     if (!newScannerId.trim() || !eventDocRef || !firestore) return;
     const scannerUid = newScannerId.trim();
@@ -222,18 +209,15 @@ export default function AdminEditEventPage() {
                             <p className="mt-2 text-sm font-semibold">No banner uploaded</p>
                         </div>
                     )}
-                     {isUploading && (
+                     {isGenerating && (
                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                             <Loader2 className="h-8 w-8 text-white animate-spin" />
                         </div>
                       )}
                 </div>
-                 <Button asChild variant="outline" size="sm">
-                    <label htmlFor="banner-upload" className="cursor-pointer">
-                        <Plus className="mr-2 h-4 w-4"/> Upload New Banner
-                    </label>
+                 <Button type="button" variant="outline" size="sm" onClick={handleGenerateNewBanner} disabled={isGenerating}>
+                    <Sparkles className="mr-2 h-4 w-4"/> Generate New AI Banner
                 </Button>
-                <Input id="banner-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange} disabled={isUploading}/>
             </div>
             
             <FormField
@@ -323,7 +307,7 @@ export default function AdminEditEventPage() {
             />
 
             <div className="flex justify-end pt-4 border-t">
-                <Button type="submit" size="lg" disabled={form.formState.isSubmitting || isUploading}>Save Changes</Button>
+                <Button type="submit" size="lg" disabled={form.formState.isSubmitting || isGenerating}>Save Changes</Button>
             </div>
         </form>
       </Form>
@@ -366,5 +350,3 @@ export default function AdminEditEventPage() {
     </div>
   );
 }
-
-    
