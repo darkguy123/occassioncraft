@@ -27,7 +27,7 @@ import Link from "next/link"
 import { v4 as uuidv4 } from 'uuid';
 import { ImageCropperDialog } from "@/components/shared/image-cropper-dialog";
 import { uploadFile } from "@/ai/flows/upload-file-flow";
-import { generateBackgroundImage } from "@/ai/flows/generate-background-image-flow";
+import { generateBackgroundImage } from "@/ai/flows/generate-ticket-image-flow";
 
 const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters."),
