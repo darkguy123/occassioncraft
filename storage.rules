@@ -3,16 +3,16 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    
-    // Allow public read access for all files.
-    allow read;
+    // A single rule to govern all paths
+    match /{allPaths=**} {
+      // Anyone can read any file. This is necessary for images to be
+      // displayed in the app.
+      allow read;
 
-    // Any authenticated user can write to the "public-uploads" folder.
-    // The use of UUIDs in filenames by the app prevents collisions.
-    // Deletion is disallowed from the client to prevent malicious or accidental removal.
-    match /public-uploads/{allPaths=**} {
+      // Any authenticated user can write files. The app's logic ensures
+      // that filenames are unique, preventing users from overwriting
+      // each other's files.
       allow write: if request.auth != null;
-      allow delete: if false; 
     }
   }
 }
