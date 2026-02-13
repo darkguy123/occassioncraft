@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from "next/link"
@@ -11,13 +10,13 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useForm, SubmitHandler } from "react-hook-form"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { useAuth } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { MailQuestion } from "lucide-react";
+import { MailQuestion, Loader2 } from "lucide-react";
 import { sendPasswordResetEmail } from "firebase/auth";
 
 const forgotPasswordSchema = z.object({
@@ -30,11 +29,14 @@ export default function ForgotPasswordPage() {
   const auth = useAuth();
   const { toast } = useToast();
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<ForgotPasswordSchema>({
+  const form = useForm<ForgotPasswordSchema>({
     resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: '',
+    }
   });
 
-  const onSubmit: SubmitHandler<ForgotPasswordSchema> = async (data) => {
+  const onSubmit = async (data: ForgotPasswordSchema) => {
     if (!auth) return;
     try {
       await sendPasswordResetEmail(auth, data.email);
@@ -43,12 +45,14 @@ export default function ForgotPasswordPage() {
         description: "If an account exists for this email, a reset link has been sent. Please check your inbox.",
       });
     } catch (error: any) {
-      // We still show a success toast to prevent email enumeration
-      toast({
+      // We still show a success toast to prevent email enumeration, but log the error.
+      // This is a common security practice. The email may fail for various reasons
+      // (e.g., email not found, network issue), but we don't want to reveal which.
+      console.error("Forgot Password Error:", error);
+       toast({
         title: "Password Reset Email Sent",
         description: "If an account exists for this email, a reset link has been sent. Please check your inbox.",
       });
-      console.error("Forgot Password Error:", error);
     }
   };
 
@@ -63,21 +67,33 @@ export default function ForgotPasswordPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="m@example.com"
-                {...register("email")}
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="m@example.com"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-              {errors.email && <p className="text-destructive text-xs">{errors.email.message}</p>}
-            </div>
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              Send Reset Link
-            </Button>
-          </form>
+              <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Send Reset Link
+              </Button>
+            </form>
+          </Form>
           <div className="mt-4 text-center text-sm">
             Remember your password?{" "}
             <Link href="/login" className="underline">
