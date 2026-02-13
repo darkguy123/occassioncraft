@@ -37,21 +37,27 @@ export default function ForgotPasswordPage() {
   });
 
   const onSubmit = async (data: ForgotPasswordSchema) => {
-    if (!auth) return;
+    if (!auth) {
+        toast({
+            variant: "destructive",
+            title: "Authentication Error",
+            description: "Could not connect to the authentication service.",
+        });
+        return;
+    }
     try {
       await sendPasswordResetEmail(auth, data.email);
       toast({
         title: "Password Reset Email Sent",
-        description: "If an account exists for this email, a reset link has been sent. Please check your inbox.",
+        description: "If an account exists for this email, a reset link has been sent. Please check your inbox and spam folder.",
       });
     } catch (error: any) {
-      // We still show a success toast to prevent email enumeration, but log the error.
-      // This is a common security practice. The email may fail for various reasons
-      // (e.g., email not found, network issue), but we don't want to reveal which.
       console.error("Forgot Password Error:", error);
-       toast({
-        title: "Password Reset Email Sent",
-        description: "If an account exists for this email, a reset link has been sent. Please check your inbox.",
+      // Provide clearer feedback on failure.
+      toast({
+        variant: "destructive",
+        title: "Failed to Send Email",
+        description: "There was a problem sending the reset email. Please ensure the email address is correct and try again.",
       });
     }
   };
