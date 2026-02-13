@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from "next/link"
@@ -48,16 +49,16 @@ export default function ForgotPasswordPage() {
     try {
       await sendPasswordResetEmail(auth, data.email);
       toast({
-        title: "Password Reset Email Sent",
-        description: "If an account exists for this email, a reset link has been sent. Please check your inbox and spam folder.",
+        title: "Request Sent Successfully",
+        description: "If an account with this email exists, Firebase will send a password reset link. Please check your inbox and spam folder. If you don't receive it, check your Firebase project's email settings.",
       });
     } catch (error: any) {
       console.error("Forgot Password Error:", error);
       // Provide clearer feedback on failure.
       toast({
         variant: "destructive",
-        title: "Failed to Send Email",
-        description: "There was a problem sending the reset email. Please ensure the email address is correct and try again.",
+        title: "Failed to Send Request",
+        description: "There was a problem sending the request. Please ensure the email address is correct and try again. This can sometimes be caused by Firebase project configuration issues.",
       });
     }
   };
