@@ -10,14 +10,17 @@ import { useUser, useFirestore } from "@/firebase";
 import { collection, doc, writeBatch } from "firebase/firestore";
 import Link from "next/link";
 import { v4 as uuidv4 } from 'uuid';
-import { ShoppingCart, Trash2 } from "lucide-react";
+import { ShoppingCart, Trash2, AlertTriangle } from "lucide-react";
 import type { Ticket } from "@/lib/types";
+import { useState } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function CheckoutPage() {
     const { cart, removeFromCart, clearCart, cartTotal } = useCart();
     const { toast } = useToast();
     const { user } = useUser();
     const firestore = useFirestore();
+    const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
     const paystackConfig = {
         reference: uuidv4(),
@@ -95,16 +98,13 @@ export default function CheckoutPage() {
     };
     
     const handleCheckout = () => {
+        setCheckoutError(null);
         if (cart.length === 0) {
             toast({ variant: 'destructive', title: 'Your cart is empty!' });
             return;
         }
         if (!paystackConfig.publicKey) {
-            toast({
-                variant: 'destructive',
-                title: 'Setup Required',
-                description: 'The Paystack public key is not configured. Please add NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY to your .env file.',
-            });
+            setCheckoutError('Paystack public key is not configured. Please add NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY to your .env file and restart the server.');
             return;
         }
         initializePayment({onSuccess: onPaymentSuccess, onClose: onPaymentClose});
@@ -168,7 +168,16 @@ export default function CheckoutPage() {
                                 <span>₦{cartTotal.toLocaleString()}</span>
                            </div>
                         </CardContent>
-                        <CardFooter>
+                        <CardFooter className="flex-col items-stretch">
+                            {checkoutError && (
+                                <Alert variant="destructive" className="mb-4">
+                                  <AlertTriangle className="h-4 w-4" />
+                                  <AlertTitle>Checkout Error</AlertTitle>
+                                  <AlertDescription>
+                                    {checkoutError}
+                                  </AlertDescription>
+                                </Alert>
+                            )}
                             <Button className="w-full" size="lg" onClick={handleCheckout} disabled={cart.length === 0}>
                                 Pay Now
                             </Button>
