@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from "@/context/cart-context";
@@ -44,12 +43,14 @@ export default function CheckoutPage() {
                 const ticketRef = doc(firestore, 'tickets', ticketId);
                 const userTicketRef = doc(firestore, `users/${user.uid}/tickets`, ticketId);
                 
+                const pricePerTicket = item.quantity > 0 ? item.price / item.quantity : 0;
+
                 const ticketData: Omit<Ticket, 'id'> = {
                     eventId: item.eventId,
                     vendorId: user.uid,
                     userId: user.uid, // Initially assigned to the vendor
                     purchaseDate: new Date().toISOString(),
-                    price: item.price / item.quantity, // Price per ticket
+                    price: pricePerTicket,
                     isPaid: true,
                     package: item.package,
                     tier: item.tier,
@@ -98,11 +99,11 @@ export default function CheckoutPage() {
             toast({ variant: 'destructive', title: 'Your cart is empty!' });
             return;
         }
-        if (!process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY.startsWith('pk_test_')) {
+        if (!process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY) {
             toast({
                 variant: 'destructive',
                 title: 'Setup Required',
-                description: 'The Paystack public key is not configured in the .env file.',
+                description: 'The Paystack public key is not configured. Please add NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY to your .env file.',
             });
             return;
         }
