@@ -12,19 +12,17 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon, ArrowLeft, Loader2, UserPlus, Trash2, Sparkles } from "lucide-react"
+import { CalendarIcon, ArrowLeft, UserPlus, Trash2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter, useParams } from "next/navigation"
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
-import Image from "next/image"
 import type { Event, User as UserType } from "@/lib/types";
 import Link from "next/link";
 import { useFirebase, useDoc, updateDocumentNonBlocking, useMemoFirebase } from "@/firebase";
 import { doc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { generateBackgroundImage } from "@/ai/flows/generate-ticket-image-flow";
 
 const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters."),
@@ -46,7 +44,6 @@ export default function AdminEditEventPage() {
   const params = useParams();
   const eventId = params.eventId as string;
 
-  const [isGenerating, setIsGenerating] = useState(false);
   const [newScannerId, setNewScannerId] = useState('');
   
   const eventDocRef = useMemoFirebase(() => {
@@ -102,20 +99,6 @@ export default function AdminEditEventPage() {
     router.push('/admin/events');
   };
 
-  const handleGenerateNewBanner = async () => {
-    setIsGenerating(true);
-    toast({ title: 'Generating New Banner...', description: 'Please wait a moment.' });
-    try {
-      const newBannerUrl = await generateBackgroundImage("A vibrant, colorful bokeh effect, suitable as a background. Abstract and visually pleasing. Aspect ratio 16:9.");
-      form.setValue('bannerUrl', newBannerUrl, { shouldValidate: true, shouldDirty: true });
-      toast({ title: 'New Banner Generated!', description: 'The new banner has been applied. Remember to save your changes.' });
-    } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Generation Failed', description: error.message || 'Could not generate a new banner.' });
-    } finally {
-        setIsGenerating(false);
-    }
-  }
-  
   const handleAddScanner = async () => {
     if (!newScannerId.trim() || !eventDocRef || !firestore) return;
     const scannerUid = newScannerId.trim();
@@ -197,28 +180,6 @@ export default function AdminEditEventPage() {
         </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="space-y-2">
-                <div className="w-full aspect-[16/7] bg-card rounded-lg border-2 border-dashed flex items-center justify-center relative overflow-hidden">
-                    {form.watch('bannerUrl') ? (
-                        <Image src={form.watch('bannerUrl')!} alt="Banner preview" layout="fill" objectFit="cover" />
-                    ) : (
-                         <div className="text-center text-muted-foreground">
-                            <span className="text-5xl font-bold">
-                                {form.watch('name') ? form.watch('name').charAt(0).toUpperCase() : '?'}
-                            </span>
-                            <p className="mt-2 text-sm font-semibold">No banner uploaded</p>
-                        </div>
-                    )}
-                     {isGenerating && (
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                            <Loader2 className="h-8 w-8 text-white animate-spin" />
-                        </div>
-                      )}
-                </div>
-                 <Button type="button" variant="outline" size="sm" onClick={handleGenerateNewBanner} disabled={isGenerating}>
-                    <Sparkles className="mr-2 h-4 w-4"/> Generate New AI Banner
-                </Button>
-            </div>
             
             <FormField
                 control={form.control}
@@ -307,7 +268,7 @@ export default function AdminEditEventPage() {
             />
 
             <div className="flex justify-end pt-4 border-t">
-                <Button type="submit" size="lg" disabled={form.formState.isSubmitting || isGenerating}>Save Changes</Button>
+                <Button type="submit" size="lg" disabled={form.formState.isSubmitting}>Save Changes</Button>
             </div>
         </form>
       </Form>

@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon, MapPin, Save, PartyPopper, Sparkles } from "lucide-react"
+import { CalendarIcon, MapPin, Save, PartyPopper } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
@@ -23,8 +23,6 @@ import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import Link from "next/link"
-import { generateBackgroundImage } from "@/ai/flows/generate-ticket-image-flow";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters."),
@@ -80,13 +78,9 @@ export default function CreateEventPage() {
     }
     
     try {
-        toast({ title: 'Generating AI Banner...', description: 'Please wait while we create a unique banner for your event.' });
-        const finalBannerUrl = await generateBackgroundImage("A vibrant, colorful bokeh effect, suitable as a background. Abstract and visually pleasing. Aspect ratio 16:9.");
-
         const eventCollectionRef = collection(firestore, 'events');
         const eventData: Omit<EventType, 'id'> = {
             ...data,
-            bannerUrl: finalBannerUrl,
             date: data.date.toISOString(),
             location: data.isOnline ? 'Online Event' : data.location || '',
             vendorId: user.uid,
@@ -166,19 +160,11 @@ export default function CreateEventPage() {
     <div className="container max-w-2xl mx-auto py-10 px-4">
         <div className="space-y-2 mb-8">
             <h1 className="text-4xl font-bold font-headline">Create a New Event</h1>
-            <p className="text-muted-foreground">Fill in the details below. A beautiful banner will be automatically generated for you.</p>
+            <p className="text-muted-foreground">Fill in the details below to create your event shell.</p>
         </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <Alert>
-              <Sparkles className="h-4 w-4" />
-              <AlertTitle>AI-Generated Banner</AlertTitle>
-              <AlertDescription>
-                You no longer need to upload a banner. We will automatically create a unique and beautiful banner for your event using AI.
-              </AlertDescription>
-            </Alert>
-
             <FormField
               control={form.control}
               name="name"
