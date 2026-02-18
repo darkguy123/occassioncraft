@@ -99,7 +99,7 @@ export default function CheckoutPage() {
             toast({ variant: 'destructive', title: 'Your cart is empty!' });
             return;
         }
-        if (!process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY) {
+        if (!paystackConfig.publicKey) {
             toast({
                 variant: 'destructive',
                 title: 'Setup Required',
