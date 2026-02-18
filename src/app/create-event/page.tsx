@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -70,22 +69,71 @@ export default function CreateEventPage() {
     },
     mode: "onChange",
   });
+
+  const generateGradientBanner = (text: string): string => {
+    const sanitizedText = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+
+    const color1_hue = Math.floor(Math.random() * 360);
+    const color2_hue = (color1_hue + Math.floor(Math.random() * 80) + 40) % 360;
+
+    const color1 = `hsl(${color1_hue}, 90%, 65%)`;
+    const color2 = `hsl(${color2_hue}, 90%, 55%)`;
+
+    const svg = `
+      <svg width="600" height="400" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="${color1}" />
+            <stop offset="100%" stop-color="${color2}" />
+          </linearGradient>
+        </defs>
+        <rect width="600" height="400" fill="url(#grad)" />
+        <text
+          x="50%"
+          y="50%"
+          dominant-baseline="middle"
+          text-anchor="middle"
+          font-family="Poppins, sans-serif"
+          font-size="48"
+          font-weight="bold"
+          fill="white"
+          stroke="rgba(0,0,0,0.1)"
+          stroke-width="1"
+        >
+          ${sanitizedText}
+        </text>
+      </svg>
+    `;
+    const base64 = btoa(unescape(encodeURIComponent(svg.trim())));
+    return `data:image/svg+xml;base64,${base64}`;
+  };
   
   const onSubmit = async (data: EventFormValues) => {
-     if (!user || !firestore) {
+     if (!user || !firestore || !userData) {
         toast({ variant: 'destructive', title: 'Error', description: 'Authentication or database error.' });
         return;
     }
     
     try {
         const eventCollectionRef = collection(firestore, 'events');
+        
+        const bannerUrl = generateGradientBanner(data.name);
+        const isAdmin = (userData.roles || []).includes('admin');
+        const eventStatus = isAdmin ? 'published' : 'pending';
+
         const eventData: Omit<EventType, 'id'> = {
             ...data,
             date: data.date.toISOString(),
             location: data.isOnline ? 'Online Event' : data.location || '',
             vendorId: user.uid,
             organizer: user.displayName || 'Unnamed Organizer',
-            status: 'published',
+            status: eventStatus,
+            bannerUrl: bannerUrl,
         };
         
         if (!eventData.endTime) {
@@ -94,11 +142,14 @@ export default function CreateEventPage() {
 
         const docRef = await addDoc(eventCollectionRef, eventData);
         setCreatedEvent({ id: docRef.id, ...eventData });
-        setIsSuccessDialogOpen(true);
+        
+        const toastMessage = isAdmin ? "Your event is now live." : "Your event has been submitted for review.";
         toast({
-            title: "Event Published!",
-            description: "Your event is now live.",
+            title: isAdmin ? "Event Published!" : "Event Submitted!",
+            description: toastMessage,
         });
+
+        setIsSuccessDialogOpen(true);
 
     } catch (error: any) {
         console.error("Error creating event: ", error);
@@ -154,6 +205,12 @@ export default function CreateEventPage() {
         </div>
     );
   }
+
+  const isAdmin = (userData?.roles || []).includes('admin');
+  const successTitle = isAdmin ? "Event Published!" : "Event Submitted for Review";
+  const successDescription = isAdmin
+      ? "Your event has been successfully created and is now live. You can now craft tickets for it."
+      : "Your event is now pending approval. You can track its status in your dashboard. In the meantime, you can still craft tickets for it.";
 
   return (
     <>
@@ -325,9 +382,9 @@ export default function CreateEventPage() {
         <AlertDialogContent>
             <AlertDialogHeader className="text-center items-center">
                 <PartyPopper className="h-12 w-12 text-primary" />
-                <AlertDialogTitle className="text-2xl">Event Published!</AlertDialogTitle>
+                <AlertDialogTitle className="text-2xl">{successTitle}</AlertDialogTitle>
                 <AlertDialogDescription>
-                    Your event has been successfully created and is now live. You can now craft tickets for it.
+                    {successDescription}
                 </AlertDialogDescription>
             </AlertDialogHeader>
             

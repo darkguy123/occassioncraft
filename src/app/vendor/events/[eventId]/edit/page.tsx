@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon, ArrowLeft, UserPlus, Trash2 } from "lucide-react"
+import { CalendarIcon, ArrowLeft, UserPlus, Trash2, Wand2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter, useParams } from "next/navigation"
 import { useEffect, useState } from "react";
@@ -23,6 +23,7 @@ import { useFirebase, useDoc, updateDocumentNonBlocking, useMemoFirebase } from 
 import { doc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import Image from "next/image";
 
 const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters."),
@@ -58,6 +59,60 @@ export default function VendorEditEventPage() {
     mode: "onChange",
   });
   
+  const generateGradientBanner = (text: string): string => {
+    const sanitizedText = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+
+    const color1_hue = Math.floor(Math.random() * 360);
+    const color2_hue = (color1_hue + Math.floor(Math.random() * 80) + 40) % 360;
+
+    const color1 = `hsl(${color1_hue}, 90%, 65%)`;
+    const color2 = `hsl(${color2_hue}, 90%, 55%)`;
+
+    const svg = `
+      <svg width="600" height="400" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="${color1}" />
+            <stop offset="100%" stop-color="${color2}" />
+          </linearGradient>
+        </defs>
+        <rect width="600" height="400" fill="url(#grad)" />
+        <text
+          x="50%"
+          y="50%"
+          dominant-baseline="middle"
+          text-anchor="middle"
+          font-family="Poppins, sans-serif"
+          font-size="48"
+          font-weight="bold"
+          fill="white"
+          stroke="rgba(0,0,0,0.1)"
+          stroke-width="1"
+        >
+          ${sanitizedText}
+        </text>
+      </svg>
+    `;
+    const base64 = btoa(unescape(encodeURIComponent(svg.trim())));
+    return `data:image/svg+xml;base64,${base64}`;
+  };
+  
+  const handleRegenerateBanner = () => {
+    const eventName = form.getValues('name');
+    if (!eventName) {
+        toast({ variant: 'destructive', title: "Event name is empty", description: "Please enter an event name to generate a banner." });
+        return;
+    }
+    const newBannerUrl = generateGradientBanner(eventName);
+    form.setValue('bannerUrl', newBannerUrl, { shouldDirty: true });
+    toast({ title: "Banner Regenerated", description: "A new banner has been generated. Click 'Save Changes' to apply it." });
+  };
+
   useEffect(() => {
     if (eventData) {
       const date = new Date(eventData.date);
@@ -266,6 +321,25 @@ export default function VendorEditEventPage() {
                 </FormItem>
                 )}
             />
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Event Banner</CardTitle>
+                <CardDescription>The event banner is auto-generated from the event name.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {form.watch('bannerUrl') ? (
+                  <Image src={form.watch('bannerUrl')!} alt="Event banner preview" width={600} height={400} className="rounded-md w-full aspect-[3/2] object-cover" />
+                ) : (
+                  <div className="w-full aspect-[3/2] bg-secondary rounded-md flex items-center justify-center">
+                    <p className="text-muted-foreground">No banner available. Save the event to generate one.</p>
+                  </div>
+                )}
+                <Button type="button" variant="outline" onClick={handleRegenerateBanner}>
+                  <Wand2 className="mr-2 h-4 w-4" /> Regenerate Banner
+                </Button>
+              </CardContent>
+            </Card>
 
             <div className="flex justify-end pt-4 border-t">
                 <Button type="submit" size="lg" disabled={form.formState.isSubmitting}>Save Changes</Button>
