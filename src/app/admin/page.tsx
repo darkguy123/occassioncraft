@@ -14,8 +14,8 @@ import {
     BarChart,
 } from 'recharts';
 import { DollarSign, Users, Calendar, AlertTriangle, Building } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where } from "firebase/firestore";
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
+import { collection, doc } from "firebase/firestore";
 import type { Event, User, Vendor, Ticket } from "@/lib/types";
 import { useMemo } from "react";
 import { format, getMonth, parseISO } from "date-fns";
@@ -25,11 +25,16 @@ const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep
 
 export default function AdminDashboardPage() {
   const firestore = useFirestore();
+  const { user } = useUser();
 
-  const { data: events } = useCollection<Event>(useMemoFirebase(() => firestore ? collection(firestore, 'events') : null, [firestore]));
-  const { data: users } = useCollection<User>(useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]));
-  const { data: vendors } = useCollection<Vendor>(useMemoFirebase(() => firestore ? collection(firestore, 'vendors') : null, [firestore]));
-  const { data: tickets } = useCollection<Ticket>(useMemoFirebase(() => firestore ? collection(firestore, 'tickets') : null, [firestore]));
+  const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
+  const { data: userData } = useDoc<User>(userDocRef);
+  const isAdmin = useMemo(() => userData?.roles?.includes('admin'), [userData]);
+
+  const { data: events } = useCollection<Event>(useMemoFirebase(() => (firestore && isAdmin) ? collection(firestore, 'events') : null, [firestore, isAdmin]));
+  const { data: users } = useCollection<User>(useMemoFirebase(() => (firestore && isAdmin) ? collection(firestore, 'users') : null, [firestore, isAdmin]));
+  const { data: vendors } = useCollection<Vendor>(useMemoFirebase(() => (firestore && isAdmin) ? collection(firestore, 'vendors') : null, [firestore, isAdmin]));
+  const { data: tickets } = useCollection<Ticket>(useMemoFirebase(() => (firestore && isAdmin) ? collection(firestore, 'tickets') : null, [firestore, isAdmin]));
 
   const { totalRevenue, salesData, totalUsers, usersData, totalEvents, pendingApprovals, totalVendors, vendorsData } = useMemo(() => {
     const revenue = tickets?.reduce((acc, ticket) => acc + (ticket.price || 0), 0) || 0;
