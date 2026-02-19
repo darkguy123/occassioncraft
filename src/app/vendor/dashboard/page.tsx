@@ -33,12 +33,10 @@ export default function VendorDashboardPage() {
 
     const { data: vendorEvents, isLoading: areEventsLoading } = useCollection<Event>(vendorEventsQuery);
 
-    const vendorEventIds = useMemo(() => vendorEvents?.map(e => e.id) || [], [vendorEvents]);
-
     const ticketsQuery = useMemoFirebase(() => {
-        if (!firestore || vendorEventIds.length === 0) return null;
-        return query(collection(firestore, 'tickets'), where('eventId', 'in', vendorEventIds));
-    }, [firestore, vendorEventIds]);
+        if (!user || !firestore) return null;
+        return query(collection(firestore, 'tickets'), where('vendorId', '==', user.uid));
+    }, [user, firestore]);
 
     const { data: tickets, isLoading: areTicketsLoading } = useCollection<TicketType>(ticketsQuery);
 
@@ -48,7 +46,7 @@ export default function VendorDashboardPage() {
     }, [tickets]);
 
 
-    const isLoading = areEventsLoading || (vendorEventIds.length > 0 && areTicketsLoading) || isUserLoading;
+    const isLoading = areEventsLoading || areTicketsLoading || isUserLoading;
     
     const handleDelete = (eventId: string, eventName: string) => {
         if (!firestore) return;
