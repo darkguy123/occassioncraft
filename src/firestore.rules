@@ -15,35 +15,16 @@ service cloud.firestore {
     	return request.auth != null && request.auth.uid == userId;
     }
 
-    // Helper to check if a user is upgrading to a vendor
-    function isUpgradingToVendor(request, resource) {
-      if (resource == null || resource.data.roles == null || request.resource.data.roles == null) {
-        return false; // Can't be upgrading if docs or roles don't exist.
-      }
-      
-      let oldRoles = resource.data.roles;
-      let newRoles = request.resource.data.roles;
-      
-      // The only change allowed is adding 'vendor' to the existing roles.
-      // 1. The new roles must contain all of the old roles.
-      // 2. The new roles must be exactly one larger than the old roles.
-      // 3. The new roles must include 'vendor'.
-      // 4. The user cannot add the 'admin' role themselves.
-      return newRoles.hasAll(oldRoles) &&
-             newRoles.size() == oldRoles.size() + 1 &&
-             newRoles.hasAny(['vendor']) &&
-             // This prevents adding 'admin' if it wasn't there before.
-             (oldRoles.hasAny(['admin']) || !newRoles.hasAny(['admin']));
-    }
-
     match /users/{userId} {
       allow list: if isAdmin();
       allow read: if isOwner(userId) || isAdmin();
-      // Allow user to create their own profile, but not assign roles.
-      allow create: if isOwner(userId) && request.resource.data.roles.size() == 1 && request.resource.data.roles[0] == 'user';
-      // Allow user to update their own profile, but not change their roles.
-      // Admins can update roles.
-      allow update: if isOwner(userId) && request.resource.data.roles == resource.data.roles || isAdmin();
+
+      // A user can create their own document when signing up.
+      allow create: if isOwner(userId);
+
+      // An admin can update any user document.
+      // A user can update their own document, BUT they cannot change their own roles.
+      allow update: if isAdmin() || (isOwner(userId) && request.resource.data.roles == resource.data.roles);
     }
     
     // Users can read/write their own notifications.
@@ -94,10 +75,11 @@ service cloud.firestore {
     }
     
     match /tickets/{ticketId} {
-      // A user can read a ticket if they are the owner, or if they are the vendor for that event.
-      // This rule also implicitly allows queries (like on the vendor dashboard) where every
-      // document returned meets these conditions.
-      allow read: if (request.auth != null && resource.data.userId == request.auth.uid) || (request.auth != null && resource.data.vendorId == request.auth.uid) || isAdmin();
+      // Allow reading a single ticket if you are the owner, vendor, or an admin.
+      allow get: if (request.auth != null && (resource.data.userId == request.auth.uid || resource.data.vendorId == request.auth.uid)) || isAdmin();
+
+      // Allow VENDORS to list tickets they created. Admins can list all.
+      allow list: if (request.auth != null && resource.data.vendorId == request.auth.uid) || isAdmin();
       
       // Allow creation for any authenticated user
       allow create: if request.auth != null;
