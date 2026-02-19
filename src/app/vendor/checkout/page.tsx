@@ -39,7 +39,7 @@ export default function CheckoutPage() {
         return query(collection(firestore, 'events'), where('vendorId', '==', user.uid));
     }, [user, firestore]);
     const { data: vendorEvents } = useCollection<Event>(vendorEventsQuery);
-
+    
     const paystackConfig = {
         reference: uuidv4(),
         email: user?.email || '',
@@ -47,71 +47,6 @@ export default function CheckoutPage() {
         currency: 'NGN',
         publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
     };
-    
-    const onPaymentSuccess = useCallback(async (reference: any) => {
-        if (!firestore || !user) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Database connection failed.' });
-            return;
-        }
-
-        const batch = writeBatch(firestore);
-        
-        cart.forEach(item => {
-            for (let i = 0; i < item.quantity; i++) {
-                const ticketId = uuidv4();
-                const ticketRef = doc(firestore, 'tickets', ticketId);
-                const userTicketRef = doc(firestore, `users/${user.uid}/tickets`, ticketId);
-                
-                const pricePerTicket = item.quantity > 0 ? item.price / item.quantity : 0;
-
-                const ticketData: Omit<Ticket, 'id'> = {
-                    eventId: item.eventId,
-                    vendorId: user.uid,
-                    userId: user.uid, // Initially assigned to the vendor
-                    purchaseDate: new Date().toISOString(),
-                    price: pricePerTicket,
-                    isPaid: true,
-                    package: item.package,
-                    tier: item.tier,
-                    templateId: item.templateId,
-                    ticketImageUrl: item.ticketImageUrl,
-                    ticketBrandingImageUrl: item.ticketBrandingImageUrl,
-                    guestPhotoUrl: item.guestPhotoUrl,
-                    class: item.class,
-                    attendeeName: item.attendeeName,
-                    isPrivate: item.isPrivate,
-                    scans: 0,
-                    maxScans: item.maxScans,
-                };
-                 batch.set(ticketRef, ticketData);
-                 batch.set(userTicketRef, { ticketId: ticketId, eventId: item.eventId, purchaseDate: new Date().toISOString(), userId: user.uid, vendorId: user.uid });
-            }
-        });
-
-        try {
-            await batch.commit();
-            toast({
-                title: 'Payment Successful!',
-                description: 'Your tickets have been created and are available in your dashboard.',
-            });
-            clearCart();
-        } catch (error: any) {
-            toast({
-                variant: 'destructive',
-                title: 'Ticket Creation Failed',
-                description: 'Payment was successful, but we failed to create the tickets. Please contact support.',
-            });
-            console.error('Failed to commit ticket batch:', error);
-        }
-    }, [firestore, user, cart, toast, clearCart]);
-
-    const onPaymentClose = useCallback(() => {
-        toast({
-            variant: 'destructive',
-            title: 'Payment Closed',
-            description: 'The payment modal was closed.',
-        });
-    }, [toast]);
 
     const initializePayment = usePaystackPayment(paystackConfig);
     
@@ -150,6 +85,72 @@ export default function CheckoutPage() {
             setCheckoutError('Paystack public key is not configured. Please add NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY to your .env file and restart the server.');
             return;
         }
+        
+        const onPaymentSuccess = async (reference: any) => {
+            if (!firestore || !user) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Database connection failed.' });
+                return;
+            }
+
+            const batch = writeBatch(firestore);
+            
+            cart.forEach(item => {
+                for (let i = 0; i < item.quantity; i++) {
+                    const ticketId = uuidv4();
+                    const ticketRef = doc(firestore, 'tickets', ticketId);
+                    const userTicketRef = doc(firestore, `users/${user.uid}/tickets`, ticketId);
+                    
+                    const pricePerTicket = item.quantity > 0 ? item.price / item.quantity : 0;
+
+                    const ticketData: Omit<Ticket, 'id'> = {
+                        eventId: item.eventId,
+                        vendorId: user.uid,
+                        userId: user.uid, // Initially assigned to the vendor
+                        purchaseDate: new Date().toISOString(),
+                        price: pricePerTicket,
+                        isPaid: true,
+                        package: item.package,
+                        tier: item.tier,
+                        templateId: item.templateId,
+                        ticketImageUrl: item.ticketImageUrl,
+                        ticketBrandingImageUrl: item.ticketBrandingImageUrl,
+                        guestPhotoUrl: item.guestPhotoUrl,
+                        class: item.class,
+                        attendeeName: item.attendeeName,
+                        isPrivate: item.isPrivate,
+                        scans: 0,
+                        maxScans: item.maxScans,
+                    };
+                     batch.set(ticketRef, ticketData);
+                     batch.set(userTicketRef, { ticketId: ticketId, eventId: item.eventId, purchaseDate: new Date().toISOString(), userId: user.uid, vendorId: user.uid });
+                }
+            });
+
+            try {
+                await batch.commit();
+                toast({
+                    title: 'Payment Successful!',
+                    description: 'Your tickets have been created and are available in your dashboard.',
+                });
+                clearCart();
+            } catch (error: any) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Ticket Creation Failed',
+                    description: 'Payment was successful, but we failed to create the tickets. Please contact support.',
+                });
+                console.error('Failed to commit ticket batch:', error);
+            }
+        };
+
+        const onPaymentClose = () => {
+            toast({
+                variant: 'default',
+                title: 'Payment Closed',
+                description: 'The payment modal was closed.',
+            });
+        };
+
         initializePayment({onSuccess: onPaymentSuccess, onClose: onPaymentClose});
     }
 
