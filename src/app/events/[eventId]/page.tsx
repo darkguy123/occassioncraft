@@ -3,9 +3,9 @@
 
 import { useMemo, useState } from 'react';
 import Image from 'next/image';
-import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking, useCollection } from '@/firebase';
-import { doc, collection, query, where, limit } from 'firebase/firestore';
-import type { Event, Notification, UserTicket, Ticket } from '@/lib/types';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { Event } from '@/lib/types';
 import { useParams, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
@@ -40,14 +40,7 @@ export default function EventDetailsPage() {
 
     const { data: eventData, isLoading: isEventLoading } = useDoc<Event>(eventDocRef);
 
-    const ticketsQuery = useMemoFirebase(() => {
-        if (!firestore || !eventId) return null;
-        return query(collection(firestore, 'tickets'), where('eventId', '==', eventId), where('isPrivate', '==', false), limit(1));
-    }, [firestore, eventId]);
-
-    const { data: publicTickets, isLoading: areTicketsLoading } = useCollection(ticketsQuery);
-
-    const isLoading = isEventLoading || areTicketsLoading;
+    const isLoading = isEventLoading;
 
     const handleGetTicket = () => {
         if (!user) {
@@ -64,23 +57,18 @@ export default function EventDetailsPage() {
             return;
         }
 
-        if (!publicTickets || publicTickets.length === 0) {
-            setAlertContent({
-                title: 'No Tickets Available',
-                description: 'There are no public tickets available for this event yet. Please check back later.'
-            });
-            setIsAlertOpen(true);
+        // If the current user is the vendor for this event, redirect to craft tickets
+        if (user.uid === eventData?.vendorId) {
+            router.push(`/create-ticket?eventId=${eventId}`);
             return;
         }
         
-        // If public tickets are available, we would redirect to a page where user can select one.
-        // For now, let's just log it. A future implementation could show a ticket selection modal.
-        toast({
-            title: "Redirecting...",
-            description: "Showing available public tickets for this event."
+        // For public users, since there's no direct purchase flow, show an info alert.
+        setAlertContent({
+            title: 'How to Get Tickets',
+            description: "The vendor for this event has not made public tickets available for direct purchase on this page. Please check the event organizer's official channels."
         });
-        // In a real scenario, you might have a dedicated page for purchasing from available ticket types.
-        // router.push(`/events/${eventId}/purchase`);
+        setIsAlertOpen(true);
     };
 
     if (isLoading) {
