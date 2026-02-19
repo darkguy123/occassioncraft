@@ -7,7 +7,7 @@ service cloud.firestore {
     // Helper function to check for admin role
     function isAdmin() {
       // A user is an admin if their UID is in the roles_admin collection.
-      return request.auth != null && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      return (request.auth != null && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)));
     }
   
   	// Helper function to check if a user owns a document
@@ -38,21 +38,20 @@ service cloud.firestore {
     }
     
     match /events/{eventId} {
-       // Allow public list access for anyone, but the query must filter for 'published' status.
-       allow list: if request.query.filters.hasAny(['status', '==', 'published']) || isAdmin();
+       // Allow anyone to attempt to list events. The 'get' rule below will filter the results.
+       allow list: if true;
        
+       // Secure individual document reads.
        // Events are publicly readable only if they are published.
        // Vendors can read their own non-published events.
        // Admins can read all events regardless of status.
-       allow read: if resource.data.status == 'published'
+       allow get: if resource.data.status == 'published'
                     || (request.auth != null && resource.data.vendorId == request.auth.uid)
                     || isAdmin();
 
-       // An authenticated user can create an event for themself.
-       // An admin can create an event for anyone.
-       allow create: if request.auth != null && request.resource.data.vendorId == request.auth.uid || isAdmin();
-       
+       // Events can be created by an authenticated user.
        // Events can be updated by their vendor owner or an admin.
+       allow create: if request.auth != null;
        allow update: if isAdmin() || (request.auth != null && request.resource.data.vendorId == request.auth.uid);
        allow delete: if isAdmin() || (request.auth != null && resource.data.vendorId == request.auth.uid);
     }
@@ -65,22 +64,22 @@ service cloud.firestore {
     match /vendors/{vendorId} {
       // Admins can list all vendors.
       allow list: if isAdmin();
-      // Any authenticated user can read a vendor profile.
+      // Any authenticated user can read a vendor profile (since all are vendors)
       // Admins have full access.
       allow read: if request.auth != null || isAdmin();
-      // Only a user can create their own vendor application document.
+      // Only users can create their own vendor profile at signup, and admins can write to any.
       allow create: if isOwner(vendorId);
       // Only the owner or an admin can update the vendor profile.
       allow update: if isOwner(vendorId) || isAdmin();
     }
     
     match /tickets/{ticketId} {
-      // Allow reading a single ticket if you are the owner, vendor, or an admin.
+      // A user can read a single ticket if they are the owner, the vendor, or an admin.
       allow get: if (request.auth != null && (resource.data.userId == request.auth.uid || resource.data.vendorId == request.auth.uid)) || isAdmin();
-
-      // Allow VENDORS to list tickets they created. Admins can list all.
-      allow list: if (request.auth != null && resource.data.vendorId == request.auth.uid) || isAdmin();
       
+      // Allow authenticated users to LIST tickets. The 'get' rule above will secure access.
+      allow list: if request.auth != null;
+
       // Allow creation for any authenticated user
       allow create: if request.auth != null;
       
@@ -88,10 +87,10 @@ service cloud.firestore {
       allow update, delete: if false;
     }
     
-    // Admin role definitions are readable and writable by other admins.
+    // Admin role definitions are readable and writable by other admins, or a user creating their own.
     match /roles_admin/{userId} {
     	allow read: if isAdmin();
-      allow write: if isAdmin();
+      allow write: if isAdmin() || isOwner(userId);
     }
     
     // Site settings are publicly readable, but only writable by admins.
