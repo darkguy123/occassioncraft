@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardTitle, CardDescription, CardContent, CardHeader } from "@/components/ui/card"
@@ -24,14 +23,19 @@ export default function UserDashboardPage() {
     const { data: userTicketPointers, isLoading: ticketsLoading } = useCollection<UserTicket>(userTicketsQuery);
 
     const eventIds = useMemo(() => {
-        if (!userTicketPointers) return [];
+        if (!userTicketPointers) {
+            return null; // Return null if pointers aren't loaded yet
+        }
         // Get unique event IDs from the user's tickets
         const ids = userTicketPointers.map(t => t.eventId);
         return [...new Set(ids)];
     }, [userTicketPointers]);
     
     const eventsQuery = useMemoFirebase(() => {
-        if (!firestore || eventIds.length === 0) return null;
+        // Guard against null or empty eventIds array
+        if (!firestore || !eventIds || eventIds.length === 0) {
+            return null;
+        }
         // Fetch all the events the user has tickets for in a single query
         return query(collection(firestore, 'events'), where('__name__', 'in', eventIds));
     }, [firestore, eventIds]);
@@ -47,7 +51,7 @@ export default function UserDashboardPage() {
         }).filter(item => item.event); // Filter out items where event was not found
     }, [userTicketPointers, events]);
     
-    const isLoading = isUserLoading || ticketsLoading || (eventIds.length > 0 && eventsLoading);
+    const isLoading = isUserLoading || ticketsLoading || (eventIds && eventIds.length > 0 && eventsLoading);
 
   return (
     <div className="container mx-auto max-w-7xl py-12 px-4">
