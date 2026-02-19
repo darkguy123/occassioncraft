@@ -115,7 +115,7 @@ export default function CheckoutPage() {
             setCheckoutError('Paystack public key is not configured. Please add NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY to your .env file and restart the server.');
             return;
         }
-        initializePayment({onSuccess: onPaymentSuccess, onClose: onPaymentClose});
+        initializePayment(onPaymentSuccess, onPaymentClose);
     }
 
     return (
