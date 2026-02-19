@@ -14,8 +14,9 @@ const DEFAULT_LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-856
 
 
 export const TicketDesign = ({ eventData, ticketData, qrCodeUrl, user }: { eventData: Event, ticketData: Ticket, qrCodeUrl: string, user: User | null }) => {
-    const formattedDate = eventData.date ? format(new Date(eventData.date), "EEEE, MMM d, yyyy") : 'Date';
-    const formattedTime = eventData.startTime || 'Time';
+    const firstDate = eventData.dates?.[0];
+    const formattedDate = firstDate?.date ? format(new Date(firstDate.date), "EEEE, MMM d, yyyy") : 'Date';
+    const formattedTime = firstDate?.startTime || 'Time';
     
     return (
         <Card id="ticket-to-download" className={cn(

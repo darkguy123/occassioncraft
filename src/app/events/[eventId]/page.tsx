@@ -104,8 +104,28 @@ export default function EventDetailsPage() {
         );
     }
     
-    const formattedDate = format(new Date(eventData.date), "EEEE, MMMM d");
-    const formattedTime = eventData.startTime;
+    const renderDateInfo = () => {
+        if (!eventData.dates || eventData.dates.length === 0) {
+            return { formattedDate: 'Date not set', formattedTime: 'Time not set' };
+        }
+        const firstDateItem = eventData.dates[0];
+        let formattedDate = format(new Date(firstDateItem.date), "EEEE, MMMM d");
+        let formattedTime = firstDateItem.startTime;
+        
+        if (eventData.dates.length > 1) {
+            const lastDateItem = eventData.dates[eventData.dates.length - 1];
+            const firstDate = new Date(firstDateItem.date);
+            const lastDate = new Date(lastDateItem.date);
+
+            if (firstDate.toDateString() !== lastDate.toDateString()) {
+                 formattedDate = `${format(firstDate, "MMM d")} - ${format(lastDate, "MMM d, yyyy")}`;
+            }
+            formattedTime = "Multiple times";
+        }
+        return { formattedDate, formattedTime };
+    };
+
+    const { formattedDate, formattedTime } = renderDateInfo();
 
     return (
         <>

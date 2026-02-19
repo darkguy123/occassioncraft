@@ -15,6 +15,8 @@ interface UpcomingEventCardProps {
 }
 
 export function UpcomingEventCard({ event, ticket }: UpcomingEventCardProps) {
+  const displayDate = event.dates && event.dates.length > 0 ? new Date(event.dates[0].date) : new Date();
+
   return (
     <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-card/60 backdrop-blur-sm rounded-xl flex flex-col">
         <div className="relative h-48 w-full bg-secondary">
@@ -42,7 +44,7 @@ export function UpcomingEventCard({ event, ticket }: UpcomingEventCardProps) {
             <div className='space-y-2 text-sm flex-grow'>
                 <div className="flex items-center text-muted-foreground">
                     <Calendar className="h-4 w-4 mr-2" />
-                    <span>{format(new Date(event.date), "EEEE, MMMM d, yyyy")}</span>
+                    <span>{format(displayDate, "EEEE, MMMM d, yyyy")}</span>
                 </div>
                 <div className="flex items-center text-muted-foreground">
                     <MapPin className="h-4 w-4 mr-2" />

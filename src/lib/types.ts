@@ -11,12 +11,16 @@ export type User = {
     dateJoined?: string;
 };
 
-export type Event = {
-  id: string;
-  name: string;
+export type EventDate = {
   date: string; // ISO 8601 string
   startTime: string;
   endTime?: string;
+};
+
+export type Event = {
+  id: string;
+  name: string;
+  dates: EventDate[];
   isOnline: boolean;
   location: string;
   description?: string;

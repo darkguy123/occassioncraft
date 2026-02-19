@@ -11,14 +11,26 @@
         "vendorId": { "type": "string", "description": "ID of the vendor who created the event." },
         "name": { "type": "string", "description": "Name of the event." },
         "description": { "type": "string", "description": "Description of the event." },
-        "date": { "type": "string", "description": "Date of the event.", "format": "date-time" },
+        "dates": {
+          "type": "array",
+          "description": "An array of dates and times for the event.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "date": { "type": "string", "description": "Date of the event occurrence.", "format": "date-time" },
+              "startTime": { "type": "string", "description": "Start time for that date." },
+              "endTime": { "type": "string", "description": "End time for that date." }
+            },
+            "required": ["date", "startTime"]
+          }
+        },
         "location": { "type": "string", "description": "Location of the event." },
         "bannerUrl": { "type": "string", "description": "URL for the event's banner image." },
         "isPrivate": { "type": "boolean", "description": "If true, the event is not listed publicly." },
         "authorizedScanners": { "type": "array", "items": { "type": "string" }, "description": "A list of user IDs authorized to scan tickets for this event." },
-        "status": { "type": "string", "description": "The status of the event.", "enum": ["published", "draft"]}
+        "status": { "type": "string", "description": "The status of the event.", "enum": ["published", "draft", "pending", "rejected"]}
       },
-      "required": ["id", "vendorId", "name", "date", "location", "status"]
+      "required": ["id", "vendorId", "name", "dates", "location", "status"]
     },
     "Ticket": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -42,9 +54,10 @@
         "attendeeName": { "type": "string" },
         "isPrivate": { "type": "boolean" },
         "scans": { "type": "number", "description": "How many times the ticket has been scanned." },
-        "maxScans": { "type": "number", "description": "Maximum number of allowed scans." }
+        "maxScans": { "type": "number", "description": "Maximum number of allowed scans." },
+        "lastScannedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "eventId", "vendorId", "purchaseDate", "package", "scans", "maxScans"]
+      "required": ["id", "vendorId", "purchaseDate", "package", "scans", "maxScans"]
     },
     "UserTicket": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -66,16 +79,24 @@
       "type": "object",
       "description": "Represents a vendor who creates events and tickets.",
       "properties": {
-        "id": { "type": "string" }, "name": { "type": "string" }, "email": { "type": "string", "format": "email" }
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "companyName": { "type": "string" },
+        "description": { "type": "string" },
+        "contactEmail": { "type": "string", "format": "email" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "pricingTier": { "type": "string", "enum": ["Free", "Premium", "Diamond"] },
+        "authorizedScanners": { "type": "array", "items": { "type": "string" }, "description": "A list of user IDs authorized to scan tickets for any of the vendor's events." }
       },
-      "required": ["id", "name", "email"]
+      "required": ["id", "userId", "companyName", "contactEmail", "status", "createdAt"]
     },
     "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
       "properties": {
-        "id": { "type": "string" }, "firstName": { "type": "string" }, "lastName": { "type": "string" }, "email": { "type": "string", "format": "email" }, "roles": { "type": "array", "items": { "type": "string", "enum": ["user", "vendor", "admin"] } }
+        "id": { "type": "string" }, "firstName": { "type": "string" }, "lastName": { "type": "string" }, "email": { "type": "string", "format": "email" }, "roles": { "type": "array", "items": { "type": "string", "enum": ["user", "vendor", "admin", "scanner"] } }, "dateJoined": { "type": "string", "format": "date-time"}, "profileImageUrl": { "type": "string" }
       },
       "required": ["id", "firstName", "lastName", "email", "roles"]
     },
@@ -91,6 +112,41 @@
       "title": "Notification",
       "properties": { "id": { "type": "string" }, "userId": { "type": "string" }, "title": { "type": "string" }, "description": { "type": "string" }, "createdAt": { "type": "string", "format": "date-time" }, "read": { "type": "boolean" }, "link": { "type": "string" } },
       "required": ["id", "userId", "title", "description", "createdAt", "read"]
+    },
+    "SiteSettings": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SiteSettings",
+      "type": "object",
+      "description": "Global settings for the website, like branding and content.",
+      "properties": {
+        "logoUrl": { "type": "string" },
+        "faviconUrl": { "type": "string" },
+        "heroBannerUrl": { "type": "string" },
+        "primaryColor": { "type": "string" },
+        "backgroundColor": { "type": "string" },
+        "accentColor": { "type": "string" },
+        "twitterUrl": { "type": "string" },
+        "facebookUrl": { "type": "string" },
+        "instagramUrl": { "type": "string" },
+        "privacyPolicy": { "type": "string" },
+        "termsAndConditions": { "type": "string" },
+        "aboutUs": { "type": "string" }
+      }
+    },
+    "DataDeletionRequest": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DataDeletionRequest",
+      "type": "object",
+      "description": "Represents a user's request to have their data deleted.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "reason": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "completed", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "email", "reason", "status", "createdAt"]
     }
   },
   "auth": { "providers": ["password", "anonymous"] },
@@ -102,8 +158,10 @@
       { "path": "/tickets/{ticketId}", "definition": { "entityName": "Ticket", "schema": { "$ref": "#/backend/entities/Ticket" } } },
       { "path": "/users/{userId}/tickets/{ticketId}", "definition": { "entityName": "UserTicket", "schema": { "$ref": "#/backend/entities/UserTicket" }, "description": "A subcollection for efficiently querying a user's tickets." } },
       { "path": "/roles_admin/{userId}", "definition": { "entityName": "Admin", "schema": { "$ref": "#/backend/entities/Admin" } } },
-      { "path": "/users/{userId}/notifications/{notificationId}", "definition": { "entityName": "Notification", "schema": { "$ref": "#/backend/entities/Notification" } } }
+      { "path": "/users/{userId}/notifications/{notificationId}", "definition": { "entityName": "Notification", "schema": { "$ref": "#/backend/entities/Notification" } } },
+      { "path": "/settings/site", "definition": { "entityName": "SiteSettings", "schema": { "$ref": "#/backend/entities/SiteSettings" }, "description": "A single document holding all global site settings." } },
+      { "path": "/dataDeletionRequests/{requestId}", "definition": { "entityName": "DataDeletionRequest", "schema": { "$ref": "#/backend/entities/DataDeletionRequest" }, "description": "Stores user requests for data deletion." } }
     ],
-    "reasoning": "The data model is now ticket-centric. Events are simple shells. A new root collection `/tickets/{ticketId}` holds all crafted ticket details, including design, pricing package, and validation rules. The `/users/{userId}/tickets` subcollection is a lightweight pointer to the main tickets for fast user-specific lookups."
+    "reasoning": "The data model is now ticket-centric. Events are simple shells. A new root collection `/tickets/{ticketId}` holds all crafted ticket details, including design, pricing package, and validation rules. The `/users/{userId}/tickets` subcollection is a lightweight pointer to the main tickets for fast user-specific lookups. A new `/settings/site` document is added to store global configuration. The Vendor entity now has a list of authorized scanners. A new collection `/dataDeletionRequests` is added to track user requests to delete their data."
   }
 }

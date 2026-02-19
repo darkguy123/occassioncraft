@@ -48,8 +48,6 @@ export default function CheckoutPage() {
         publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
     };
     
-    const initializePayment = usePaystackPayment(paystackConfig);
-
     const onPaymentSuccess = useCallback(async (reference: any) => {
         if (!firestore || !user) {
             toast({ variant: 'destructive', title: 'Error', description: 'Database connection failed.' });
@@ -114,6 +112,8 @@ export default function CheckoutPage() {
             description: 'The payment modal was closed.',
         });
     }, [toast]);
+
+    const initializePayment = usePaystackPayment(paystackConfig);
     
     const handleCheckout = () => {
         setCheckoutError(null);
@@ -122,10 +122,11 @@ export default function CheckoutPage() {
             for (const item of cart) {
                 if (!item.eventId) continue; // Skip standalone tickets with no event
                 const event = vendorEvents.find(e => e.id === item.eventId);
-                if (event) {
-                    const eventDate = new Date(event.date);
+                if (event && event.dates && event.dates.length > 0) {
+                    const lastEventDateItem = event.dates[event.dates.length - 1];
+                    const eventDate = new Date(lastEventDateItem.date);
                     if (isBefore(eventDate, startOfToday())) {
-                        setExpiredEventDetails({ name: event.name, date: event.date });
+                        setExpiredEventDetails({ name: event.name, date: lastEventDateItem.date });
                         setIsExpiredAlertOpen(true);
                         return; // Stop the checkout process
                     }

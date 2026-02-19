@@ -119,7 +119,7 @@ export default function AdminEventsPage() {
                     <TableCell className="font-medium">{event.name}</TableCell>
                     <TableCell>{event.organizer}</TableCell>
                     <TableCell><Badge variant={getBadgeVariant(event.status)} className="capitalize">{event.status || 'Published'}</Badge></TableCell>
-                    <TableCell>{new Date(event.date).toLocaleDateString()}</TableCell>
+                    <TableCell>{event.dates && event.dates.length > 0 ? new Date(event.dates[0].date).toLocaleDateString() : 'N/A'}</TableCell>
                     <TableCell className="text-right">
                        <DropdownMenu>
                             <DropdownMenuTrigger asChild>

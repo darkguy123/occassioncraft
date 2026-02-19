@@ -127,7 +127,7 @@ export default function VendorDashboardPage() {
                                 <h4 className="font-semibold">{event.name}</h4>
                                 <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
                                     <Calendar className="h-4 w-4"/>
-                                    {new Date(event.date).toLocaleDateString()}
+                                    {event.dates && event.dates.length > 0 ? new Date(event.dates[0].date).toLocaleDateString() : 'N/A'}
                                 </div>
                                 <Badge variant="secondary" className="mt-2">{event.status || 'Published'}</Badge>
                             </div>
@@ -177,7 +177,7 @@ export default function VendorDashboardPage() {
                       <TableRow key={event.id}>
                         <TableCell className="font-medium">{event.name}</TableCell>
                         <TableCell><Badge variant="secondary">{event.status || 'Published'}</Badge></TableCell>
-                        <TableCell>{new Date(event.date).toLocaleDateString()}</TableCell>
+                        <TableCell>{event.dates && event.dates.length > 0 ? new Date(event.dates[0].date).toLocaleDateString() : 'N/A'}</TableCell>
                         <TableCell className="text-right">
                            <DropdownMenu>
                                 <DropdownMenuTrigger asChild>

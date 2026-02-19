@@ -12,6 +12,8 @@ type EventCardProps = {
 };
 
 export default function EventCard({ event }: EventCardProps) {
+  const displayDate = event.dates && event.dates.length > 0 ? new Date(event.dates[0].date) : new Date();
+
   return (
     <Link href={`/events/${event.id}`} className="group">
       <Card className="overflow-hidden h-full flex flex-col transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
@@ -37,7 +39,7 @@ export default function EventCard({ event }: EventCardProps) {
           <p className="text-muted-foreground text-sm mt-1">{event.organizer}</p>
           <div className="flex items-center text-sm text-muted-foreground mt-2">
             <Calendar className="h-4 w-4 mr-2" />
-            <span>{format(new Date(event.date), 'MMM d, yyyy')}</span>
+            <span>{format(displayDate, 'MMM d, yyyy')}</span>
           </div>
           <div className="flex items-center text-sm text-muted-foreground mt-1">
             <MapPin className="h-4 w-4 mr-2" />

@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
+import { useForm, useFieldArray } from "react-hook-form"
 import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -11,23 +11,28 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon, MapPin, Save, PartyPopper } from "lucide-react"
+import { CalendarIcon, MapPin, Save, PartyPopper, PlusCircle, Trash2 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
-import type { User as UserType, Event as EventType } from "@/lib/types";
+import type { User as UserType, Event as EventType, EventDate } from "@/lib/types";
 import { doc, collection, addDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import Link from "next/link"
+import { Card, CardContent } from "@/components/ui/card";
+
+const eventDateSchema = z.object({
+  date: z.date({ required_error: "A date is required." }),
+  startTime: z.string().min(1, "Start time is required."),
+  endTime: z.string().optional(),
+});
 
 const eventFormSchema = z.object({
   name: z.string().min(3, "Event name must be at least 3 characters."),
-  date: z.date({ required_error: "An event date is required." }),
-  startTime: z.string().min(1, "Start time is required."),
-  endTime: z.string().optional(),
+  dates: z.array(eventDateSchema).min(1, "At least one date is required."),
   isOnline: z.boolean().default(false),
   location: z.string().optional(),
   description: z.string().optional(),
@@ -59,15 +64,18 @@ export default function CreateEventPage() {
     resolver: zodResolver(eventFormSchema),
     defaultValues: {
       name: "",
-      date: new Date(),
-      startTime: format(new Date(), "HH:mm"),
-      endTime: "",
+      dates: [{ date: new Date(), startTime: format(new Date(), "HH:mm"), endTime: "" }],
       isOnline: false,
       location: "",
       description: "",
       isPrivate: false,
     },
     mode: "onChange",
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "dates",
   });
 
   const generateGradientBanner = (text: string): string => {
@@ -123,22 +131,25 @@ export default function CreateEventPage() {
         const eventCollectionRef = collection(firestore, 'events');
         
         const bannerUrl = generateGradientBanner(data.name);
-        // An approved vendor or admin can create an event, which should be published immediately.
         const eventStatus = 'published';
 
+        const formattedDates: EventDate[] = data.dates.map(d => ({
+          ...d,
+          date: d.date.toISOString(),
+        }));
+
         const eventData: Omit<EventType, 'id'> = {
-            ...data,
-            date: data.date.toISOString(),
+            name: data.name,
+            dates: formattedDates,
+            isOnline: data.isOnline,
             location: data.isOnline ? 'Online Event' : data.location || '',
+            description: data.description,
+            isPrivate: data.isPrivate,
             vendorId: user.uid,
             organizer: user.displayName || 'Unnamed Organizer',
             status: eventStatus,
             bannerUrl: bannerUrl,
         };
-        
-        if (!eventData.endTime) {
-          delete eventData.endTime;
-        }
 
         const docRef = await addDoc(eventCollectionRef, eventData);
         setCreatedEvent({ id: docRef.id, ...eventData });
@@ -232,72 +243,70 @@ export default function CreateEventPage() {
               )}
             />
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem className="sm:col-span-1">
-                    <FormLabel>Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            <span className="flex w-full items-center justify-between">
-                              {field.value ? format(field.value, "PPP") : "Pick a date"}
-                              <CalendarIcon className="h-4 w-4 opacity-50" />
-                            </span>
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="startTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Time</FormLabel>
-                    <FormControl>
-                      <Input type="time" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="endTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>End Time (Optional)</FormLabel>
-                    <FormControl>
-                      <Input type="time" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <div className="space-y-4">
+                <FormLabel>Event Dates & Times</FormLabel>
+                {fields.map((field, index) => (
+                    <Card key={field.id} className="p-4 relative bg-card/50">
+                        {fields.length > 1 && (
+                            <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => remove(index)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                                <span className="sr-only">Remove Date</span>
+                            </Button>
+                        )}
+                        <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-0 pt-2">
+                             <FormField
+                                control={form.control}
+                                name={`dates.${index}.date`}
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Date</FormLabel>
+                                    <Popover>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                        <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                    </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name={`dates.${index}.startTime`}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Start Time</FormLabel>
+                                        <FormControl><Input type="time" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name={`dates.${index}.endTime`}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>End Time (Optional)</FormLabel>
+                                        <FormControl><Input type="time" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </CardContent>
+                    </Card>
+                ))}
+                 <Button type="button" variant="outline" size="sm" onClick={() => append({ date: new Date(), startTime: '19:00', endTime: '' })}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Another Date
+                </Button>
             </div>
+
 
             <FormField
               control={form.control}
@@ -384,12 +393,12 @@ export default function CreateEventPage() {
                 </AlertDialogDescription>
             </AlertDialogHeader>
             
-            {createdEvent && (
+            {createdEvent && createdEvent.dates.length > 0 && (
                 <div className="my-4 rounded-lg border bg-secondary/50 p-4 space-y-2 text-sm">
                     <h4 className="font-semibold">{createdEvent.name}</h4>
                     <div className="flex items-center text-muted-foreground">
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        <span>{format(new Date(createdEvent.date), 'PPP')}</span>
+                        <span>{format(new Date(createdEvent.dates[0].date), 'PPP')}</span>
                     </div>
                      <div className="flex items-center text-muted-foreground">
                         <MapPin className="mr-2 h-4 w-4" />

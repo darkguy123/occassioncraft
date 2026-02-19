@@ -2,7 +2,7 @@
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
+import { useForm, useFieldArray } from "react-hook-form"
 import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -12,12 +12,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon, ArrowLeft, UserPlus, Trash2, Wand2 } from "lucide-react"
+import { CalendarIcon, ArrowLeft, UserPlus, Trash2, Wand2, PlusCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter, useParams } from "next/navigation"
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
-import type { Event, User as UserType } from "@/lib/types";
+import type { Event, User as UserType, EventDate } from "@/lib/types";
 import Link from "next/link";
 import { useFirebase, useDoc, updateDocumentNonBlocking, useMemoFirebase } from "@/firebase";
 import { doc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
@@ -25,11 +25,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
 
-const eventFormSchema = z.object({
-  name: z.string().min(3, "Event name must be at least 3 characters."),
-  date: z.date({ required_error: "An event date is required." }),
+const eventDateSchema = z.object({
+  date: z.date({ required_error: "A date is required." }),
   startTime: z.string().min(1, "Start time is required."),
   endTime: z.string().optional(),
+});
+
+const eventFormSchema = z.object({
+  name: z.string().min(3, "Event name must be at least 3 characters."),
+  dates: z.array(eventDateSchema).min(1, "At least one date is required."),
   isOnline: z.boolean().default(false),
   location: z.string().min(1, "Location is required"),
   description: z.string().optional(),
@@ -57,6 +61,11 @@ export default function AdminEditEventPage() {
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
     mode: "onChange",
+  });
+  
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "dates",
   });
 
   const generateGradientBanner = (text: string): string => {
@@ -115,16 +124,9 @@ export default function AdminEditEventPage() {
   
   useEffect(() => {
     if (eventData) {
-      const date = new Date(eventData.date);
-      if (isNaN(date.getTime())) {
-          console.error("Invalid date from Firestore:", eventData.date);
-          return;
-      }
       form.reset({
         name: eventData.name,
-        date: date,
-        startTime: eventData.startTime,
-        endTime: eventData.endTime || '',
+        dates: eventData.dates.map(d => ({ ...d, date: new Date(d.date) })),
         isOnline: eventData.isOnline,
         location: eventData.location,
         description: eventData.description,
@@ -135,15 +137,20 @@ export default function AdminEditEventPage() {
 
   const onSubmit = (data: EventFormValues) => {
     if (!eventDocRef) return;
-    
-    const updateData: Partial<Event> = {
-      ...data,
-      date: data.date.toISOString(),
-    };
 
-    if (!updateData.endTime) {
-      delete updateData.endTime;
-    }
+    const formattedDates: EventDate[] = data.dates.map(d => ({
+        ...d,
+        date: d.date.toISOString(),
+      }));
+    
+    const updateData: Partial<Omit<Event, 'id'>> = {
+      name: data.name,
+      dates: formattedDates,
+      isOnline: data.isOnline,
+      location: data.location,
+      description: data.description,
+      bannerUrl: data.bannerUrl,
+    };
     
     updateDocumentNonBlocking(eventDocRef, updateData);
     
@@ -250,52 +257,68 @@ export default function AdminEditEventPage() {
                 )}
             />
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                 <FormField
-                    control={form.control}
-                    name="date"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Date</FormLabel>
-                        <Popover>
-                        <PopoverTrigger asChild>
-                            <FormControl>
-                            <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+            <div className="space-y-4">
+                <FormLabel>Event Dates & Times</FormLabel>
+                {fields.map((field, index) => (
+                    <Card key={field.id} className="p-4 relative bg-card/50">
+                        {fields.length > 1 && (
+                            <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => remove(index)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                                <span className="sr-only">Remove Date</span>
                             </Button>
-                            </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                        </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="startTime"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Start Time</FormLabel>
-                            <FormControl><Input type="time" {...field} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="endTime"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>End Time (Optional)</FormLabel>
-                            <FormControl><Input type="time" {...field} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
+                        )}
+                        <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-0 pt-2">
+                             <FormField
+                                control={form.control}
+                                name={`dates.${index}.date`}
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Date</FormLabel>
+                                    <Popover>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                        <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                    </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name={`dates.${index}.startTime`}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Start Time</FormLabel>
+                                        <FormControl><Input type="time" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name={`dates.${index}.endTime`}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>End Time (Optional)</FormLabel>
+                                        <FormControl><Input type="time" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </CardContent>
+                    </Card>
+                ))}
+                 <Button type="button" variant="outline" size="sm" onClick={() => append({ date: new Date(), startTime: '19:00', endTime: '' })}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Another Date
+                </Button>
             </div>
             
              <FormField
