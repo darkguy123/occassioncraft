@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -27,13 +26,12 @@ export default function AllVendorTicketsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  // The query is simplified to remove the `where('isPaid', '==', true)` clause.
-  // This avoids the need for a composite index and prevents the permission error.
   const ticketsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
       collection(firestore, 'tickets'),
       where('vendorId', '==', user.uid),
+      where('isPaid', '==', true),
       orderBy('purchaseDate', 'desc')
     );
   }, [firestore, user]);
@@ -55,15 +53,12 @@ export default function AllVendorTicketsPage() {
 
   const enrichedTickets = useMemo(() => {
     if (!tickets) return [];
-
-    // Filter for paid tickets on the client-side.
-    const paidTickets = tickets.filter(ticket => ticket.isPaid);
-
     if (areEventsLoading && eventIds.length > 0) {
-      return paidTickets.map(t => ({...t, event: undefined, isExpired: false}));
+      // If events are still loading, just return tickets for now to avoid flicker
+      return tickets.map(t => ({...t, event: undefined, isExpired: false}));
     }
 
-    return paidTickets.map(ticket => {
+    return tickets.map(ticket => {
       const event = events?.find(e => e.id === ticket.eventId);
       let isExpired = false;
       if (event && event.dates && event.dates.length > 0) {
