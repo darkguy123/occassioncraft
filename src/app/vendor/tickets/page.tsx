@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -26,12 +27,13 @@ export default function AllVendorTicketsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
+  // The query is simplified to remove the `where('isPaid', '==', true)` clause.
+  // This avoids the need for a composite index and prevents the permission error.
   const ticketsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
       collection(firestore, 'tickets'),
       where('vendorId', '==', user.uid),
-      where('isPaid', '==', true),
       orderBy('purchaseDate', 'desc')
     );
   }, [firestore, user]);
@@ -40,13 +42,11 @@ export default function AllVendorTicketsPage() {
   
   const eventIds = useMemo(() => {
     if (!tickets) return [];
-    // Get unique, non-empty event IDs from the user's tickets
     const ids = tickets.map(t => t.eventId).filter((id): id is string => !!id);
     return [...new Set(ids)];
   }, [tickets]);
 
   const eventsQuery = useMemoFirebase(() => {
-    // Only run query if there are event IDs to fetch
     if (!firestore || eventIds.length === 0) return null;
     return query(collection(firestore, 'events'), where('__name__', 'in', eventIds));
   }, [firestore, eventIds]);
@@ -55,14 +55,18 @@ export default function AllVendorTicketsPage() {
 
   const enrichedTickets = useMemo(() => {
     if (!tickets) return [];
-    // If events are still loading but we have tickets, return tickets without event data yet.
-    if (areEventsLoading && eventIds.length > 0) return tickets.map(t => ({...t, event: undefined, isExpired: false}));
 
-    return tickets.map(ticket => {
+    // Filter for paid tickets on the client-side.
+    const paidTickets = tickets.filter(ticket => ticket.isPaid);
+
+    if (areEventsLoading && eventIds.length > 0) {
+      return paidTickets.map(t => ({...t, event: undefined, isExpired: false}));
+    }
+
+    return paidTickets.map(ticket => {
       const event = events?.find(e => e.id === ticket.eventId);
       let isExpired = false;
       if (event && event.dates && event.dates.length > 0) {
-        // Check the last date of the event
         const lastEventDateItem = event.dates[event.dates.length - 1];
         if (lastEventDateItem?.date) {
             isExpired = isBefore(parseISO(lastEventDateItem.date), startOfToday());
@@ -109,8 +113,8 @@ export default function AllVendorTicketsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Your Tickets</CardTitle>
-          <CardDescription>A list of all tickets you have crafted and paid for across all events.</CardDescription>
+          <CardTitle>Your Purchased Tickets</CardTitle>
+          <CardDescription>A list of all tickets you have successfully crafted and paid for across all events.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
