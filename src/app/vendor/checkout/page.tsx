@@ -6,14 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { usePaystackPayment } from 'react-paystack';
 import { useToast } from "@/hooks/use-toast";
-import { useUser, useFirestore } from "@/firebase";
-import { collection, doc, writeBatch } from "firebase/firestore";
+import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, doc, writeBatch, query, where } from "firebase/firestore";
 import Link from "next/link";
 import { v4 as uuidv4 } from 'uuid';
 import { ShoppingCart, Trash2, AlertTriangle } from "lucide-react";
-import type { Ticket } from "@/lib/types";
+import type { Ticket, Event } from "@/lib/types";
 import { useState, useCallback } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { isBefore, startOfToday } from "date-fns";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function CheckoutPage() {
     const { cart, removeFromCart, clearCart, cartTotal } = useCart();
@@ -21,6 +30,15 @@ export default function CheckoutPage() {
     const { user } = useUser();
     const firestore = useFirestore();
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+    const [isExpiredAlertOpen, setIsExpiredAlertOpen] = useState(false);
+    const [expiredEventDetails, setExpiredEventDetails] = useState<{name: string, date: string} | null>(null);
+
+    const vendorEventsQuery = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return query(collection(firestore, 'events'), where('vendorId', '==', user.uid));
+    }, [user, firestore]);
+    const { data: vendorEvents } = useCollection<Event>(vendorEventsQuery);
 
     const paystackConfig = {
         reference: uuidv4(),
@@ -99,12 +117,28 @@ export default function CheckoutPage() {
     
     const handleCheckout = () => {
         setCheckoutError(null);
+        
+        if (vendorEvents) {
+            for (const item of cart) {
+                if (!item.eventId) continue; // Skip standalone tickets with no event
+                const event = vendorEvents.find(e => e.id === item.eventId);
+                if (event) {
+                    const eventDate = new Date(event.date);
+                    if (isBefore(eventDate, startOfToday())) {
+                        setExpiredEventDetails({ name: event.name, date: event.date });
+                        setIsExpiredAlertOpen(true);
+                        return; // Stop the checkout process
+                    }
+                }
+            }
+        }
+
         if (cart.length === 0) {
             toast({ variant: 'destructive', title: 'Your cart is empty!' });
             return;
         }
         if (cartTotal <= 0) {
-            toast({
+             toast({
                 variant: 'destructive',
                 title: 'Invalid Cart Total',
                 description: 'Your cart total must be greater than zero to proceed.',
@@ -115,85 +149,102 @@ export default function CheckoutPage() {
             setCheckoutError('Paystack public key is not configured. Please add NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY to your .env file and restart the server.');
             return;
         }
-        initializePayment(onPaymentSuccess, onPaymentClose);
+        initializePayment({onSuccess: onPaymentSuccess, onClose: onPaymentClose});
     }
 
     return (
-        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <div className="space-y-2 mb-8">
-                <h1 className="text-3xl font-bold tracking-tight">My Cart</h1>
-                <p className="text-muted-foreground">Review your ticket batches and proceed to payment.</p>
-            </div>
-            
-            <div className="grid md:grid-cols-3 gap-8">
-                <div className="md:col-span-2">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Order Items</CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            {cart.length > 0 ? (
-                                <div className="divide-y">
-                                {cart.map(item => (
-                                    <div key={item.id} className="p-4 flex justify-between items-start">
-                                        <div>
-                                            <p className="font-semibold">{item.quantity} x {item.package} {item.tier || ''} Tickets</p>
-                                            <p className="text-sm text-muted-foreground">For: {item.eventName}</p>
-                                            <p className="text-sm font-bold text-primary">₦{item.price.toLocaleString()}</p>
+        <>
+            <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+                <div className="space-y-2 mb-8">
+                    <h1 className="text-3xl font-bold tracking-tight">My Cart</h1>
+                    <p className="text-muted-foreground">Review your ticket batches and proceed to payment.</p>
+                </div>
+                
+                <div className="grid md:grid-cols-3 gap-8">
+                    <div className="md:col-span-2">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Order Items</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                {cart.length > 0 ? (
+                                    <div className="divide-y">
+                                    {cart.map(item => (
+                                        <div key={item.id} className="p-4 flex justify-between items-start">
+                                            <div>
+                                                <p className="font-semibold">{item.quantity} x {item.package} {item.tier || ''} Tickets</p>
+                                                <p className="text-sm text-muted-foreground">For: {item.eventName}</p>
+                                                <p className="text-sm font-bold text-primary">₦{item.price.toLocaleString()}</p>
+                                            </div>
+                                            <Button variant="ghost" size="icon" onClick={() => removeFromCart(item.id)}>
+                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                            </Button>
                                         </div>
-                                        <Button variant="ghost" size="icon" onClick={() => removeFromCart(item.id)}>
-                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                        </Button>
+                                    ))}
                                     </div>
-                                ))}
-                                </div>
-                            ) : (
-                                <div className="p-12 text-center text-muted-foreground">
-                                    <ShoppingCart className="h-12 w-12 mx-auto mb-4" />
-                                    <p>Your cart is empty.</p>
-                                    <Button variant="link" asChild><Link href="/create-ticket">Start crafting tickets</Link></Button>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                                ) : (
+                                    <div className="p-12 text-center text-muted-foreground">
+                                        <ShoppingCart className="h-12 w-12 mx-auto mb-4" />
+                                        <p>Your cart is empty.</p>
+                                        <Button variant="link" asChild><Link href="/create-ticket">Start crafting tickets</Link></Button>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                    <div className="md:col-span-1">
+                        <Card className="sticky top-24">
+                            <CardHeader>
+                                <CardTitle>Order Summary</CardTitle>
+                                <CardDescription>Final prices before payment.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                            {cart.map(item => (
+                                    <div key={item.id} className="flex justify-between text-sm">
+                                        <span className="text-muted-foreground truncate">{item.quantity}x {item.package}</span>
+                                        <span className="font-medium">₦{item.price.toLocaleString()}</span>
+                                    </div>
+                            ))}
+                            <Separator />
+                            <div className="flex justify-between text-lg font-bold">
+                                    <span>Total</span>
+                                    <span>₦{cartTotal.toLocaleString()}</span>
+                            </div>
+                            </CardContent>
+                            <CardFooter className="flex-col items-stretch">
+                                {checkoutError && (
+                                    <Alert variant="destructive" className="mb-4">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertTitle>Checkout Error</AlertTitle>
+                                    <AlertDescription>
+                                        {checkoutError}
+                                    </AlertDescription>
+                                    </Alert>
+                                )}
+                                <Button className="w-full" size="lg" onClick={handleCheckout}>
+                                    Pay Now
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    </div>
                 </div>
-                <div className="md:col-span-1">
-                    <Card className="sticky top-24">
-                        <CardHeader>
-                            <CardTitle>Order Summary</CardTitle>
-                            <CardDescription>Final prices before payment.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                           {cart.map(item => (
-                                <div key={item.id} className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground truncate">{item.quantity}x {item.package}</span>
-                                    <span className="font-medium">₦{item.price.toLocaleString()}</span>
-                                </div>
-                           ))}
-                           <Separator />
-                           <div className="flex justify-between text-lg font-bold">
-                                <span>Total</span>
-                                <span>₦{cartTotal.toLocaleString()}</span>
-                           </div>
-                        </CardContent>
-                        <CardFooter className="flex-col items-stretch">
-                            {checkoutError && (
-                                <Alert variant="destructive" className="mb-4">
-                                  <AlertTriangle className="h-4 w-4" />
-                                  <AlertTitle>Checkout Error</AlertTitle>
-                                  <AlertDescription>
-                                    {checkoutError}
-                                  </AlertDescription>
-                                </Alert>
-                            )}
-                            <Button className="w-full" size="lg" onClick={handleCheckout}>
-                                Pay Now
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                </div>
-            </div>
 
-        </div>
+            </div>
+            <AlertDialog open={isExpiredAlertOpen} onOpenChange={setIsExpiredAlertOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Event Has Ended</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            The event "{expiredEventDetails?.name}" on {expiredEventDetails?.date ? new Date(expiredEventDetails.date).toLocaleDateString() : ''} has already passed.
+                            <br/><br/>
+                            You cannot purchase tickets for it. Please remove this item from your cart to proceed.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogAction onClick={() => setIsExpiredAlertOpen(false)}>
+                        OK
+                    </AlertDialogAction>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     )
 }
