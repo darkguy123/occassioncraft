@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -53,6 +52,14 @@ const ticketFormSchema = z.object({
   templateId: z.string().default('classic'),
   ticketImageUrl: z.string().optional(),
   ticketBrandingImageUrl: z.string().optional(),
+}).refine(data => {
+    if (data.package === 'Tiered' && !data.tier) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Please select a tier for the Tiered package.",
+    path: ["tier"],
 });
 
 export type TicketFormValues = z.infer<typeof ticketFormSchema>;
@@ -519,7 +526,7 @@ export default function CreateTicketPage() {
                                     onChange={(e) => {
                                         const value = e.target.value;
                                         const num = parseInt(value, 10);
-                                        field.onChange(isNaN(num) ? undefined : num);
+                                        field.onChange(isNaN(num) ? '' : num);
                                     }}
                                     value={field.value ?? ''}
                                   />
@@ -574,7 +581,7 @@ export default function CreateTicketPage() {
                             </div>
                         </CardContent>
                     </Card>
-                     <Button type="submit" size="lg" className="w-full" disabled={form.formState.isSubmitting}>
+                     <Button type="submit" size="lg" className="w-full" disabled={form.formState.isSubmitting || currentPriceDetails.price <= 0}>
                         <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart
                     </Button>
                 </div>

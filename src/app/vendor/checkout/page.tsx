@@ -103,6 +103,14 @@ export default function CheckoutPage() {
             toast({ variant: 'destructive', title: 'Your cart is empty!' });
             return;
         }
+        if (cartTotal <= 0) {
+            toast({
+                variant: 'destructive',
+                title: 'Invalid Cart Total',
+                description: 'Your cart total must be greater than zero to proceed. Please remove any zero-price items.',
+            });
+            return;
+        }
         if (!paystackConfig.publicKey) {
             setCheckoutError('Paystack public key is not configured. Please add NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY to your .env file and restart the server.');
             return;
