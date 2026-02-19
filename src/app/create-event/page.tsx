@@ -123,8 +123,8 @@ export default function CreateEventPage() {
         const eventCollectionRef = collection(firestore, 'events');
         
         const bannerUrl = generateGradientBanner(data.name);
-        const isAdmin = (userData.roles || []).includes('admin');
-        const eventStatus = isAdmin ? 'published' : 'pending';
+        // An approved vendor or admin can create an event, which should be published immediately.
+        const eventStatus = 'published';
 
         const eventData: Omit<EventType, 'id'> = {
             ...data,
@@ -143,10 +143,9 @@ export default function CreateEventPage() {
         const docRef = await addDoc(eventCollectionRef, eventData);
         setCreatedEvent({ id: docRef.id, ...eventData });
         
-        const toastMessage = isAdmin ? "Your event is now live." : "Your event has been submitted for review.";
         toast({
-            title: isAdmin ? "Event Published!" : "Event Submitted!",
-            description: toastMessage,
+            title: "Event Published!",
+            description: "Your event has been successfully created and is now live.",
         });
 
         setIsSuccessDialogOpen(true);
@@ -206,11 +205,8 @@ export default function CreateEventPage() {
     );
   }
 
-  const isAdmin = (userData?.roles || []).includes('admin');
-  const successTitle = isAdmin ? "Event Published!" : "Event Submitted for Review";
-  const successDescription = isAdmin
-      ? "Your event has been successfully created and is now live. You can now craft tickets for it."
-      : "Your event is now pending approval. You can track its status in your dashboard. In the meantime, you can still craft tickets for it.";
+  const successTitle = "Event Published!";
+  const successDescription = "Your event has been successfully created and is now live. You can now craft tickets for it.";
 
   return (
     <>
