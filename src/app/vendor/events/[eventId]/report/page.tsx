@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -13,18 +12,20 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle, Ticket, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Ticket, Share2, Info } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import type { UserTicket } from '@/lib/types';
+import type { Ticket as TicketType } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { useParams } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
-export default function VendorEventReportPage() {
+export default function VendorTicketManagementPage() {
   const firestore = useFirestore();
   const params = useParams();
+  const { toast } = useToast();
   const eventId = params.eventId as string;
 
   const ticketsQuery = useMemoFirebase(() => {
@@ -32,7 +33,24 @@ export default function VendorEventReportPage() {
     return query(collection(firestore, 'tickets'), where('eventId', '==', eventId));
   }, [firestore, eventId]);
 
-  const { data: tickets, isLoading } = useCollection<UserTicket>(ticketsQuery);
+  const { data: tickets, isLoading } = useCollection<TicketType>(ticketsQuery);
+
+  const handleShare = (ticketId: string) => {
+    const shareUrl = `${window.location.origin}/shared-ticket/${ticketId}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+        toast({
+            title: 'Link Copied!',
+            description: 'The shareable ticket link has been copied to your clipboard.',
+        });
+    }).catch(err => {
+        console.error('Failed to copy link: ', err);
+        toast({
+            variant: 'destructive',
+            title: 'Failed to Copy',
+            description: 'Could not copy the link to your clipboard.',
+        });
+    });
+  };
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -40,14 +58,14 @@ export default function VendorEventReportPage() {
          <Button variant="ghost" asChild>
             <Link href="/vendor/dashboard"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard</Link>
          </Button>
-        <h1 className="text-3xl font-bold tracking-tight">Event Ticket Report</h1>
-        <p className="text-muted-foreground">A live report of all tickets for this event and their scan status.</p>
+        <h1 className="text-3xl font-bold tracking-tight">Ticket Management</h1>
+        <p className="text-muted-foreground">Manage, share, and track all tickets for this event.</p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>All Tickets for Event</CardTitle>
-          <CardDescription>A list of all tickets crafted for this event.</CardDescription>
+          <CardDescription>A list of all tickets crafted for this event. You can share or view details for each ticket.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -57,7 +75,7 @@ export default function VendorEventReportPage() {
                 <TableHead>Attendee</TableHead>
                 <TableHead>Package</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Last Scanned</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -67,17 +85,17 @@ export default function VendorEventReportPage() {
                     <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-8 w-20" /></TableCell>
                 </TableRow>
               ))}
               {!isLoading && tickets && tickets.length > 0 ? (
                 tickets.map(ticket => (
-                    <TableRow key={ticket.ticketId}>
-                        <TableCell className="font-mono text-xs">{ticket.ticketId}</TableCell>
+                    <TableRow key={ticket.id}>
+                        <TableCell className="font-mono text-xs">{ticket.id.substring(0, 8)}...</TableCell>
                         <TableCell>{ticket.attendeeName || 'N/A'}</TableCell>
                         <TableCell><Badge variant="outline">{ticket.package} {ticket.tier || ''}</Badge></TableCell>
                         <TableCell>
-                            {ticket.scans && ticket.scans > 0 ? (
+                            {ticket.scans > 0 ? (
                                 <Badge variant="secondary" className="text-green-600 border-green-600">
                                     <CheckCircle className="mr-1 h-3 w-3"/>
                                     Checked In ({ticket.scans}/{ticket.maxScans})
@@ -86,8 +104,15 @@ export default function VendorEventReportPage() {
                                 <Badge variant="outline">Not Checked In</Badge>
                             )}
                         </TableCell>
-                         <TableCell>
-                            {ticket.lastScannedAt ? format(parseISO(ticket.lastScannedAt), 'Pp') : 'N/A'}
+                        <TableCell className="text-right space-x-2">
+                           <Button variant="outline" size="sm" onClick={() => handleShare(ticket.id)}>
+                                <Share2 className="mr-2 h-4 w-4" /> Share
+                            </Button>
+                            <Button asChild size="sm">
+                                <Link href={`/vendor/events/${eventId}/tickets/${ticket.id}`}>
+                                    <Info className="mr-2 h-4 w-4" /> Details
+                                </Link>
+                            </Button>
                         </TableCell>
                     </TableRow>
                 ))
