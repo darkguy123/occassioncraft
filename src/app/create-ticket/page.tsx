@@ -516,8 +516,12 @@ export default function CreateTicketPage() {
                                   <Input
                                     type="number"
                                     {...field}
-                                    onChange={e => field.onChange(parseInt(e.target.value, 10))}
-                                    value={field.value ?? 1}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        const num = parseInt(value, 10);
+                                        field.onChange(isNaN(num) ? undefined : num);
+                                    }}
+                                    value={field.value ?? ''}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -611,5 +615,3 @@ export default function CreateTicketPage() {
     </>
   );
 }
-
-    
