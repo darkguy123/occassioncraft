@@ -12,7 +12,7 @@ import Link from "next/link";
 import { v4 as uuidv4 } from 'uuid';
 import { ShoppingCart, Trash2, AlertTriangle } from "lucide-react";
 import type { Ticket } from "@/lib/types";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function CheckoutPage() {
@@ -32,7 +32,7 @@ export default function CheckoutPage() {
     
     const initializePayment = usePaystackPayment(paystackConfig);
 
-    const onPaymentSuccess = async (reference: any) => {
+    const onPaymentSuccess = useCallback(async (reference: any) => {
         if (!firestore || !user) {
             toast({ variant: 'destructive', title: 'Error', description: 'Database connection failed.' });
             return;
@@ -87,15 +87,15 @@ export default function CheckoutPage() {
             });
             console.error('Failed to commit ticket batch:', error);
         }
-    };
+    }, [firestore, user, cart, toast, clearCart]);
 
-    const onPaymentClose = () => {
+    const onPaymentClose = useCallback(() => {
         toast({
             variant: 'destructive',
             title: 'Payment Closed',
             description: 'The payment modal was closed.',
         });
-    };
+    }, [toast]);
     
     const handleCheckout = () => {
         setCheckoutError(null);
@@ -107,7 +107,7 @@ export default function CheckoutPage() {
             toast({
                 variant: 'destructive',
                 title: 'Invalid Cart Total',
-                description: 'Your cart total must be greater than zero to proceed. Please remove any zero-price items.',
+                description: 'Your cart total must be greater than zero to proceed.',
             });
             return;
         }
@@ -186,7 +186,7 @@ export default function CheckoutPage() {
                                   </AlertDescription>
                                 </Alert>
                             )}
-                            <Button className="w-full" size="lg" onClick={handleCheckout} disabled={cart.length === 0}>
+                            <Button className="w-full" size="lg" onClick={handleCheckout}>
                                 Pay Now
                             </Button>
                         </CardFooter>
