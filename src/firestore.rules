@@ -94,12 +94,14 @@ service cloud.firestore {
     }
     
     match /tickets/{ticketId} {
-      // Admins can list all tickets
-      allow list: if isAdmin();
-      // A user can read a ticket if they are the owner, or if they are the vendor for that event
+      // A user can read a ticket if they are the owner, or if they are the vendor for that event.
+      // This rule also implicitly allows queries (like on the vendor dashboard) where every
+      // document returned meets these conditions.
       allow read: if (request.auth != null && resource.data.userId == request.auth.uid) || (request.auth != null && resource.data.vendorId == request.auth.uid) || isAdmin();
+      
       // Allow creation for any authenticated user
       allow create: if request.auth != null;
+      
       // No updates or deletes from the client
       allow update, delete: if false;
     }
