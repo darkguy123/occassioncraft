@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { ArrowLeft, CheckCircle, Ticket, Share2, Info } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import type { Ticket as TicketType } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,15 +23,20 @@ import { useParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
 export default function VendorTicketManagementPage() {
+  const { user } = useUser();
   const firestore = useFirestore();
   const params = useParams();
   const { toast } = useToast();
   const eventId = params.eventId as string;
 
   const ticketsQuery = useMemoFirebase(() => {
-    if (!firestore || !eventId) return null;
-    return query(collection(firestore, 'tickets'), where('eventId', '==', eventId));
-  }, [firestore, eventId]);
+    if (!firestore || !eventId || !user) return null;
+    return query(
+      collection(firestore, 'tickets'),
+      where('eventId', '==', eventId),
+      where('vendorId', '==', user.uid)
+    );
+  }, [firestore, eventId, user]);
 
   const { data: tickets, isLoading } = useCollection<TicketType>(ticketsQuery);
 
