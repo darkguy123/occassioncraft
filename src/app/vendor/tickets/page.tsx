@@ -28,7 +28,12 @@ export default function AllVendorTicketsPage() {
 
   const ticketsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, 'tickets'), where('vendorId', '==', user.uid), orderBy('purchaseDate', 'desc'));
+    return query(
+      collection(firestore, 'tickets'),
+      where('vendorId', '==', user.uid),
+      where('isPaid', '==', true),
+      orderBy('purchaseDate', 'desc')
+    );
   }, [firestore, user]);
 
   const { data: tickets, isLoading: areTicketsLoading } = useCollection<TicketType>(ticketsQuery);
@@ -105,7 +110,7 @@ export default function AllVendorTicketsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Your Tickets</CardTitle>
-          <CardDescription>A list of all tickets you have crafted across all events.</CardDescription>
+          <CardDescription>A list of all tickets you have crafted and paid for across all events.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -172,7 +177,7 @@ export default function AllVendorTicketsPage() {
                      <TableRow>
                         <TableCell colSpan={5} className="text-center text-muted-foreground py-12">
                            <Ticket className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-                           You haven't crafted any tickets yet.
+                           You haven't purchased any tickets yet.
                         </TableCell>
                     </TableRow>
                 )
