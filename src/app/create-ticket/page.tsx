@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -37,6 +38,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { Badge } from "@/components/ui/badge";
 
 const ticketFormSchema = z.object({
   eventId: z.string().optional(),
@@ -277,7 +279,20 @@ export default function CreateTicketPage() {
                         </FormControl>
                         <SelectContent>
                           {vendorEvents && vendorEvents.length > 0 ? vendorEvents.map(event => (
-                            <SelectItem key={event.id} value={event.id}>{event.name}</SelectItem>
+                            <SelectItem 
+                                key={event.id} 
+                                value={event.id}
+                                disabled={!!event.status && event.status !== 'published'}
+                            >
+                                <div className="flex items-center justify-between w-full">
+                                  <span>{event.name}</span>
+                                  {!!event.status && event.status !== 'published' && (
+                                    <Badge variant="outline" className="ml-2 capitalize">
+                                      {event.status}
+                                    </Badge>
+                                  )}
+                                </div>
+                            </SelectItem>
                           )) : (
                             <div className="p-4 text-sm text-muted-foreground">No events found. Please <Link href="/create-event" className="underline text-primary">create an event</Link> first.</div>
                           )}

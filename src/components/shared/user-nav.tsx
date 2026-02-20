@@ -16,7 +16,7 @@ import {
 import { LayoutDashboard, LogOut, Ticket, Shield, Settings, QrCode, UserPlus } from 'lucide-react';
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import type { User } from '@/lib/types';
+import type { User, Vendor as VendorType } from '@/lib/types';
 
 export function UserNav() {
   const auth = useAuth();
@@ -30,6 +30,13 @@ export function UserNav() {
 
   const { data: userProfileData } = useDoc<User>(userDocRef);
 
+  const vendorDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'vendors', user.uid);
+  }, [firestore, user]);
+
+  const { data: vendorData } = useDoc<VendorType>(vendorDocRef);
+
   const handleLogout = () => {
     if(auth) {
         auth.signOut();
@@ -39,9 +46,55 @@ export function UserNav() {
   const avatarImageSrc = userProfileData?.profileImageUrl || user?.photoURL;
   const avatarFallback = user?.displayName?.split(' ').map(n => n[0]).join('') || user?.email?.[0].toUpperCase() || 'U';
 
-  const isVendor = (userProfileData?.roles || []).includes('vendor');
   const isAdmin = (userProfileData?.roles || []).includes('admin');
   const isScanner = (userProfileData?.roles || []).includes('scanner');
+
+  const renderVendorMenuItem = () => {
+    if (vendorData) {
+      switch (vendorData.status) {
+        case 'approved':
+          return (
+            <DropdownMenuItem asChild>
+              <Link href="/vendor/dashboard">
+                <LayoutDashboard className="mr-2 h-4 w-4" />
+                <span>Vendor Dashboard</span>
+              </Link>
+            </DropdownMenuItem>
+          );
+        case 'pending':
+          return (
+            <DropdownMenuItem asChild>
+              <Link href="/vendor/dashboard">
+                <LayoutDashboard className="mr-2 h-4 w-4 text-amber-500" />
+                <span className="text-amber-500">Application Pending</span>
+              </Link>
+            </DropdownMenuItem>
+          );
+        case 'rejected':
+           return (
+            <DropdownMenuItem asChild>
+              <Link href="/vendor/dashboard">
+                <LayoutDashboard className="mr-2 h-4 w-4 text-destructive" />
+                <span className="text-destructive">Application Rejected</span>
+              </Link>
+            </DropdownMenuItem>
+          );
+        default:
+          break; // Fall through to the default "Become a Vendor"
+      }
+    }
+
+    // Default case if no vendor doc or unhandled status
+    return (
+      <DropdownMenuItem asChild>
+        <Link href="/become-a-vendor">
+          <UserPlus className="mr-2 h-4 w-4" />
+          <span>Become a Vendor</span>
+        </Link>
+      </DropdownMenuItem>
+    );
+  };
+
 
   return (
     <DropdownMenu>
@@ -74,21 +127,7 @@ export function UserNav() {
               <span>My Tickets</span>
             </Link>
           </DropdownMenuItem>
-          {isVendor ? (
-            <DropdownMenuItem asChild>
-              <Link href="/vendor/dashboard">
-                <LayoutDashboard className="mr-2 h-4 w-4" />
-                <span>Vendor Dashboard</span>
-              </Link>
-            </DropdownMenuItem>
-          ) : (
-             <DropdownMenuItem asChild>
-              <Link href="/become-a-vendor">
-                <UserPlus className="mr-2 h-4 w-4" />
-                <span>Become a Vendor</span>
-              </Link>
-            </DropdownMenuItem>
-          )}
+          {renderVendorMenuItem()}
           {isAdmin && (
             <DropdownMenuItem asChild>
                 <Link href="/admin">

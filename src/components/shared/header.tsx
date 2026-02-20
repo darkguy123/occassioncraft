@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { UserNav } from './user-nav';
 import Image from 'next/image';
 import { useUser, useFirebase } from '@/firebase';
-import type { User } from '@/lib/types';
+import type { User, Vendor as VendorType } from '@/lib/types';
 import { useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Notifications } from './notifications';
@@ -31,7 +31,15 @@ export function Header() {
   }, [firestore, user]);
 
   const { data: userData } = useDoc<User>(userDocRef);
-  const isVendor = userData?.roles?.includes('vendor');
+
+  const vendorDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'vendors', user.uid);
+  }, [firestore, user]);
+
+  const { data: vendorData } = useDoc<VendorType>(vendorDocRef);
+  const hasVendorDoc = !!vendorData;
+  const isVendorApproved = vendorData?.status === 'approved';
 
   const handleLinkClick = () => {
     showLoader();
@@ -57,15 +65,16 @@ export function Header() {
             <Link href="/events" className="transition-colors hover:text-white text-white/80" onClick={handleLinkClick}>
               Discover Events
             </Link>
-             {user && isVendor && (
-               <Link href="/vendor/dashboard" className="transition-colors hover:text-white text-white/80" onClick={handleLinkClick}>
-                  Vendor Dashboard
-              </Link>
-            )}
-             {user && !isVendor && (
-               <Link href="/become-a-vendor" className="transition-colors hover:text-white text-white/80" onClick={handleLinkClick}>
-                  Become a Vendor
-              </Link>
+             {user && (
+                hasVendorDoc ? (
+                  <Link href="/vendor/dashboard" className="transition-colors hover:text-white text-white/80" onClick={handleLinkClick}>
+                      Vendor Dashboard
+                  </Link>
+                ) : (
+                  <Link href="/become-a-vendor" className="transition-colors hover:text-white text-white/80" onClick={handleLinkClick}>
+                      Become a Vendor
+                  </Link>
+                )
             )}
           </nav>
         </div>
@@ -75,7 +84,7 @@ export function Header() {
             (user ? (
               <>
                 <div className="flex items-center gap-2">
-                    {isVendor && (
+                    {isVendorApproved && (
                       <Button asChild variant="destructive" size="sm" className="relative">
                           <Link href="/create-event" onClick={handleLinkClick}>
                               <span className="md:hidden"><PlusCircle className="h-5 w-5" /></span>
