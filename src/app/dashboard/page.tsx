@@ -6,13 +6,21 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebas
 import { collection, query, where } from "firebase/firestore";
 import type { UserTicket, Event } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 export default function UserDashboardPage() {
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
+    const router = useRouter();
+
+    useEffect(() => {
+      if (!isUserLoading && !user) {
+        router.push('/login?redirect=/dashboard');
+      }
+    }, [isUserLoading, user, router]);
 
     const userTicketsQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -53,15 +61,13 @@ export default function UserDashboardPage() {
     
     const isLoading = isUserLoading || ticketsLoading || (eventIds && eventIds.length > 0 && eventsLoading);
 
-  return (
-    <div className="container mx-auto max-w-7xl py-12 px-4">
-      <div className="space-y-2 mb-8">
-        <h1 className="text-4xl font-bold font-headline">My Tickets</h1>
-        <p className="text-muted-foreground">All your upcoming events in one place.</p>
-      </div>
-
-      <div className="space-y-8">
-        {isLoading ? (
+    if (isLoading || !user) {
+      return (
+          <div className="container mx-auto max-w-7xl py-12 px-4">
+            <div className="space-y-2 mb-8">
+              <h1 className="text-4xl font-bold font-headline">My Tickets</h1>
+              <p className="text-muted-foreground">All your upcoming events in one place.</p>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {Array.from({ length: 3 }).map((_, i) => (
                     <Card key={i} className="overflow-hidden bg-card/60 backdrop-blur-sm rounded-xl">
@@ -78,7 +84,19 @@ export default function UserDashboardPage() {
                     </Card>
                 ))}
             </div>
-        ) : myEvents.length > 0 ? (
+          </div>
+      );
+    }
+
+  return (
+    <div className="container mx-auto max-w-7xl py-12 px-4">
+      <div className="space-y-2 mb-8">
+        <h1 className="text-4xl font-bold font-headline">My Tickets</h1>
+        <p className="text-muted-foreground">All your upcoming events in one place.</p>
+      </div>
+
+      <div className="space-y-8">
+        {myEvents.length > 0 ? (
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {myEvents.map(item => (
                     <UpcomingEventCard key={item.ticketId} event={item.event!} ticket={item}/>

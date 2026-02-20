@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -20,6 +19,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Bell, Check } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 function NotificationItem({ notification }: { notification: Notification }) {
   return (
@@ -50,8 +51,15 @@ function NotificationItem({ notification }: { notification: Notification }) {
 
 
 export default function NotificationsPage() {
-    const { user } = useUser();
+    const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
+    const router = useRouter();
+
+    useEffect(() => {
+      if (!isUserLoading && !user) {
+        router.push('/login?redirect=/notifications');
+      }
+    }, [isUserLoading, user, router]);
 
     const notificationsQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -62,6 +70,31 @@ export default function NotificationsPage() {
     }, [user, firestore]);
 
     const { data: notifications, isLoading } = useCollection<Notification>(notificationsQuery);
+
+    if (isLoading || isUserLoading || !user) {
+      return (
+        <div className="container mx-auto max-w-2xl py-12 px-4">
+          <div className="space-y-2 mb-8">
+            <h1 className="text-4xl font-bold font-headline">Notifications</h1>
+            <p className="text-muted-foreground">Your recent account activity and updates.</p>
+          </div>
+          <Card>
+            <CardHeader>
+                <CardTitle>All Notifications</CardTitle>
+                <CardDescription>A complete history of your notifications.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+                <div className="p-4 space-y-4">
+                    <Skeleton className="h-20 w-full" />
+                    <Skeleton className="h-20 w-full" />
+                    <Skeleton className="h-20 w-full" />
+                    <Skeleton className="h-20 w-full" />
+                </div>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
 
   return (
     <div className="container mx-auto max-w-2xl py-12 px-4">
@@ -75,15 +108,7 @@ export default function NotificationsPage() {
             <CardDescription>A complete history of your notifications.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-            {isLoading && (
-                <div className="p-4 space-y-4">
-                    <Skeleton className="h-20 w-full" />
-                    <Skeleton className="h-20 w-full" />
-                    <Skeleton className="h-20 w-full" />
-                    <Skeleton className="h-20 w-full" />
-                </div>
-            )}
-            {!isLoading && (!notifications || notifications.length === 0) ? (
+            {(!notifications || notifications.length === 0) ? (
                  <div className="py-24 text-center text-muted-foreground">
                     <Bell className="mx-auto h-12 w-12 mb-4" />
                     <p className="font-semibold">No notifications yet</p>
