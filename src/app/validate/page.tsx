@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import jsQR from 'jsqr';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 type ValidationStatus = 'idle' | 'loading' | 'success' | 'error' | 'unauthorized';
 type ScanResult = {
@@ -43,7 +44,7 @@ function TicketValidator() {
     const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [isScanning, setIsScanning] = useState(false);
+    const [isScanning, setIsScanning] = useState(isScanning);
     const [manualTicketId, setManualTicketId] = useState('');
 
     // Flashlight state
@@ -375,11 +376,12 @@ function TicketValidator() {
                                 <Button onClick={resetScanner} className="mt-6">Scan Next Ticket</Button>
                             </div>
                         ) : (
-                            <div className="w-full aspect-square bg-black rounded-lg overflow-hidden relative flex flex-col items-center justify-center p-4 text-center">
+                             <div className="w-full aspect-square bg-black rounded-lg overflow-hidden relative flex flex-col items-center justify-center p-4 text-center">
+                                <video ref={videoRef} className={cn("absolute inset-0 w-full h-full object-cover", !hasCameraPermission && "hidden")} autoPlay playsInline muted />
+                                <canvas ref={canvasRef} className="hidden" />
+                                
                                 {hasCameraPermission ? (
                                      <>
-                                        <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover" autoPlay playsInline muted />
-                                        <canvas ref={canvasRef} className="hidden" />
                                         <div className="absolute inset-0 border-8 border-white/20 rounded-lg" style={{ clipPath: 'polygon(0% 0%, 0% 100%, 25% 100%, 25% 25%, 75% 25%, 75% 75%, 25% 75%, 25% 100%, 100% 100%, 100% 0%)' }} />
                                         {validationStatus === 'loading' && <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white"><Loader2 className="h-10 w-10 animate-spin mb-2" />Validating...</div>}
                                         {isTorchSupported && (
@@ -453,5 +455,7 @@ export default function ValidatePage() {
         </Suspense>
     )
 }
+
+    
 
     
