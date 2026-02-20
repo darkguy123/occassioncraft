@@ -1,4 +1,3 @@
-
 'use client';
 
 import { VendorSidebar } from "@/components/vendor/vendor-sidebar";
