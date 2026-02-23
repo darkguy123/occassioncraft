@@ -5,9 +5,9 @@ import { Header } from '@/components/shared/header';
 import { Footer } from '@/components/shared/footer';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
-import { useFirebase } from '@/firebase';
+import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { NavigationEvents } from '@/components/shared/navigation-events';
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
 import { LoaderProvider } from '@/context/loader-context';
@@ -17,6 +17,8 @@ import { MobileMenu } from '@/components/shared/mobile-menu';
 import { SplashScreen } from './splash-screen';
 import { PwaInstallProvider } from '@/context/pwa-install-context';
 import { InstallPwaPrompt } from './install-pwa-prompt';
+import { doc } from 'firebase/firestore';
+import type { User as UserType, Vendor as VendorType } from '@/lib/types';
 
 function Favicon() {
     const { siteSettings, isSiteSettingsLoading } = useFirebase();
@@ -81,6 +83,22 @@ function InnerRootProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const [hasMounted, setHasMounted] = useState(false);
     const [showSplash, setShowSplash] = useState(true);
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+    const { user, isUserLoading, firestore } = useFirebase();
+
+    // Fetch user document to check for roles.
+    const userDocRef = useMemoFirebase(() => (user ? doc(firestore, 'users', user.uid) : null), [firestore, user]);
+    const { data: userData, isLoading: isUserDataLoading } = useDoc<UserType>(userDocRef);
+
+    // Only fetch vendor doc if the user is a vendor.
+    const isVendor = useMemo(() => userData?.roles?.includes('vendor'), [userData]);
+    const vendorDocRef = useMemoFirebase(() => (isVendor && user ? doc(firestore, 'vendors', user.uid) : null), [firestore, user, isVendor]);
+    const { isLoading: isVendorDataLoading } = useDoc<VendorType>(vendorDocRef);
+
+    // Overall app loading state: wait for auth, then user doc, then vendor doc if applicable.
+    const isAppLoading = isUserLoading || (user && isUserDataLoading) || (isVendor && isVendorDataLoading);
+
 
     useEffect(() => {
         setHasMounted(true);
@@ -89,14 +107,22 @@ function InnerRootProvider({ children }: { children: React.ReactNode }) {
 
         if (isMobile && !hasSeenWelcome && pathname !== '/welcome') {
             router.replace('/welcome');
-            // No need to show splash if we are redirecting
-            setShowSplash(false);
-        } else {
-             const splashTimeout = setTimeout(() => setShowSplash(false), 2500);
-             return () => clearTimeout(splashTimeout);
+            setShowSplash(false); // Don't show splash if redirecting to welcome screen
         }
-        
     }, [router, pathname]);
+    
+    useEffect(() => {
+        // This effect controls the splash screen based on the data loading state.
+        if (isInitialLoad && !isAppLoading) {
+            // Once all initial data is loaded, hide splash.
+            // A small delay can prevent a jarring flash of content.
+            const timer = setTimeout(() => {
+                setShowSplash(false);
+                setIsInitialLoad(false); // Prevent this from running again.
+            }, 200); // A short delay for smoother transition
+            return () => clearTimeout(timer);
+        }
+    }, [isInitialLoad, isAppLoading]);
 
     const hideFooter = pathname.startsWith('/validate') || pathname.startsWith('/welcome');
     const hideHeader = pathname.startsWith('/welcome') || pathname.startsWith('/validate');
