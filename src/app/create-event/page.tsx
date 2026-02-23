@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
-import type { User as UserType, Event as EventType, EventDate } from "@/lib/types";
+import type { User as UserType, Vendor as VendorType, Event as EventType, EventDate } from "@/lib/types";
 import { doc, collection, addDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
@@ -59,6 +59,13 @@ export default function CreateEventPage() {
   }, [firestore, user]);
 
   const { data: userData, isLoading: isUserDataLoading } = useDoc<UserType>(userDocRef);
+
+  const vendorDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'vendors', user.uid);
+  }, [firestore, user]);
+
+  const { data: vendorData, isLoading: isVendorDataLoading } = useDoc<VendorType>(vendorDocRef);
   
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
@@ -172,7 +179,7 @@ export default function CreateEventPage() {
   }
 
   useEffect(() => {
-    const isLoading = isUserLoading || isUserDataLoading;
+    const isLoading = isUserLoading || isUserDataLoading || isVendorDataLoading;
     if (isLoading) {
       setAuthStatus('loading');
       return;
@@ -184,15 +191,24 @@ export default function CreateEventPage() {
       return;
     }
     
-    const isAuthorized = (userData?.roles || []).some(role => ['admin', 'vendor'].includes(role));
+    const hasVendorRole = (userData?.roles || []).includes('vendor');
+    const isAdminRole = (userData?.roles || []).includes('admin');
+    const isVendorApproved = vendorData?.status === 'approved';
+
+    const isAuthorized = isAdminRole || hasVendorRole || isVendorApproved;
     
     if (isAuthorized) {
         setAuthStatus('authorized');
     } else {
+        toast({
+            variant: "destructive",
+            title: "Access Denied",
+            description: "You must be an approved vendor to create an event."
+        });
         router.push('/vendor/dashboard'); // Redirect to dashboard which shows pending status
         setAuthStatus('unauthorized');
     }
-  }, [isUserLoading, isUserDataLoading, user, userData, router]);
+  }, [isUserLoading, isUserDataLoading, isVendorDataLoading, user, userData, vendorData, router, toast]);
   
   const handleCreateAnother = () => {
       form.reset();

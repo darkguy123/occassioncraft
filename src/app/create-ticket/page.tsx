@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -10,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { useFirebase, useCollection, useMemoFirebase, useDoc } from "@/firebase";
-import type { User as UserType, Event as EventType, Ticket } from "@/lib/types";
+import type { User as UserType, Event as EventType, Ticket, Vendor as VendorType } from "@/lib/types";
 import { doc, collection, query, where } from "firebase/firestore";
 import { useEffect, useState, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
@@ -98,6 +97,13 @@ export default function CreateTicketPage() {
   }, [firestore, user]);
 
   const { data: userData, isLoading: isUserDataLoading } = useDoc<UserType>(userDocRef);
+
+  const vendorDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'vendors', user.uid);
+  }, [firestore, user]);
+
+  const { data: vendorData, isLoading: isVendorDataLoading } = useDoc<VendorType>(vendorDocRef);
   
   const vendorEventsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -173,25 +179,31 @@ export default function CreateTicketPage() {
   }
 
   useEffect(() => {
-    const isLoading = isUserLoading || isUserDataLoading;
+    const isLoading = isUserLoading || isUserDataLoading || isVendorDataLoading;
     if (isLoading) {
       setAuthStatus('loading');
       return;
     }
     if (!user) {
-      router.push('/login');
+      router.push('/login?redirect=/create-ticket');
       setAuthStatus('unauthorized');
       return;
     }
-    const isAuthorized = (userData?.roles || []).some(role => ['admin', 'vendor'].includes(role));
+    
+    const hasVendorRole = (userData?.roles || []).includes('vendor');
+    const isAdminRole = (userData?.roles || []).includes('admin');
+    const isVendorApproved = vendorData?.status === 'approved';
+
+    const isAuthorized = isAdminRole || hasVendorRole || isVendorApproved;
+    
     if (isAuthorized) {
         setAuthStatus('authorized');
     } else {
         setAuthStatus('unauthorized');
-        toast({ variant: "destructive", title: "Unauthorized", description: "You must be a vendor or admin to craft tickets." });
-        router.push('/vendor');
+        toast({ variant: "destructive", title: "Unauthorized", description: "You must be an approved vendor to craft tickets." });
+        router.push('/vendor/dashboard');
     }
-  }, [isUserLoading, isUserDataLoading, user, userData, router, toast]);
+  }, [isUserLoading, isUserDataLoading, isVendorDataLoading, user, userData, vendorData, router, toast]);
 
   const handleFileUpload = async (file: File, field: keyof TicketFormValues) => {
     if (!user || !storage) {

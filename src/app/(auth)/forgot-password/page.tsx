@@ -47,7 +47,7 @@ export default function ForgotPasswordPage() {
     }
     try {
       const actionCodeSettings = {
-        // URL must be a verified domain in your Firebase console
+        // Use a reliable origin for the URL.
         url: `${window.location.origin}/update-password`,
         handleCodeInApp: true,
       };
