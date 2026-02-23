@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Auth, // Import Auth type for type hinting
@@ -6,8 +5,6 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
 } from 'firebase/auth';
-import { toast } from '@/hooks/use-toast';
-
 
 /** Initiate anonymous sign-in (non-blocking). */
 export function initiateAnonymousSignIn(authInstance: Auth): void {
@@ -23,22 +20,8 @@ export function initiateEmailSignUp(authInstance: Auth, email: string, password:
   // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
 }
 
-/** Initiate email/password sign-in (non-blocking). */
-export function initiateEmailSignIn(authInstance: Auth, email: string, password: string): void {
-  // CRITICAL: Call signInWithEmailAndPassword directly. Do NOT use 'await signInWithEmailAndPassword(...)'.
-  signInWithEmailAndPassword(authInstance, email, password)
-    .catch((error) => {
-        let errorMessage = 'An unknown error occurred.';
-        if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-            errorMessage = 'Invalid email or password. Please try again.';
-        } else {
-            errorMessage = error.message;
-        }
-        toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: errorMessage,
-        });
-    });
-  // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
+/** Signs in a user with email and password and returns the promise. */
+export function initiateEmailSignIn(authInstance: Auth, email: string, password: string) {
+  // Returns the promise from signInWithEmailAndPassword to be handled by the caller.
+  return signInWithEmailAndPassword(authInstance, email, password);
 }

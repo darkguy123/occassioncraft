@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from "next/link"
@@ -13,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Eye, EyeOff, Ticket, LogIn } from "lucide-react"
+import { Eye, EyeOff, Ticket, LogIn, Loader2 } from "lucide-react"
 import { useForm, SubmitHandler } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -59,7 +58,7 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginSchema>({
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginSchema>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       rememberMe: true,
@@ -72,7 +71,7 @@ export default function LoginPage() {
       const persistence = data.rememberMe ? browserLocalPersistence : browserSessionPersistence;
       await setPersistence(auth, persistence);
       
-      initiateEmailSignIn(auth, data.email, data.password);
+      await initiateEmailSignIn(auth, data.email, data.password);
       
       toast({
         title: "Login Successful",
@@ -80,10 +79,17 @@ export default function LoginPage() {
       });
       router.push('/dashboard');
     } catch (error: any) {
+      let errorMessage = 'An unknown error occurred.';
+      // Check for specific Firebase auth error codes
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+          errorMessage = 'Invalid email or password. Please try again.';
+      } else {
+          errorMessage = error.message;
+      }
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: error.message,
+        description: errorMessage,
       });
     }
   };
@@ -171,7 +177,8 @@ export default function LoginPage() {
                     Forgot your password?
                   </Link>
                 </div>
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Login
               </Button>
             </form>
