@@ -45,7 +45,7 @@ const features = [
 
 export default function LoginPage() {
   const auth = useAuth();
-  const { siteSettings, isSiteSettingsLoading, firestore } = useFirebase();
+  const { siteSettings, isSiteSettingsLoading, firestore, user } = useFirebase();
   const { toast } = useToast();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
@@ -57,6 +57,13 @@ export default function LoginPage() {
     }, 3000);
     return () => clearInterval(interval);
   }, []);
+
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (user) {
+      router.push('/');
+    }
+  }, [user, router]);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginSchema>({
     resolver: zodResolver(loginSchema),
@@ -77,7 +84,7 @@ export default function LoginPage() {
         title: "Login Successful",
         description: "You are now logged in.",
       });
-      router.push('/dashboard');
+      // The useEffect will handle the redirect
     } catch (error: any) {
       let errorMessage = 'An unknown error occurred.';
       // Check for specific Firebase auth error codes
