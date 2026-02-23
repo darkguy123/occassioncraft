@@ -44,7 +44,7 @@ function TicketValidator() {
     const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [isScanning, setIsScanning] = useState(isScanning);
+    const [isScanning, setIsScanning] = useState(false);
     const [manualTicketId, setManualTicketId] = useState('');
 
     // Flashlight state
@@ -455,7 +455,3 @@ export default function ValidatePage() {
         </Suspense>
     )
 }
-
-    
-
-    
