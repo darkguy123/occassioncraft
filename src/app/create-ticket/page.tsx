@@ -36,7 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { uploadFile } from "@/ai/flows/upload-file-flow";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Badge } from "@/components/ui/badge";
 
 const ticketFormSchema = z.object({
@@ -263,7 +263,7 @@ function CreateTicketPageContent() {
     if (!file) {
       return;
     }
-    if (!user) {
+    if (!user || !storage) {
       toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to upload images.' });
       return;
     }
@@ -274,23 +274,12 @@ function CreateTicketPageContent() {
 
     setIsUploading(true);
 
-    const readFileAsDataURL = (fileToRead: File): Promise<string> => {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = (error) => reject(error);
-        reader.readAsDataURL(fileToRead);
-      });
-    };
-
     try {
-      const dataUri = await readFileAsDataURL(file);
       const filePath = `public-uploads/ticket-assets/${uuidv4()}-${file.name}`;
+      const storageRef = ref(storage, filePath);
 
-      const downloadURL = await uploadFile({
-        dataUri: dataUri,
-        path: filePath,
-      });
+      const uploadResult = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(uploadResult.ref);
 
       form.setValue(field, downloadURL, { shouldValidate: true });
       toast({ title: 'Image Uploaded', description: 'Your image has been saved.' });
