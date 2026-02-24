@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "@/components/ui/table";
-import { BarChart2, Ticket, DollarSign, PlusCircle, QrCode, AlertTriangle, MoreHorizontal, Edit, Trash2, Palette, Calendar } from "lucide-react";
+import { BarChart2, Ticket, DollarSign, CalendarPlus, QrCode, AlertTriangle, MoreHorizontal, Edit, Trash2, Palette, Calendar } from "lucide-react";
 import Link from "next/link";
 import { useUser, useFirestore, useMemoFirebase, useCollection, deleteDocumentNonBlocking } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
@@ -67,9 +67,9 @@ export default function VendorDashboardPage() {
         </div>
         <div className="flex gap-2">
             <Button asChild>
-                <Link href="/create-ticket">
-                    <Palette className="mr-2 h-4 w-4" />
-                    <span className="hidden sm:inline">Craft Ticket</span>
+                <Link href="/create-event">
+                    <CalendarPlus className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Create Event</span>
                 </Link>
             </Button>
         </div>

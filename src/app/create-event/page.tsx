@@ -429,7 +429,7 @@ export default function CreateEventPage() {
                 </Button>
                  <Button asChild>
                     <Link href={`/create-ticket?eventId=${createdEvent?.id}`}>
-                        Craft Ticket for Event
+                        Add ticket
                     </Link>
                 </Button>
             </AlertDialogFooter>

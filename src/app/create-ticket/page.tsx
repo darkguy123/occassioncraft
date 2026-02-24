@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useFirebase, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import type { User as UserType, Event as EventType, Ticket, Vendor as VendorType } from "@/lib/types";
 import { doc, collection, query, where } from "firebase/firestore";
-import { useEffect, useState, useMemo } from "react";
+import { Suspense, useEffect, useState, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -78,10 +78,32 @@ const packages = {
   }
 };
 
+const PageSkeleton = () => (
+    <div className="container max-w-6xl mx-auto py-10 px-4">
+        <div className="space-y-2 mb-8">
+        <Skeleton className="h-10 w-1/2" />
+        <Skeleton className="h-6 w-1/3" />
+        </div>
+        <div className="grid md:grid-cols-2 gap-12">
+        <div><Skeleton className="h-[600px] w-full" /></div>
+        <div><Skeleton className="h-[400px] w-full" /></div>
+        </div>
+    </div>
+);
+
 
 export default function CreateTicketPage() {
+    return (
+        <Suspense fallback={<PageSkeleton />}>
+            <CreateTicketPageContent />
+        </Suspense>
+    )
+}
+
+function CreateTicketPageContent() {
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, isUserLoading, firestore, storage } = useFirebase();
   const { addToCart } = useCart();
   
@@ -129,6 +151,13 @@ export default function CreateTicketPage() {
     },
     mode: "onChange",
   });
+
+  useEffect(() => {
+    const eventIdFromQuery = searchParams.get('eventId');
+    if (eventIdFromQuery) {
+        form.setValue('eventId', eventIdFromQuery);
+    }
+  }, [searchParams, form]);
   
   const selectedPackage = form.watch('package');
   const selectedTier = form.watch('tier');
@@ -261,18 +290,7 @@ export default function CreateTicketPage() {
 
 
   if (authStatus !== 'authorized' || areEventsLoading) {
-    return (
-        <div className="container max-w-6xl mx-auto py-10 px-4">
-           <div className="space-y-2 mb-8">
-            <Skeleton className="h-10 w-1/2" />
-            <Skeleton className="h-6 w-1/3" />
-          </div>
-          <div className="grid md:grid-cols-2 gap-12">
-            <div><Skeleton className="h-[600px] w-full" /></div>
-            <div><Skeleton className="h-[400px] w-full" /></div>
-          </div>
-        </div>
-    );
+    return <PageSkeleton />;
   }
 
   const isPremiumPackage = selectedPackage.startsWith('Premium');
@@ -295,7 +313,7 @@ export default function CreateTicketPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Link to Event (Optional)</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select an event you've created..." />
