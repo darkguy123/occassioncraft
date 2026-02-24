@@ -1,13 +1,24 @@
-
 {
     "backgrounds": [
-        { "id": "bg-1", "url": "https://picsum.photos/seed/bg1/400/600" },
-        { "id": "bg-2", "url": "https://picsum.photos/seed/bg2/400/600" },
-        { "id": "bg-3", "url": "https://picsum.photos/seed/bg3/400/600" },
-        { "id": "bg-4", "url": "https://picsum.photos/seed/bg4/400/600" },
-        { "id": "bg-5", "url": "https://picsum.photos/seed/bg5/400/600" },
-        { "id": "bg-6", "url": "https://picsum.photos/seed/bg6/400/600" },
-        { "id": "bg-7", "url": "https://picsum.photos/seed/bg7/400/600" },
-        { "id": "bg-8", "url": "https://picsum.photos/seed/bg8/400/600" }
+        { "id": "bg-swirl-1", "url": "https://picsum.photos/seed/swirl1/400/600" },
+        { "id": "bg-swirl-2", "url": "https://picsum.photos/seed/swirl2/400/600" },
+        { "id": "bg-bokeh-1", "url": "https://picsum.photos/seed/bokeh1/400/600" },
+        { "id": "bg-bokeh-2", "url": "https://picsum.photos/seed/bokeh2/400/600" },
+        { "id": "bg-gradient-1", "url": "https://picsum.photos/seed/gradient1/400/600" },
+        { "id": "bg-gradient-2", "url": "https://picsum.photos/seed/gradient2/400/600" },
+        { "id": "bg-abstract-1", "url": "https://picsum.photos/seed/abstract1/400/600" },
+        { "id": "bg-abstract-2", "url": "https://picsum.photos/seed/abstract2/400/600" },
+        { "id": "bg-light-1", "url": "https://picsum.photos/seed/light1/400/600" },
+        { "id": "bg-light-2", "url": "https://picsum.photos/seed/light2/400/600" },
+        { "id": "bg-texture-1", "url": "https://picsum.photos/seed/texture1/400/600" },
+        { "id": "bg-texture-2", "url": "https://picsum.photos/seed/texture2/400/600" },
+        { "id": "bg-galaxy-1", "url": "https://picsum.photos/seed/galaxy1/400/600" },
+        { "id": "bg-galaxy-2", "url": "https://picsum.photos/seed/galaxy2/400/600" },
+        { "id": "bg-liquid-1", "url": "https://picsum.photos/seed/liquid1/400/600" },
+        { "id": "bg-liquid-2", "url": "https://picsum.photos/seed/liquid2/400/600" },
+        { "id": "bg-flow-1", "url": "https://picsum.photos/seed/flow1/400/600" },
+        { "id": "bg-flow-2", "url": "https://picsum.photos/seed/flow2/400/600" },
+        { "id": "bg-dreamy-1", "url": "https://picsum.photos/seed/dreamy1/400/600" },
+        { "id": "bg-dreamy-2", "url": "https://picsum.photos/seed/dreamy2/400/600" }
     ]
 }
