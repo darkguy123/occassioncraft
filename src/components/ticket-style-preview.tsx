@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { TicketFormValues } from '@/app/create-ticket/page';
@@ -41,6 +40,7 @@ const GeometricTicketTemplate = ({ eventData, qrCodeUrl }: { eventData: Partial<
 
     return (
         <div className="w-full max-w-lg mx-auto rounded-lg shadow-2xl bg-slate-900 text-white font-sans relative overflow-hidden aspect-[2/1]">
+            {eventData.ticketImageUrl && <Image src={eventData.ticketImageUrl} alt="background" fill className="object-cover opacity-30" />}
             <div className="absolute -right-2 top-0 h-full w-4 bg-slate-900 z-20"></div>
             <div className="absolute -left-2 top-0 h-full w-4 bg-slate-900 z-20"></div>
             
