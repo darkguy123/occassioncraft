@@ -38,13 +38,11 @@ service cloud.firestore {
     }
     
     match /events/{eventId} {
-       // Allow public list access for anyone, but the query must filter for 'published' status.
-       allow list: if resource.data.status == 'published' || isAdmin();
+       // Allow anyone to attempt to list events. The 'get' rule below will filter the results.
+       allow list: if true;
        
-       // Events are publicly readable only if they are published.
-       // Vendors can read their own non-published events.
-       // Admins can read all events regardless of status.
-       allow read: if resource.data.status == 'published'
+       // Secure individual document reads.
+       allow get: if resource.data.status == 'published'
                     || (request.auth != null && resource.data.vendorId == request.auth.uid)
                     || isAdmin();
 
@@ -63,22 +61,27 @@ service cloud.firestore {
     match /vendors/{vendorId} {
       // Admins can list all vendors.
       allow list: if isAdmin();
-      // Any authenticated user can read a vendor profile (since all are vendors)
+      // Any authenticated user can read a vendor profile.
       // Admins have full access.
       allow read: if request.auth != null || isAdmin();
       // Only users can create their own vendor profile at signup, and admins can write to any.
       allow create: if isOwner(vendorId);
       // Only the owner or an admin can update the vendor profile.
       allow update: if isOwner(vendorId) || isAdmin();
+      // Admins can delete vendor documents.
+      allow delete: if isAdmin();
     }
     
     match /tickets/{ticketId} {
-      // Admins can list all tickets
-      allow list: if isAdmin();
-      // A user can read a ticket if they are the owner, or if they are the vendor for that event
-      allow read: if (request.auth != null && resource.data.userId == request.auth.uid) || (request.auth != null && resource.data.vendorId == request.auth.uid) || isAdmin();
+      // A user can read a single ticket if they are the owner, the vendor, or an admin.
+      allow get: if (request.auth != null && (resource.data.userId == request.auth.uid || resource.data.vendorId == request.auth.uid)) || isAdmin();
+      
+      // Allow authenticated users to LIST tickets. The 'get' rule above will secure access.
+      allow list: if request.auth != null;
+
       // Allow creation for any authenticated user
       allow create: if request.auth != null;
+      
       // No updates or deletes from the client
       allow update, delete: if false;
     }

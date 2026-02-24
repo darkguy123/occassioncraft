@@ -13,6 +13,13 @@ const withPWA = require('@ducanh2912/next-pwa').default({
     // This is a common fix for the _async_to_generator error.
     // It ensures the service worker has the necessary runtime.
     babelPresetEnvTargets: ['> 0.25%, not dead'],
+    // Exclude API calls from caching by the service worker
+    runtimeCaching: [
+      {
+        urlPattern: /^https:\/\/(?:firestore|identitytoolkit)\.googleapis\.com\/.*/,
+        handler: 'NetworkOnly',
+      },
+    ],
   },
 });
 
@@ -43,5 +50,3 @@ const nextConfig: NextConfig = {
 };
 
 export default withPWA(nextConfig);
-
-    
