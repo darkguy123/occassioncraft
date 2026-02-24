@@ -29,7 +29,7 @@ export function MobileMenu() {
     ];
 
     const conditionalItem = isVendor
-      ? { href: '/vendor/dashboard', icon: LayoutDashboard, label: 'Vendor' }
+      ? { href: '/create-ticket', icon: Palette, label: 'Craft' }
       : { href: '/dashboard', icon: Ticket, label: 'My Tickets' };
 
     const actionNavItems = [

@@ -113,6 +113,7 @@ function CreateTicketPageContent() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [lastAddedCartItem, setLastAddedCartItem] = useState<CartItem | null>(null);
+  const [showNoEventsDialog, setShowNoEventsDialog] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -249,6 +250,15 @@ function CreateTicketPageContent() {
     }
   }, [isUserLoading, isUserDataLoading, isVendorDataLoading, user, userData, vendorData, router, toast]);
 
+  useEffect(() => {
+    // This effect should run after authentication and event data are loaded.
+    if (authStatus === 'authorized' && !areEventsLoading) {
+      if (!vendorEvents || vendorEvents.length === 0) {
+        setShowNoEventsDialog(true);
+      }
+    }
+  }, [authStatus, areEventsLoading, vendorEvents]);
+
   const handleFileUpload = async (file: File, field: keyof TicketFormValues) => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to upload images.' });
@@ -312,6 +322,23 @@ function CreateTicketPageContent() {
 
   return (
     <>
+    <AlertDialog open={showNoEventsDialog}>
+      <AlertDialogContent>
+          <AlertDialogHeader>
+              <AlertDialogTitle>Create an Event First</AlertDialogTitle>
+              <AlertDialogDescription>
+                  You must have at least one published event to craft a ticket.
+              </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+              <Button variant="outline" onClick={() => router.push('/vendor/dashboard')}>Go to Dashboard</Button>
+              <Button asChild>
+                  <Link href="/create-event">Create Event</Link>
+              </Button>
+          </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
     <div className="container max-w-6xl mx-auto py-10 px-4">
         <div className="space-y-2 mb-8">
             <h1 className="text-4xl font-bold font-headline">Craft a New Ticket</h1>
