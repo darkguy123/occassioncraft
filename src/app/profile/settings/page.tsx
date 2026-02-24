@@ -119,7 +119,13 @@ export default function ProfileSettingsPage() {
 
     } catch (error: any) {
         console.error("Error uploading avatar:", error);
-        toast({ variant: 'destructive', title: 'Avatar Upload Failed', description: error.message || 'Could not save your new picture.' });
+        let description = error.message || 'Could not save your new picture.';
+        if (error.code === 'storage/retry-limit-exceeded') {
+          description = "The network request timed out. This can happen if Firebase Storage is not enabled for this project. Please go to the Firebase Console, navigate to Storage, and complete the setup process."
+        } else if (error.code === 'storage/unauthorized') {
+          description = "You don't have permission to upload files. Please ensure you are logged in."
+        }
+        toast({ variant: 'destructive', title: 'Avatar Upload Failed', description: description });
     } finally {
         setIsAvatarUploading(false);
     }
