@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Badge } from "@/components/ui/badge";
+import { ImageCropperDialog } from "@/components/shared/image-cropper-dialog";
 
 const ticketFormSchema = z.object({
   eventId: z.string().optional(),
@@ -115,6 +116,9 @@ function CreateTicketPageContent() {
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [lastAddedCartItem, setLastAddedCartItem] = useState<CartItem | null>(null);
   const [showNoEventsDialog, setShowNoEventsDialog] = useState(false);
+
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -260,10 +264,7 @@ function CreateTicketPageContent() {
     }
   }, [authStatus, areEventsLoading, vendorEvents]);
 
-  const handleFileUpload = async (file: File | undefined, field: keyof TicketFormValues) => {
-    if (!file) {
-      return;
-    }
+  const handleFileUpload = async (file: File, field: keyof TicketFormValues) => {
     if (!user || !storage) {
       toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to upload images.' });
       return;
@@ -291,6 +292,50 @@ function CreateTicketPageContent() {
       setIsUploading(false);
     }
   };
+
+  const handleOpenCropper = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 4 * 1024 * 1024) { // 4MB limit
+      toast({ variant: 'destructive', title: 'File too large', description: 'Image must be smaller than 4MB.' });
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImageToCrop(reader.result as string);
+      setIsCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
+    
+    event.target.value = "";
+  };
+
+  const onCrop = async (croppedImageBase64: string) => {
+    setIsCropperOpen(false);
+    if (!user || !storage) {
+      toast({ variant: 'destructive', title: 'Authentication Error' });
+      return;
+    }
+    
+    const dataURItoBlob = (dataURI: string): Blob => {
+        const byteString = atob(dataURI.split(',')[1]);
+        const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+        }
+        return new Blob([ab], {type: mimeString});
+    };
+
+    const blob = dataURItoBlob(croppedImageBase64);
+    const file = new File([blob], `ticket-bg-${uuidv4()}.png`, { type: 'image/png' });
+    
+    await handleFileUpload(file, 'ticketImageUrl');
+    setImageToCrop(null);
+  };
   
   const handleGenerateImage = async () => {
     if (!user || !storage) {
@@ -302,7 +347,6 @@ function CreateTicketPageContent() {
     try {
       const dataUri = await generateBackgroundImage(prompt);
 
-      // Helper to convert Data URI to Blob
       const dataURItoBlob = (dataURI: string): Blob => {
           const byteString = atob(dataURI.split(',')[1]);
           const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
@@ -317,7 +361,6 @@ function CreateTicketPageContent() {
       const imageBlob = dataURItoBlob(dataUri);
       const file = new File([imageBlob], `ai-${uuidv4()}.png`, { type: 'image/png' });
       
-      // Reuse the main upload handler
       await handleFileUpload(file, 'ticketImageUrl');
 
       toast({ title: "AI Background Generated!", description: "A new background image has been applied." });
@@ -338,6 +381,16 @@ function CreateTicketPageContent() {
 
   return (
     <>
+    {imageToCrop && (
+        <ImageCropperDialog
+            isOpen={isCropperOpen}
+            onClose={() => setIsCropperOpen(false)}
+            imageSrc={imageToCrop}
+            onCrop={onCrop}
+            aspectRatio={2 / 3}
+        />
+    )}
+
     <AlertDialog open={showNoEventsDialog}>
       <AlertDialogContent>
           <AlertDialogHeader>
@@ -555,7 +608,11 @@ function CreateTicketPageContent() {
                                     <FormLabel>Ticket Background</FormLabel>
                                     <FormControl>
                                         <div className="flex items-center gap-4">
-                                            {form.watch('ticketImageUrl') && <Image src={form.watch('ticketImageUrl')!} alt="background" width={100} height={60} className="rounded-md h-12 w-20 object-cover" />}
+                                            {form.watch('ticketImageUrl') ? (
+                                              <Image src={form.watch('ticketImageUrl')!} alt="background" width={64} height={96} className="rounded-md h-24 w-16 object-cover" />
+                                            ) : (
+                                              <div className="h-24 w-16 rounded-md bg-muted flex items-center justify-center"><Info className="h-6 w-6 text-muted-foreground"/></div>
+                                            )}
                                             <Button asChild variant="outline">
                                                 <label htmlFor="bg-upload" className="cursor-pointer"><Upload className="mr-2 h-4 w-4" /> Upload</label>
                                             </Button>
@@ -563,7 +620,7 @@ function CreateTicketPageContent() {
                                                 {isGenerating ? <Loader2 className="h-4 w-4 animate-spin"/> : <Wand2 className="h-4 w-4" />}
                                                 <span className="sr-only">Generate with AI</span>
                                              </Button>
-                                            <Input id="bg-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e.target.files?.[0], 'ticketImageUrl')} disabled={isUploading || isGenerating} />
+                                            <Input id="bg-upload" type="file" className="hidden" accept="image/*" onChange={handleOpenCropper} disabled={isUploading || isGenerating} />
                                         </div>
                                     </FormControl>
                                     <FormMessage />
@@ -582,7 +639,7 @@ function CreateTicketPageContent() {
                                             <Button asChild variant="outline">
                                                 <label htmlFor="brand-upload" className="cursor-pointer"><Upload className="mr-2 h-4 w-4" /> Upload</label>
                                             </Button>
-                                            <Input id="brand-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e.target.files?.[0], 'ticketBrandingImageUrl')} disabled={isUploading} />
+                                            <Input id="brand-upload" type="file" className="hidden" accept="image/*" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0], 'ticketBrandingImageUrl')} disabled={isUploading} />
                                         </div>
                                     </FormControl>
                                     <FormMessage />
@@ -641,7 +698,7 @@ function CreateTicketPageContent() {
                                                         <Upload className="mr-2 h-4 w-4" /> Upload
                                                     </label>
                                                 </Button>
-                                                <Input id="guest-photo-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e.target.files?.[0], 'guestPhotoUrl')} disabled={isUploading} />
+                                                <Input id="guest-photo-upload" type="file" className="hidden" accept="image/*" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0], 'guestPhotoUrl')} disabled={isUploading} />
                                             </div>
                                         </FormControl>
                                         <FormMessage />
@@ -766,3 +823,5 @@ function CreateTicketPageContent() {
     </>
   );
 }
+
+    
