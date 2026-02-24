@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -259,7 +260,7 @@ function CreateTicketPageContent() {
     }
   }, [authStatus, areEventsLoading, vendorEvents]);
 
-  const handleFileUpload = async (file: File, field: keyof TicketFormValues) => {
+  const handleFileUpload = async (file: File | undefined, field: keyof TicketFormValues) => {
     if (!file) {
       return;
     }
@@ -292,14 +293,39 @@ function CreateTicketPageContent() {
   };
   
   const handleGenerateImage = async () => {
+    if (!user || !storage) {
+      toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to generate images.' });
+      return;
+    }
     const prompt = "abstract background for an event ticket, aspect ratio 2:3";
     setIsGenerating(true);
     try {
-      const imageUrl = await generateBackgroundImage(prompt);
-      form.setValue('ticketImageUrl', imageUrl, { shouldValidate: true });
+      const dataUri = await generateBackgroundImage(prompt);
+
+      // Helper to convert Data URI to Blob
+      const dataURItoBlob = (dataURI: string): Blob => {
+          const byteString = atob(dataURI.split(',')[1]);
+          const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+          const ab = new ArrayBuffer(byteString.length);
+          const ia = new Uint8Array(ab);
+          for (let i = 0; i < byteString.length; i++) {
+              ia[i] = byteString.charCodeAt(i);
+          }
+          return new Blob([ab], {type: mimeString});
+      };
+      
+      const imageBlob = dataURItoBlob(dataUri);
+      const filePath = `public-uploads/ticket-assets/ai-${uuidv4()}.png`;
+      const storageRef = ref(storage, filePath);
+      
+      const uploadResult = await uploadBytes(storageRef, imageBlob);
+      const downloadURL = await getDownloadURL(uploadResult.ref);
+
+      form.setValue('ticketImageUrl', downloadURL, { shouldValidate: true });
       toast({ title: "AI Background Generated!", description: "A new background image has been applied." });
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Generation Failed', description: 'Could not generate an image at this time.' });
+    } catch (error: any) {
+      console.error("AI Image Generation/Upload error:", error);
+      toast({ variant: 'destructive', title: 'Generation Failed', description: error.message || 'Could not generate an image at this time.' });
     } finally {
       setIsGenerating(false);
     }
@@ -535,11 +561,11 @@ function CreateTicketPageContent() {
                                             <Button asChild variant="outline">
                                                 <label htmlFor="bg-upload" className="cursor-pointer"><Upload className="mr-2 h-4 w-4" /> Upload</label>
                                             </Button>
-                                             <Button variant="outline" size="icon" onClick={handleGenerateImage} disabled={isGenerating}>
+                                             <Button variant="outline" size="icon" onClick={handleGenerateImage} disabled={isGenerating || isUploading}>
                                                 {isGenerating ? <Loader2 className="h-4 w-4 animate-spin"/> : <Wand2 className="h-4 w-4" />}
                                                 <span className="sr-only">Generate with AI</span>
                                             </Button>
-                                            <Input id="bg-upload" type="file" className="hidden" accept="image/*" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0], 'ticketImageUrl')} disabled={isUploading} />
+                                            <Input id="bg-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e.target.files?.[0], 'ticketImageUrl')} disabled={isUploading || isGenerating} />
                                         </div>
                                     </FormControl>
                                     <FormMessage />
@@ -558,7 +584,7 @@ function CreateTicketPageContent() {
                                             <Button asChild variant="outline">
                                                 <label htmlFor="brand-upload" className="cursor-pointer"><Upload className="mr-2 h-4 w-4" /> Upload</label>
                                             </Button>
-                                            <Input id="brand-upload" type="file" className="hidden" accept="image/*" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0], 'ticketBrandingImageUrl')} disabled={isUploading} />
+                                            <Input id="brand-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e.target.files?.[0], 'ticketBrandingImageUrl')} disabled={isUploading} />
                                         </div>
                                     </FormControl>
                                     <FormMessage />
@@ -617,7 +643,7 @@ function CreateTicketPageContent() {
                                                         <Upload className="mr-2 h-4 w-4" /> Upload
                                                     </label>
                                                 </Button>
-                                                <Input id="guest-photo-upload" type="file" className="hidden" accept="image/*" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0], 'guestPhotoUrl')} disabled={isUploading} />
+                                                <Input id="guest-photo-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e.target.files?.[0], 'guestPhotoUrl')} disabled={isUploading} />
                                             </div>
                                         </FormControl>
                                         <FormMessage />
