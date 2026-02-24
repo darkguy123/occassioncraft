@@ -55,7 +55,6 @@ const ticketFormSchema = z.object({
   maxScans: z.number().min(1).default(1),
   
   // Design fields
-  templateId: z.string().default('classic'),
   ticketImageUrl: z.string().optional(),
   ticketBrandingImageUrl: z.string().optional(),
 }).refine(data => {
@@ -155,7 +154,6 @@ function CreateTicketPageContent() {
       guestPhotoUrl: '',
       maxScans: 1,
       isPrivate: false,
-      templateId: 'classic',
       ticketImageUrl: '',
       ticketBrandingImageUrl: '',
     },
@@ -665,10 +663,13 @@ function CreateTicketPageContent() {
                                             <div className="flex flex-col items-start gap-2">
                                                 <p className="text-xs text-muted-foreground">Upload, generate with AI, or get a random image.</p>
                                                 <div className="flex gap-2">
-                                                    <label htmlFor="bg-upload" className={cn(buttonVariants({ variant: "outline", size: "icon" }), "cursor-pointer")}>
-                                                        <Upload className="h-4 w-4" />
-                                                        <span className="sr-only">Upload</span>
-                                                    </label>
+                                                    <Button asChild variant="outline" size="icon" className="cursor-pointer">
+                                                        <label htmlFor="bg-upload">
+                                                            <Upload className="h-4 w-4" />
+                                                            <span className="sr-only">Upload</span>
+                                                        </label>
+                                                    </Button>
+                                                    <Input id="bg-upload" type="file" className="hidden" accept="image/*" onChange={handleOpenCropper} disabled={isUploading || isGenerating} />
                                                     <Button variant="outline" size="icon" onClick={handleGenerateImage} disabled={isGenerating || isUploading}>
                                                         {isGenerating ? <Loader2 className="h-4 w-4 animate-spin"/> : <Wand2 className="h-4 w-4" />}
                                                         <span className="sr-only">Generate with AI</span>
@@ -679,7 +680,6 @@ function CreateTicketPageContent() {
                                                     </Button>
                                                 </div>
                                             </div>
-                                            <Input id="bg-upload" type="file" className="hidden" accept="image/*" onChange={handleOpenCropper} disabled={isUploading || isGenerating} />
                                             </div>
                                         </div>
                                     </FormControl>
@@ -884,5 +884,3 @@ function CreateTicketPageContent() {
     </>
   );
 }
-
-    
