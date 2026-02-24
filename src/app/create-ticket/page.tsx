@@ -607,78 +607,86 @@ function CreateTicketPageContent() {
                     <Card>
                         <CardHeader>
                             <CardTitle>Premium Design Options</CardTitle>
-                            <CardDescription>Select a base design for your premium tickets.</CardDescription>
+                            <CardDescription>Customize the look of your premium tickets.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <FormField
-                                control={form.control}
-                                name="templateId"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Choose Ticket Style</FormLabel>
-                                        <FormControl>
-                                            <RadioGroup
-                                                onValueChange={field.onChange}
-                                                defaultValue={field.value}
-                                                className="grid grid-cols-3 gap-4"
-                                            >
-                                                {['Classic', 'Modern', 'Minimal'].map((style) => (
-                                                <FormItem key={style}>
-                                                    <FormControl>
-                                                    <RadioGroupItem value={style.toLowerCase()} id={style.toLowerCase()} className="sr-only" />
-                                                    </FormControl>
-                                                    <Label
-                                                        htmlFor={style.toLowerCase()}
-                                                        className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                                                    >
-                                                        <div className="w-16 h-10 bg-secondary rounded-sm mb-2" />
-                                                        <span className="text-sm font-medium">{style}</span>
-                                                    </Label>
-                                                </FormItem>
-                                                ))}
-                                            </RadioGroup>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
                             <FormField
                                 control={form.control}
                                 name="ticketImageUrl"
                                 render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Ticket Background</FormLabel>
+                                    <FormDescription>Select a pre-made background, or use the options below to create your own.</FormDescription>
                                     <FormControl>
-                                      <div className="flex items-center gap-4">
-                                          {form.watch('ticketImageUrl') ? (
-                                            <Image src={form.watch('ticketImageUrl')!} alt="background" width={64} height={96} className="rounded-md h-24 w-16 object-cover" />
-                                          ) : (
-                                            <div className="h-24 w-16 rounded-md bg-muted flex items-center justify-center"><Info className="h-6 w-6 text-muted-foreground"/></div>
-                                          )}
-                                          <div className="flex flex-col items-start gap-2">
-                                              <p className="text-xs text-muted-foreground">Choose a background or upload your own.</p>
-                                              <div className="flex gap-2">
-                                                  <Button asChild variant="outline" size="icon">
-                                                      <label htmlFor="bg-upload" className="cursor-pointer"><Upload className="h-4 w-4" /><span className="sr-only">Upload</span></label>
-                                                  </Button>
-                                                   <Button variant="outline" size="icon" onClick={handleGenerateImage} disabled={isGenerating || isUploading}>
-                                                      {isGenerating ? <Loader2 className="h-4 w-4 animate-spin"/> : <Wand2 className="h-4 w-4" />}
-                                                      <span className="sr-only">Generate with AI</span>
-                                                   </Button>
-                                                   <Button variant="outline" size="icon" onClick={handleRandomImage} disabled={isGenerating || isUploading}>
-                                                      <Shuffle className="h-4 w-4" />
-                                                      <span className="sr-only">Random background</span>
-                                                   </Button>
-                                              </div>
-                                          </div>
-                                          <Input id="bg-upload" type="file" className="hidden" accept="image/*" onChange={handleOpenCropper} disabled={isUploading || isGenerating} />
-                                      </div>
+                                        <div>
+                                            <RadioGroup
+                                            onValueChange={field.onChange}
+                                            value={field.value || ''}
+                                            className="grid grid-cols-4 gap-2 pt-2"
+                                            >
+                                            {backgroundsData.backgrounds.map((bg) => (
+                                                <FormItem key={bg.id}>
+                                                <FormControl>
+                                                    <RadioGroupItem value={bg.url} id={bg.id} className="sr-only" />
+                                                </FormControl>
+                                                <Label
+                                                    htmlFor={bg.id}
+                                                    className="block aspect-[2/3] w-full rounded-md border-2 border-transparent bg-popover hover:border-primary peer-data-[state=checked]:border-primary cursor-pointer overflow-hidden relative group"
+                                                >
+                                                    <Image
+                                                        src={bg.url}
+                                                        alt={`Background ${bg.id}`}
+                                                        fill
+                                                        className="object-cover transition-transform group-hover:scale-105"
+                                                    />
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 peer-data-[state=checked]:opacity-100 transition-opacity">
+                                                        <Check className="h-8 w-8 text-white" />
+                                                    </div>
+                                                </Label>
+                                                </FormItem>
+                                            ))}
+                                            </RadioGroup>
+                                            
+                                            <div className="relative my-6">
+                                                <div className="absolute inset-0 flex items-center">
+                                                    <span className="w-full border-t" />
+                                                </div>
+                                                <div className="relative flex justify-center text-xs uppercase">
+                                                    <span className="bg-card px-2 text-muted-foreground">Or customize</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-4">
+                                            {form.watch('ticketImageUrl') ? (
+                                                <Image src={form.watch('ticketImageUrl')!} alt="background" width={64} height={96} className="rounded-md h-24 w-16 object-cover" />
+                                            ) : (
+                                                <div className="h-24 w-16 rounded-md bg-muted flex items-center justify-center"><Info className="h-6 w-6 text-muted-foreground"/></div>
+                                            )}
+                                            <div className="flex flex-col items-start gap-2">
+                                                <p className="text-xs text-muted-foreground">Upload, generate with AI, or get a random image.</p>
+                                                <div className="flex gap-2">
+                                                    <Button asChild variant="outline" size="icon">
+                                                        <label htmlFor="bg-upload" className="cursor-pointer"><Upload className="h-4 w-4" /><span className="sr-only">Upload</span></label>
+                                                    </Button>
+                                                    <Button variant="outline" size="icon" onClick={handleGenerateImage} disabled={isGenerating || isUploading}>
+                                                        {isGenerating ? <Loader2 className="h-4 w-4 animate-spin"/> : <Wand2 className="h-4 w-4" />}
+                                                        <span className="sr-only">Generate with AI</span>
+                                                    </Button>
+                                                    <Button variant="outline" size="icon" onClick={handleRandomImage} disabled={isGenerating || isUploading}>
+                                                        <Shuffle className="h-4 w-4" />
+                                                        <span className="sr-only">Random background</span>
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                            <Input id="bg-upload" type="file" className="hidden" accept="image/*" onChange={handleOpenCropper} disabled={isUploading || isGenerating} />
+                                            </div>
+                                        </div>
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
                                 )}
                             />
+
                             <FormField
                                 control={form.control}
                                 name="ticketBrandingImageUrl"
@@ -875,5 +883,3 @@ function CreateTicketPageContent() {
     </>
   );
 }
-
-    
