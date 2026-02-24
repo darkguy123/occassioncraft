@@ -260,6 +260,9 @@ function CreateTicketPageContent() {
   }, [authStatus, areEventsLoading, vendorEvents]);
 
   const handleFileUpload = async (file: File, field: keyof TicketFormValues) => {
+    if (!file) {
+      return;
+    }
     if (!user) {
       toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to upload images.' });
       return;
