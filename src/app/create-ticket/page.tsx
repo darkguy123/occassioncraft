@@ -22,7 +22,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { TicketStylePreview } from "@/components/ticket-style-preview"
 import Image from "next/image"
 import { generateBackgroundImage } from "@/ai/flows/generate-ticket-image-flow"
-import { Loader2, Wand2, Info, Plus, Upload, ShoppingCart, Check, PartyPopper, Shuffle } from "lucide-react"
+import { Loader2, Wand2, Info, Plus, Upload, ShoppingCart, Check, PartyPopper, Shuffle, AlertTriangle } from "lucide-react"
 import { v4 as uuidv4 } from 'uuid';
 import { useCart, type CartItem } from "@/context/cart-context"
 import Link from "next/link";
@@ -41,6 +41,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Badge } from "@/components/ui/badge";
 import { ImageCropperDialog } from "@/components/shared/image-cropper-dialog";
 import backgroundsData from '@/lib/ticket-backgrounds.json';
+import { isBefore, startOfToday } from 'date-fns';
 
 const ticketFormSchema = z.object({
   eventId: z.string().optional(),
@@ -177,6 +178,13 @@ function CreateTicketPageContent() {
     return vendorEvents?.find(e => e.id === selectedEventId);
   }, [vendorEvents, selectedEventId]);
 
+  const isEventExpired = useMemo(() => {
+    if (!selectedEvent || !selectedEvent.dates || selectedEvent.dates.length === 0) return false;
+    const lastEventDateItem = selectedEvent.dates[selectedEvent.dates.length - 1];
+    if (!lastEventDateItem?.date) return false;
+    return isBefore(new Date(lastEventDateItem.date), startOfToday());
+  }, [selectedEvent]);
+
   const summary = useMemo(() => {
     let basePrice = 0;
     let baseTickets = 0;
@@ -267,7 +275,6 @@ function CreateTicketPageContent() {
 
   const handleFileUpload = async (file: File | null, field: keyof TicketFormValues) => {
     if (!file) {
-      toast({ variant: 'destructive', title: 'No file selected', description: 'Please select a file to upload.' });
       return;
     }
     if (!user || !storage) {
@@ -448,22 +455,31 @@ function CreateTicketPageContent() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {vendorEvents && vendorEvents.length > 0 ? vendorEvents.map(event => (
-                            <SelectItem 
-                                key={event.id} 
-                                value={event.id}
-                                disabled={!!event.status && event.status !== 'published'}
-                            >
-                                <div className="flex items-center justify-between w-full">
-                                  <span>{event.name}</span>
-                                  {!!event.status && event.status !== 'published' && (
-                                    <Badge variant="outline" className="ml-2 capitalize">
-                                      {event.status}
-                                    </Badge>
-                                  )}
-                                </div>
-                            </SelectItem>
-                          )) : (
+                          {vendorEvents && vendorEvents.length > 0 ? vendorEvents.map(event => {
+                            const lastEventDateItem = event.dates?.[event.dates.length - 1];
+                            const isExpired = lastEventDateItem?.date && isBefore(new Date(lastEventDateItem.date), startOfToday());
+                            return (
+                                <SelectItem 
+                                    key={event.id} 
+                                    value={event.id}
+                                    disabled={isExpired || (!!event.status && event.status !== 'published')}
+                                >
+                                    <div className="flex items-center justify-between w-full">
+                                      <span>{event.name}</span>
+                                      <div className='flex items-center gap-2'>
+                                        {isExpired && (
+                                            <Badge variant="destructive" className="ml-2">Expired</Badge>
+                                        )}
+                                        {!!event.status && event.status !== 'published' && !isExpired && (
+                                            <Badge variant="outline" className="ml-2 capitalize">
+                                            {event.status}
+                                            </Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                </SelectItem>
+                            )
+                          }) : (
                             <div className="p-4 text-sm text-muted-foreground">No events found. Please <Link href="/create-event" className="underline text-primary">create an event</Link> first.</div>
                           )}
                         </SelectContent>
@@ -472,6 +488,16 @@ function CreateTicketPageContent() {
                     </FormItem>
                   )}
                 />
+
+                {isEventExpired && (
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Event Has Ended</AlertTitle>
+                        <AlertDescription>
+                            This event has already passed. You cannot craft new tickets for it.
+                        </AlertDescription>
+                    </Alert>
+                )}
 
                 {/* Package Selection */}
                 <FormField
@@ -808,7 +834,7 @@ function CreateTicketPageContent() {
                             </div>
                         </CardContent>
                     </Card>
-                     <Button type="submit" size="lg" className="w-full" disabled={form.formState.isSubmitting || summary.price <= 0}>
+                     <Button type="submit" size="lg" className="w-full" disabled={form.formState.isSubmitting || summary.price <= 0 || isEventExpired}>
                         <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart
                     </Button>
                 </div>

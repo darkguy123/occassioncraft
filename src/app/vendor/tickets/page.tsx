@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -49,11 +50,11 @@ export default function AllVendorTicketsPage() {
     return query(collection(firestore, 'events'), where('__name__', 'in', eventIds));
   }, [firestore, eventIds]);
 
-  const { data: events, isLoading: areEventsLoading } = useCollection<EventType>(eventsQuery);
+  const { data: events, isLoading: areAssociatedEventsLoading } = useCollection<EventType>(eventsQuery);
 
   const enrichedTickets = useMemo(() => {
     if (!tickets) return [];
-    if (areEventsLoading && eventIds.length > 0) {
+    if (areAssociatedEventsLoading && eventIds.length > 0) {
       // If events are still loading, just return tickets for now to avoid flicker
       return tickets.map(t => ({...t, event: undefined, isExpired: false}));
     }
@@ -69,7 +70,7 @@ export default function AllVendorTicketsPage() {
       }
       return { ...ticket, event, isExpired };
     });
-  }, [tickets, events, areEventsLoading, eventIds]);
+  }, [tickets, events, areAssociatedEventsLoading, eventIds]);
 
 
   const isLoading = areTicketsLoading;
