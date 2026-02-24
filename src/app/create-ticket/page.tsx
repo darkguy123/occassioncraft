@@ -4,7 +4,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm, Controller } from "react-hook-form"
 import * as z from "zod"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
@@ -665,9 +665,10 @@ function CreateTicketPageContent() {
                                             <div className="flex flex-col items-start gap-2">
                                                 <p className="text-xs text-muted-foreground">Upload, generate with AI, or get a random image.</p>
                                                 <div className="flex gap-2">
-                                                    <Button asChild variant="outline" size="icon">
-                                                        <label htmlFor="bg-upload" className="cursor-pointer"><Upload className="h-4 w-4" /><span className="sr-only">Upload</span></label>
-                                                    </Button>
+                                                    <label htmlFor="bg-upload" className={cn(buttonVariants({ variant: "outline", size: "icon" }), "cursor-pointer")}>
+                                                        <Upload className="h-4 w-4" />
+                                                        <span className="sr-only">Upload</span>
+                                                    </label>
                                                     <Button variant="outline" size="icon" onClick={handleGenerateImage} disabled={isGenerating || isUploading}>
                                                         {isGenerating ? <Loader2 className="h-4 w-4 animate-spin"/> : <Wand2 className="h-4 w-4" />}
                                                         <span className="sr-only">Generate with AI</span>
@@ -883,3 +884,5 @@ function CreateTicketPageContent() {
     </>
   );
 }
+
+    
