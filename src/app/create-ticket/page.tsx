@@ -36,7 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { uploadFile } from "@/ai/flows/upload-file-flow";
 import { Badge } from "@/components/ui/badge";
 
 const ticketFormSchema = z.object({
@@ -206,30 +206,42 @@ export default function CreateTicketPage() {
   }, [isUserLoading, isUserDataLoading, isVendorDataLoading, user, userData, vendorData, router, toast]);
 
   const handleFileUpload = async (file: File, field: keyof TicketFormValues) => {
-    if (!user || !storage) {
-        toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to upload images.' });
-        return;
+    if (!user) {
+      toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to upload images.' });
+      return;
     }
     if (file.size > 4 * 1024 * 1024) {
-        toast({ variant: 'destructive', title: 'File too large', description: 'Image must be smaller than 4MB.' });
-        return;
+      toast({ variant: 'destructive', title: 'File too large', description: 'Image must be smaller than 4MB.' });
+      return;
     }
-    
-    setIsUploading(true);
-    try {
-        const filePath = `public-uploads/ticket-assets/${uuidv4()}-${file.name}`;
-        const storageRef = ref(storage, filePath);
-        
-        const uploadResult = await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(uploadResult.ref);
 
-        form.setValue(field, downloadURL, { shouldValidate: true });
-        toast({ title: 'Image Uploaded', description: 'Your image has been saved.' });
+    setIsUploading(true);
+
+    const readFileAsDataURL = (fileToRead: File): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = (error) => reject(error);
+        reader.readAsDataURL(fileToRead);
+      });
+    };
+
+    try {
+      const dataUri = await readFileAsDataURL(file);
+      const filePath = `public-uploads/ticket-assets/${uuidv4()}-${file.name}`;
+
+      const downloadURL = await uploadFile({
+        dataUri: dataUri,
+        path: filePath,
+      });
+
+      form.setValue(field, downloadURL, { shouldValidate: true });
+      toast({ title: 'Image Uploaded', description: 'Your image has been saved.' });
     } catch (error: any) {
-        console.error("Upload error:", error);
-        toast({ variant: 'destructive', title: 'Upload Failed', description: error.message || 'Could not upload the image.' });
+      console.error("Upload error:", error);
+      toast({ variant: 'destructive', title: 'Upload Failed', description: error.message || 'Could not upload the image.' });
     } finally {
-        setIsUploading(false);
+      setIsUploading(false);
     }
   };
   
