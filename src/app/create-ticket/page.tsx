@@ -22,7 +22,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { TicketStylePreview } from "@/components/ticket-style-preview"
 import Image from "next/image"
 import { generateBackgroundImage } from "@/ai/flows/generate-ticket-image-flow"
-import { Loader2, Wand2, Info, Plus, Upload, ShoppingCart, Check, PartyPopper } from "lucide-react"
+import { Loader2, Wand2, Info, Plus, Upload, ShoppingCart, Check, PartyPopper, Shuffle } from "lucide-react"
 import { v4 as uuidv4 } from 'uuid';
 import { useCart, type CartItem } from "@/context/cart-context"
 import Link from "next/link";
@@ -40,6 +40,7 @@ import {
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Badge } from "@/components/ui/badge";
 import { ImageCropperDialog } from "@/components/shared/image-cropper-dialog";
+import backgroundsData from '@/lib/ticket-backgrounds.json';
 
 const ticketFormSchema = z.object({
   eventId: z.string().optional(),
@@ -264,7 +265,11 @@ function CreateTicketPageContent() {
     }
   }, [authStatus, areEventsLoading, vendorEvents]);
 
-  const handleFileUpload = async (file: File, field: keyof TicketFormValues) => {
+  const handleFileUpload = async (file: File | null, field: keyof TicketFormValues) => {
+    if (!file) {
+      toast({ variant: 'destructive', title: 'No file selected', description: 'Please select a file to upload.' });
+      return;
+    }
     if (!user || !storage) {
       toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to upload images.' });
       return;
@@ -371,6 +376,18 @@ function CreateTicketPageContent() {
       setIsGenerating(false);
     }
   }
+
+  const handleRandomImage = () => {
+    const backgrounds = backgroundsData.backgrounds;
+    if (backgrounds.length > 0) {
+      const randomIndex = Math.floor(Math.random() * backgrounds.length);
+      const randomImageUrl = backgrounds[randomIndex].url;
+      form.setValue('ticketImageUrl', randomImageUrl, { shouldValidate: true });
+      toast({ title: 'Random Background Applied' });
+    } else {
+      toast({ variant: 'destructive', title: 'No Backgrounds Available', description: "An admin needs to upload background images." });
+    }
+  };
 
 
   if (authStatus !== 'authorized' || areEventsLoading) {
@@ -607,21 +624,30 @@ function CreateTicketPageContent() {
                                 <FormItem>
                                     <FormLabel>Ticket Background</FormLabel>
                                     <FormControl>
-                                        <div className="flex items-center gap-4">
-                                            {form.watch('ticketImageUrl') ? (
-                                              <Image src={form.watch('ticketImageUrl')!} alt="background" width={64} height={96} className="rounded-md h-24 w-16 object-cover" />
-                                            ) : (
-                                              <div className="h-24 w-16 rounded-md bg-muted flex items-center justify-center"><Info className="h-6 w-6 text-muted-foreground"/></div>
-                                            )}
-                                            <Button asChild variant="outline">
-                                                <label htmlFor="bg-upload" className="cursor-pointer"><Upload className="mr-2 h-4 w-4" /> Upload</label>
-                                            </Button>
-                                             <Button variant="outline" size="icon" onClick={handleGenerateImage} disabled={isGenerating || isUploading}>
-                                                {isGenerating ? <Loader2 className="h-4 w-4 animate-spin"/> : <Wand2 className="h-4 w-4" />}
-                                                <span className="sr-only">Generate with AI</span>
-                                             </Button>
-                                            <Input id="bg-upload" type="file" className="hidden" accept="image/*" onChange={handleOpenCropper} disabled={isUploading || isGenerating} />
-                                        </div>
+                                      <div className="flex items-center gap-4">
+                                          {form.watch('ticketImageUrl') ? (
+                                            <Image src={form.watch('ticketImageUrl')!} alt="background" width={64} height={96} className="rounded-md h-24 w-16 object-cover" />
+                                          ) : (
+                                            <div className="h-24 w-16 rounded-md bg-muted flex items-center justify-center"><Info className="h-6 w-6 text-muted-foreground"/></div>
+                                          )}
+                                          <div className="flex flex-col items-start gap-2">
+                                              <p className="text-xs text-muted-foreground">Choose a background or upload your own.</p>
+                                              <div className="flex gap-2">
+                                                  <Button asChild variant="outline" size="icon">
+                                                      <label htmlFor="bg-upload" className="cursor-pointer"><Upload className="h-4 w-4" /><span className="sr-only">Upload</span></label>
+                                                  </Button>
+                                                   <Button variant="outline" size="icon" onClick={handleGenerateImage} disabled={isGenerating || isUploading}>
+                                                      {isGenerating ? <Loader2 className="h-4 w-4 animate-spin"/> : <Wand2 className="h-4 w-4" />}
+                                                      <span className="sr-only">Generate with AI</span>
+                                                   </Button>
+                                                   <Button variant="outline" size="icon" onClick={handleRandomImage} disabled={isGenerating || isUploading}>
+                                                      <Shuffle className="h-4 w-4" />
+                                                      <span className="sr-only">Random background</span>
+                                                   </Button>
+                                              </div>
+                                          </div>
+                                          <Input id="bg-upload" type="file" className="hidden" accept="image/*" onChange={handleOpenCropper} disabled={isUploading || isGenerating} />
+                                      </div>
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -639,7 +665,7 @@ function CreateTicketPageContent() {
                                             <Button asChild variant="outline">
                                                 <label htmlFor="brand-upload" className="cursor-pointer"><Upload className="mr-2 h-4 w-4" /> Upload</label>
                                             </Button>
-                                            <Input id="brand-upload" type="file" className="hidden" accept="image/*" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0], 'ticketBrandingImageUrl')} disabled={isUploading} />
+                                            <Input id="brand-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e.target.files?.[0] || null, 'ticketBrandingImageUrl')} disabled={isUploading} />
                                         </div>
                                     </FormControl>
                                     <FormMessage />
@@ -698,7 +724,7 @@ function CreateTicketPageContent() {
                                                         <Upload className="mr-2 h-4 w-4" /> Upload
                                                     </label>
                                                 </Button>
-                                                <Input id="guest-photo-upload" type="file" className="hidden" accept="image/*" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0], 'guestPhotoUrl')} disabled={isUploading} />
+                                                <Input id="guest-photo-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e.target.files?.[0] || null, 'guestPhotoUrl')} disabled={isUploading} />
                                             </div>
                                         </FormControl>
                                         <FormMessage />
