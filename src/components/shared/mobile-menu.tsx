@@ -1,9 +1,8 @@
-
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Compass, User, Ticket, QrCode, LayoutDashboard, Palette } from 'lucide-react';
+import { Home, Compass, User, Ticket, QrCode, LayoutDashboard, Palette, CalendarPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -75,9 +74,9 @@ export function MobileMenu() {
          {/* Center Action Button */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[calc(50%+10px)]">
             <Button asChild className="rounded-full w-16 h-16 bg-primary shadow-lg" size="icon">
-                <Link href="/create-ticket">
-                    <Palette className="h-7 w-7" />
-                    <span className="sr-only">Craft Ticket</span>
+                <Link href="/create-event">
+                    <CalendarPlus className="h-7 w-7" />
+                    <span className="sr-only">Create Event</span>
                 </Link>
             </Button>
         </div>
