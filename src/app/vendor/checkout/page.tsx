@@ -174,9 +174,10 @@ export default function CheckoutPage() {
                                     {cart.map(item => (
                                         <div key={item.id} className="p-4 flex justify-between items-start">
                                             <div>
-                                                <p className="font-semibold">{item.quantity} x {item.package} {item.tier || ''} Tickets</p>
+                                                <p className="font-semibold">{item.quantity} Tickets</p>
+                                                <p className="text-sm text-muted-foreground">{item.package} {item.tier || ''} {item.packageQuantity > 1 ? `(x${item.packageQuantity} packages)` : '(x1 package)'}</p>
                                                 <p className="text-sm text-muted-foreground">For: {item.eventName}</p>
-                                                <p className="text-sm font-bold text-primary">₦{item.price.toLocaleString()}</p>
+                                                <p className="text-sm font-bold text-primary mt-1">₦{item.price.toLocaleString()}</p>
                                             </div>
                                             <Button variant="ghost" size="icon" onClick={() => removeFromCart(item.id)}>
                                                 <Trash2 className="h-4 w-4 text-destructive" />
@@ -203,7 +204,7 @@ export default function CheckoutPage() {
                             <CardContent className="space-y-4">
                             {cart.map(item => (
                                     <div key={item.id} className="flex justify-between text-sm">
-                                        <span className="text-muted-foreground truncate">{item.quantity}x {item.package}</span>
+                                        <span className="text-muted-foreground truncate">{item.quantity} tickets ({item.package}{item.packageQuantity > 1 ? ` x${item.packageQuantity}`:''})</span>
                                         <span className="font-medium">₦{item.price.toLocaleString()}</span>
                                     </div>
                             ))}

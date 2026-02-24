@@ -42,6 +42,7 @@ import { Badge } from "@/components/ui/badge";
 const ticketFormSchema = z.object({
   eventId: z.string().optional(),
   package: z.enum(["Regular", "Premium Individual", "Premium General", "Tiered"]),
+  packageQuantity: z.coerce.number().min(1, { message: "Quantity must be at least 1."}).default(1),
   tier: z.string().optional(),
   class: z.string().optional(),
   attendeeName: z.string().optional(),
@@ -139,6 +140,7 @@ function CreateTicketPageContent() {
     defaultValues: {
       eventId: '',
       package: 'Regular',
+      packageQuantity: 1,
       tier: '',
       class: '',
       attendeeName: '',
@@ -161,22 +163,35 @@ function CreateTicketPageContent() {
   
   const selectedPackage = form.watch('package');
   const selectedTier = form.watch('tier');
+  const packageQuantity = form.watch('packageQuantity');
   const selectedEventId = form.watch('eventId');
 
   const selectedEvent = useMemo(() => {
     return vendorEvents?.find(e => e.id === selectedEventId);
   }, [vendorEvents, selectedEventId]);
 
-  const currentPriceDetails = useMemo(() => {
+  const summary = useMemo(() => {
+    let basePrice = 0;
+    let baseTickets = 0;
+    const quantity = packageQuantity > 0 ? packageQuantity : 1;
+
     if (selectedPackage === 'Tiered') {
-      if (selectedTier && packages.Tiered[selectedTier as keyof typeof packages.Tiered]) {
-        return packages.Tiered[selectedTier as keyof typeof packages.Tiered];
-      }
-    } else {
-      return packages[selectedPackage];
+        if (selectedTier && packages.Tiered[selectedTier as keyof typeof packages.Tiered]) {
+            const tierDetails = packages.Tiered[selectedTier as keyof typeof packages.Tiered];
+            basePrice = tierDetails.price;
+            baseTickets = tierDetails.tickets;
+        }
+    } else if (packages[selectedPackage]) {
+        const packageDetails = packages[selectedPackage];
+        basePrice = packageDetails.price;
+        baseTickets = packageDetails.tickets;
     }
-    return { price: 0, tickets: 0 };
-  }, [selectedPackage, selectedTier]);
+    return { 
+        price: basePrice * quantity,
+        tickets: baseTickets * quantity,
+        basePrice: basePrice,
+    };
+  }, [selectedPackage, selectedTier, packageQuantity]);
 
   const onSubmit = (data: TicketFormValues) => {
     if (!user) return;
@@ -186,8 +201,8 @@ function CreateTicketPageContent() {
       id: uuidv4(),
       ...data,
       eventId: data.eventId || '',
-      price: currentPriceDetails.price,
-      quantity: currentPriceDetails.tickets,
+      price: summary.price,
+      quantity: summary.tickets,
       eventName: linkedEvent?.name || 'Standalone Ticket',
     };
     
@@ -421,6 +436,34 @@ function CreateTicketPageContent() {
                   </Card>
                 )}
 
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Quantity</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <FormField
+                            control={form.control}
+                            name="packageQuantity"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Package Quantity</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        type="number"
+                                        placeholder="1"
+                                        {...field}
+                                        onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
+                                        min={1}
+                                    />
+                                </FormControl>
+                                <FormDescription>How many of this package do you want to buy? The price and ticket count will be multiplied.</FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    </CardContent>
+                </Card>
+
                  {isPremiumPackage && (
                     <Card>
                         <CardHeader>
@@ -629,16 +672,17 @@ function CreateTicketPageContent() {
                                 <Info className="h-4 w-4" />
                                 <AlertTitle>You're about to add to your cart:</AlertTitle>
                                 <AlertDescription className="mt-2">
-                                    <p><span className="font-semibold">{currentPriceDetails.tickets} ticket(s)</span> for the <span className="font-semibold">{selectedPackage} {selectedTier || ''}</span> package.</p>
+                                    <p><span className="font-semibold">{summary.tickets} ticket(s)</span> for the <span className="font-semibold">{selectedPackage} {selectedTier || ''}</span> package.</p>
+                                     {packageQuantity > 1 && <p className="text-xs text-muted-foreground">{packageQuantity} packages at ₦{summary.basePrice.toLocaleString()} each.</p>}
                                 </AlertDescription>
                             </Alert>
                             <div className="mt-6 flex justify-between items-center text-lg font-bold">
                                 <span>Total Price:</span>
-                                <span>₦{currentPriceDetails.price.toLocaleString()}</span>
+                                <span>₦{summary.price.toLocaleString()}</span>
                             </div>
                         </CardContent>
                     </Card>
-                     <Button type="submit" size="lg" className="w-full" disabled={form.formState.isSubmitting || currentPriceDetails.price <= 0}>
+                     <Button type="submit" size="lg" className="w-full" disabled={form.formState.isSubmitting || summary.price <= 0}>
                         <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart
                     </Button>
                 </div>
