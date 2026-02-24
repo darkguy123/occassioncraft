@@ -276,7 +276,7 @@ function CreateTicketPageContent() {
     setIsUploading(true);
 
     try {
-      const filePath = `public-uploads/ticket-assets/${uuidv4()}-${file.name}`;
+      const filePath = `public-uploads/ticket-assets/${user.uid}/${uuidv4()}-${file.name}`;
       const storageRef = ref(storage, filePath);
 
       const uploadResult = await uploadBytes(storageRef, file);
@@ -315,13 +315,11 @@ function CreateTicketPageContent() {
       };
       
       const imageBlob = dataURItoBlob(dataUri);
-      const filePath = `public-uploads/ticket-assets/ai-${uuidv4()}.png`;
-      const storageRef = ref(storage, filePath);
+      const file = new File([imageBlob], `ai-${uuidv4()}.png`, { type: 'image/png' });
       
-      const uploadResult = await uploadBytes(storageRef, imageBlob);
-      const downloadURL = await getDownloadURL(uploadResult.ref);
+      // Reuse the main upload handler
+      await handleFileUpload(file, 'ticketImageUrl');
 
-      form.setValue('ticketImageUrl', downloadURL, { shouldValidate: true });
       toast({ title: "AI Background Generated!", description: "A new background image has been applied." });
     } catch (error: any) {
       console.error("AI Image Generation/Upload error:", error);
@@ -564,7 +562,7 @@ function CreateTicketPageContent() {
                                              <Button variant="outline" size="icon" onClick={handleGenerateImage} disabled={isGenerating || isUploading}>
                                                 {isGenerating ? <Loader2 className="h-4 w-4 animate-spin"/> : <Wand2 className="h-4 w-4" />}
                                                 <span className="sr-only">Generate with AI</span>
-                                            </Button>
+                                             </Button>
                                             <Input id="bg-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e.target.files?.[0], 'ticketImageUrl')} disabled={isUploading || isGenerating} />
                                         </div>
                                     </FormControl>
