@@ -22,9 +22,9 @@ import type { User } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MoreHorizontal, UserPlus, Search } from 'lucide-react';
+import { MoreHorizontal, UserPlus, Search, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,6 +32,16 @@ import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useState, useMemo } from 'react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 
 const adminSeederSchema = z.object({
@@ -45,6 +55,7 @@ export default function AdminUsersPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
   
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -144,6 +155,25 @@ export default function AdminUsersPage() {
         title: "Roles Updated",
         description: `${user.firstName}'s roles have been updated.`,
     });
+  }
+
+  const confirmDeleteUser = () => {
+    if (!userToDelete || !firestore) return;
+
+    const userRef = doc(firestore, 'users', userToDelete.id);
+    const adminRoleRef = doc(firestore, 'roles_admin', userToDelete.id);
+    const vendorRef = doc(firestore, 'vendors', userToDelete.id);
+
+    // Perform deletions
+    deleteDocumentNonBlocking(userRef);
+    deleteDocumentNonBlocking(adminRoleRef);
+    deleteDocumentNonBlocking(vendorRef);
+
+    toast({
+        title: "User Deleted",
+        description: `${userToDelete.firstName} ${userToDelete.lastName} has been successfully deleted.`,
+    });
+    setUserToDelete(null);
   }
 
   const onSeederSubmit = async (data: AdminSeederValues) => {
@@ -299,6 +329,10 @@ export default function AdminUsersPage() {
                                 >
                                     User
                                 </DropdownMenuCheckboxItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-red-600" onClick={() => setUserToDelete(user)}>
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete User
+                                </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </TableCell>
@@ -316,6 +350,24 @@ export default function AdminUsersPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the user account for <strong>{userToDelete?.firstName} {userToDelete?.lastName}</strong>. 
+              This action is irreversible and will also remove their vendor profile if they have one.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteUser} className="bg-destructive hover:bg-destructive/90">
+              Delete User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

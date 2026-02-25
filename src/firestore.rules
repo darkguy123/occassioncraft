@@ -25,6 +25,9 @@ service cloud.firestore {
       // An admin can update any user document.
       // A user can update their own document, BUT they cannot change their own roles.
       allow update: if isAdmin() || (isOwner(userId) && request.resource.data.roles == resource.data.roles);
+      
+      // Admins can delete user documents.
+      allow delete: if isAdmin();
     }
     
     // Users can read/write their own notifications.
@@ -42,9 +45,6 @@ service cloud.firestore {
        allow list: if true;
        
        // Secure individual document reads.
-       // Events are publicly readable only if they are published.
-       // Vendors can read their own non-published events.
-       // Admins can read all events regardless of status.
        allow get: if resource.data.status == 'published'
                     || (request.auth != null && resource.data.vendorId == request.auth.uid)
                     || isAdmin();
@@ -64,13 +64,15 @@ service cloud.firestore {
     match /vendors/{vendorId} {
       // Admins can list all vendors.
       allow list: if isAdmin();
-      // Any authenticated user can read a vendor profile (since all are vendors)
+      // Any authenticated user can read a vendor profile.
       // Admins have full access.
       allow read: if request.auth != null || isAdmin();
       // Only users can create their own vendor profile at signup, and admins can write to any.
       allow create: if isOwner(vendorId);
       // Only the owner or an admin can update the vendor profile.
       allow update: if isOwner(vendorId) || isAdmin();
+      // Admins can delete vendor documents.
+      allow delete: if isAdmin();
     }
     
     match /tickets/{ticketId} {
@@ -91,6 +93,8 @@ service cloud.firestore {
     match /roles_admin/{userId} {
     	allow read: if isAdmin();
       allow write: if isAdmin() || isOwner(userId);
+      // Admins can remove other admin entries.
+      allow delete: if isAdmin();
     }
     
     // Site settings are publicly readable, but only writable by admins.
