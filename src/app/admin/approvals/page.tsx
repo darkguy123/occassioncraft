@@ -15,7 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useFirestore, updateDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, updateDocumentNonBlocking, setDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, query, where, arrayUnion } from 'firebase/firestore';
 import type { Vendor } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -75,7 +75,7 @@ export default function AdminApprovalsPage() {
 
     const vendorRef = doc(firestore, 'vendors', dialogState.vendorId);
     
-    updateDocumentNonBlocking(vendorRef, { status: dialogState.action });
+    setDocumentNonBlocking(vendorRef, { status: dialogState.action }, { merge: true });
     
     // If approving, also update the user's roles
     if (dialogState.action === 'approve') {

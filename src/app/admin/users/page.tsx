@@ -135,13 +135,13 @@ export default function AdminUsersPage() {
                         pricingTier: 'Free'
                      }, { merge: true });
                 } else {
-                    updateDocumentNonBlocking(vendorRef, { status: 'approved' });
+                    setDocumentNonBlocking(vendorRef, { status: 'approved' }, { merge: true });
                 }
             } catch (error) {
                 console.error("Failed to check/update vendor document:", error);
             }
         } else {
-             updateDocumentNonBlocking(vendorRef, { status: 'rejected' });
+             setDocumentNonBlocking(vendorRef, { status: 'rejected' }, { merge: true });
         }
     }
 

@@ -72,7 +72,7 @@ service cloud.firestore {
       // Admins have full access.
       allow read: if request.auth != null || isAdmin();
       // Only users can create their own vendor profile at signup, and admins can write to any.
-      allow create: if isOwner(vendorId);
+      allow create: if isOwner(vendorId) || isAdmin();
       // Only the owner or an admin can update the vendor profile.
       allow update: if isOwner(vendorId) || isAdmin();
       // Admins can delete vendor documents.

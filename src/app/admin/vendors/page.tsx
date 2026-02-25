@@ -15,7 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useFirestore, updateDocumentNonBlocking, deleteDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, updateDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, arrayUnion, query, writeBatch } from 'firebase/firestore';
 import type { Vendor } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -111,7 +111,7 @@ export default function AdminVendorsPage() {
       toastMessage = `Vendor "${dialogState.companyName}" has been deleted.`;
       setSelectedVendorIds(prev => prev.filter(id => id !== dialogState.vendorId));
     } else {
-      updateDocumentNonBlocking(vendorRef, { status: dialogState.action });
+      setDocumentNonBlocking(vendorRef, { status: dialogState.action }, { merge: true });
       toastMessage = `Vendor "${dialogState.companyName}" has been ${dialogState.action}.`;
       
       if (dialogState.action === 'approve') {
