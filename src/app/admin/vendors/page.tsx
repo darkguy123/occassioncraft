@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -17,11 +16,11 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useFirestore, updateDocumentNonBlocking, deleteDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, arrayUnion, query } from 'firebase/firestore';
+import { collection, doc, arrayUnion, query, writeBatch } from 'firebase/firestore';
 import type { Vendor } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Eye, Search } from 'lucide-react';
+import { MoreHorizontal, Eye, Search, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useState, useMemo } from 'react';
@@ -29,11 +28,14 @@ import { VendorDetailsDialog } from '@/components/admin/vendor-details-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function AdminVendorsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedVendorIds, setSelectedVendorIds] = useState<string[]>([]);
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
 
   const vendorsQuery = useMemoFirebase(() => {
       if (!firestore) return null;
@@ -90,12 +92,12 @@ export default function AdminVendorsPage() {
 
   const handleUpdateStatus = (vendorId: string, companyName: string, status: 'approved' | 'rejected') => {
     setDialogState({ isOpen: true, vendorId, companyName, action: status });
-    setIsDetailsOpen(false); // Close details dialog if open
+    setIsDetailsOpen(false);
   }
 
   const handleDelete = (vendorId: string, companyName: string) => {
     setDialogState({ isOpen: true, vendorId, companyName, action: 'delete' });
-    setIsDetailsOpen(false); // Close details dialog if open
+    setIsDetailsOpen(false);
   }
   
   const confirmAction = () => {
@@ -107,12 +109,11 @@ export default function AdminVendorsPage() {
     if (dialogState.action === 'delete') {
       deleteDocumentNonBlocking(vendorRef);
       toastMessage = `Vendor "${dialogState.companyName}" has been deleted.`;
+      setSelectedVendorIds(prev => prev.filter(id => id !== dialogState.vendorId));
     } else {
-      // Approve or Reject
       updateDocumentNonBlocking(vendorRef, { status: dialogState.action });
       toastMessage = `Vendor "${dialogState.companyName}" has been ${dialogState.action}.`;
       
-      // If approving, also update the user's roles
       if (dialogState.action === 'approve') {
         const userRef = doc(firestore, 'users', dialogState.vendorId);
         updateDocumentNonBlocking(userRef, { roles: arrayUnion('vendor') });
@@ -127,10 +128,49 @@ export default function AdminVendorsPage() {
     setDialogState({ isOpen: false });
   }
 
+  const handleBulkDelete = async () => {
+    if (!firestore || selectedVendorIds.length === 0) return;
+
+    const batch = writeBatch(firestore);
+    selectedVendorIds.forEach(vendorId => {
+        batch.delete(doc(firestore, 'vendors', vendorId));
+    });
+
+    try {
+        await batch.commit();
+        toast({
+            title: "Bulk Deletion Successful",
+            description: `${selectedVendorIds.length} vendors have been deleted.`,
+        });
+        setSelectedVendorIds([]);
+        setIsBulkDeleteDialogOpen(false);
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Bulk Deletion Failed",
+            description: error.message,
+        });
+    }
+  }
+
+  const toggleSelectVendor = (vendorId: string) => {
+    setSelectedVendorIds(prev => 
+        prev.includes(vendorId) ? prev.filter(id => id !== vendorId) : [...prev, vendorId]
+    );
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedVendorIds.length === filteredVendors.length) {
+        setSelectedVendorIds([]);
+    } else {
+        setSelectedVendorIds(filteredVendors.map(v => v.id));
+    }
+  }
+
   const dialogContent = {
       approve: { title: "Approve Vendor", description: "This will grant them full access to create and manage events. Are you sure?" },
       reject: { title: "Reject Vendor", description: "This will prevent them from accessing vendor features. Are you sure?" },
-      delete: { title: "Delete Vendor", description: "This action cannot be undone. This will permanently delete the vendor and all their associated data. Are you sure?" }
+      delete: { title: "Delete Vendor", description: "This action cannot be undone. This will permanently delete the vendor profile. Are you sure?" }
   }
   const currentDialog = dialogState.action ? dialogContent[dialogState.action] : null;
 
@@ -146,10 +186,20 @@ export default function AdminVendorsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>All Vendors</CardTitle>
-              <CardDescription>
-                A list of all vendors on the platform and their application status.
-              </CardDescription>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <CardTitle>All Vendors</CardTitle>
+                    <CardDescription>
+                        A list of all vendors on the platform and their application status.
+                    </CardDescription>
+                </div>
+                {selectedVendorIds.length > 0 && (
+                    <Button variant="destructive" size="sm" onClick={() => setIsBulkDeleteDialogOpen(true)}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete Selected ({selectedVendorIds.length})
+                    </Button>
+                )}
+              </div>
               <div className="pt-4 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
@@ -165,6 +215,13 @@ export default function AdminVendorsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-[50px]">
+                        <Checkbox 
+                            checked={filteredVendors.length > 0 && selectedVendorIds.length === filteredVendors.length}
+                            onCheckedChange={toggleSelectAll}
+                            aria-label="Select all"
+                        />
+                      </TableHead>
                       <TableHead>Company Name</TableHead>
                       <TableHead className="hidden sm:table-cell">Contact Email</TableHead>
                       <TableHead>Status</TableHead>
@@ -174,6 +231,7 @@ export default function AdminVendorsPage() {
                   <TableBody>
                     {isLoading && Array.from({ length: 5 }).map((_, i) => (
                       <TableRow key={i}>
+                          <TableCell><Skeleton className="h-4 w-4"/></TableCell>
                           <TableCell><Skeleton className="h-5 w-32"/></TableCell>
                           <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-40"/></TableCell>
                           <TableCell><Skeleton className="h-5 w-20"/></TableCell>
@@ -181,7 +239,14 @@ export default function AdminVendorsPage() {
                       </TableRow>
                     ))}
                     {!isLoading && filteredVendors?.map((vendor) => (
-                      <TableRow key={vendor.id}>
+                      <TableRow key={vendor.id} className={selectedVendorIds.includes(vendor.id) ? "bg-muted/50" : ""}>
+                          <TableCell>
+                            <Checkbox 
+                                checked={selectedVendorIds.includes(vendor.id)}
+                                onCheckedChange={() => toggleSelectVendor(vendor.id)}
+                                aria-label={`Select ${vendor.companyName}`}
+                            />
+                          </TableCell>
                           <TableCell className="font-medium">{vendor.companyName}</TableCell>
                           <TableCell className="hidden sm:table-cell">{vendor.contactEmail}</TableCell>
                           <TableCell>
@@ -215,7 +280,7 @@ export default function AdminVendorsPage() {
                     ))}
                     {!isLoading && filteredVendors?.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center text-muted-foreground py-12">
+                          <TableCell colSpan={5} className="text-center text-muted-foreground py-12">
                              {searchTerm ? `No vendors found for "${searchTerm}".` : "No vendors found."}
                           </TableCell>
                         </TableRow>
@@ -251,6 +316,24 @@ export default function AdminVendorsPage() {
                       className={dialogState.action === 'delete' ? 'bg-destructive hover:bg-destructive/90' : ''}
                     >
                       Confirm
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Bulk Delete Vendors</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        You are about to delete <strong>{selectedVendorIds.length}</strong> vendor profiles. 
+                        This action is irreversible and will permanently remove their vendor status.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive hover:bg-destructive/90">
+                        Delete All Selected
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -17,12 +16,12 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, query, doc, getDoc } from 'firebase/firestore';
+import { collection, query, doc, getDoc, writeBatch } from 'firebase/firestore';
 import type { User } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MoreHorizontal, UserPlus, Search, Trash2 } from 'lucide-react';
+import { MoreHorizontal, UserPlus, Search, Trash2, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
@@ -42,6 +41,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 
 const adminSeederSchema = z.object({
@@ -56,6 +56,8 @@ export default function AdminUsersPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -66,7 +68,6 @@ export default function AdminUsersPage() {
 
   const sortedUsers = useMemo(() => {
     if (!unsortedUsers) return [];
-    // Sort on client-side to handle potentially missing dateJoined fields
     return [...unsortedUsers].sort((a, b) => {
         const dateA = a.dateJoined ? new Date(a.dateJoined).getTime() : 0;
         const dateB = b.dateJoined ? new Date(b.dateJoined).getTime() : 0;
@@ -109,7 +110,6 @@ export default function AdminUsersPage() {
     
     updateDocumentNonBlocking(userRef, { roles: updatedRoles });
 
-    // Special handling for admin role to update roles_admin collection
     if (role === 'admin') {
         const adminRoleRef = doc(firestore, 'roles_admin', user.id);
         if (isChecked) {
@@ -119,34 +119,28 @@ export default function AdminUsersPage() {
         }
     }
     
-    // Special handling for vendor role to create/update vendor doc
     if(role === 'vendor') {
         const vendorRef = doc(firestore, 'vendors', user.id);
         if (isChecked) {
-            // User is being made a vendor
             try {
                 const docSnap = await getDoc(vendorRef);
                 if(!docSnap.exists()){
-                     // Create a new vendor doc since one doesn't exist
                      setDocumentNonBlocking(vendorRef, {
                         id: user.id,
                         userId: user.id,
                         companyName: `${user.firstName}'s Company`,
                         contactEmail: user.email,
-                        status: 'approved', // Automatically approve since it's an admin action
+                        status: 'approved',
                         createdAt: new Date().toISOString(),
                         pricingTier: 'Free'
                      }, { merge: true });
                 } else {
-                    // If it exists (e.g., they were 'pending' or 'rejected'), approve them.
                     updateDocumentNonBlocking(vendorRef, { status: 'approved' });
                 }
             } catch (error) {
                 console.error("Failed to check/update vendor document:", error);
             }
         } else {
-            // User's vendor role is being revoked. We can either delete the vendor doc
-            // or set its status to 'rejected'. Let's set to rejected for now to preserve data.
              updateDocumentNonBlocking(vendorRef, { status: 'rejected' });
         }
     }
@@ -164,7 +158,6 @@ export default function AdminUsersPage() {
     const adminRoleRef = doc(firestore, 'roles_admin', userToDelete.id);
     const vendorRef = doc(firestore, 'vendors', userToDelete.id);
 
-    // Perform deletions
     deleteDocumentNonBlocking(userRef);
     deleteDocumentNonBlocking(adminRoleRef);
     deleteDocumentNonBlocking(vendorRef);
@@ -174,6 +167,49 @@ export default function AdminUsersPage() {
         description: `${userToDelete.firstName} ${userToDelete.lastName} has been successfully deleted.`,
     });
     setUserToDelete(null);
+    setSelectedUserIds(prev => prev.filter(id => id !== userToDelete.id));
+  }
+
+  const handleBulkDelete = async () => {
+    if (!firestore || selectedUserIds.length === 0) return;
+
+    const batch = writeBatch(firestore);
+    
+    selectedUserIds.forEach(userId => {
+        batch.delete(doc(firestore, 'users', userId));
+        batch.delete(doc(firestore, 'roles_admin', userId));
+        batch.delete(doc(firestore, 'vendors', userId));
+    });
+
+    try {
+        await batch.commit();
+        toast({
+            title: "Bulk Deletion Successful",
+            description: `${selectedUserIds.length} users have been deleted.`,
+        });
+        setSelectedUserIds([]);
+        setIsBulkDeleteDialogOpen(false);
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Bulk Deletion Failed",
+            description: error.message,
+        });
+    }
+  }
+
+  const toggleSelectUser = (userId: string) => {
+    setSelectedUserIds(prev => 
+        prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
+    );
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedUserIds.length === filteredUsers.length) {
+        setSelectedUserIds([]);
+    } else {
+        setSelectedUserIds(filteredUsers.map(u => u.id));
+    }
   }
 
   const onSeederSubmit = async (data: AdminSeederValues) => {
@@ -192,10 +228,7 @@ export default function AdminUsersPage() {
         const userData = userDoc.data() as User;
         const updatedRoles = [...new Set([...(userData.roles || []), 'admin'])];
 
-        // Update the user document with the new role
         updateDocumentNonBlocking(userRef, { roles: updatedRoles });
-        
-        // CRITICAL: Create the document in roles_admin to grant permissions
         setDocumentNonBlocking(adminRoleRef, { isAdmin: true }, { merge: true });
 
         toast({
@@ -250,10 +283,18 @@ export default function AdminUsersPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Users</CardTitle>
-          <CardDescription>
-            A list of all user accounts.
-          </CardDescription>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <CardTitle>All Users</CardTitle>
+                <CardDescription>A list of all user accounts.</CardDescription>
+            </div>
+            {selectedUserIds.length > 0 && (
+                <Button variant="destructive" size="sm" onClick={() => setIsBulkDeleteDialogOpen(true)}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Selected ({selectedUserIds.length})
+                </Button>
+            )}
+          </div>
           <div className="pt-4 relative">
              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
              <Input 
@@ -268,6 +309,13 @@ export default function AdminUsersPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[50px]">
+                    <Checkbox 
+                        checked={filteredUsers.length > 0 && selectedUserIds.length === filteredUsers.length}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label="Select all"
+                    />
+                </TableHead>
                 <TableHead>User</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Roles</TableHead>
@@ -278,6 +326,7 @@ export default function AdminUsersPage() {
             <TableBody>
               {isLoading && Array.from({length: 5}).map((_, i) => (
                 <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-4" /></TableCell>
                   <TableCell><Skeleton className="h-10 w-32" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-40" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-24" /></TableCell>
@@ -287,7 +336,14 @@ export default function AdminUsersPage() {
               ))}
               {!isLoading && filteredUsers && filteredUsers.length > 0 ? (
                 filteredUsers.map((user) => (
-                 <TableRow key={user.id}>
+                 <TableRow key={user.id} className={selectedUserIds.includes(user.id) ? "bg-muted/50" : ""}>
+                    <TableCell>
+                        <Checkbox 
+                            checked={selectedUserIds.includes(user.id)}
+                            onCheckedChange={() => toggleSelectUser(user.id)}
+                            aria-label={`Select ${user.firstName}`}
+                        />
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar>
@@ -340,7 +396,7 @@ export default function AdminUsersPage() {
               ))) : (
                 !isLoading && (
                     <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground py-12">
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
                         {searchTerm ? `No users found for "${searchTerm}".` : "No users found."}
                         </TableCell>
                     </TableRow>
@@ -364,6 +420,24 @@ export default function AdminUsersPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDeleteUser} className="bg-destructive hover:bg-destructive/90">
               Delete User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bulk Delete Users</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to delete <strong>{selectedUserIds.length}</strong> users. 
+              This action is irreversible and will permanently remove their accounts and associated vendor profiles.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive hover:bg-destructive/90">
+              Delete All Selected
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
