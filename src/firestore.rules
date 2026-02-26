@@ -71,7 +71,7 @@ service cloud.firestore {
       // Any authenticated user can read a vendor profile.
       // Admins have full access.
       allow read: if request.auth != null || isAdmin();
-      // Only users can create their own vendor profile at signup, and admins can write to any.
+      // Only users can create their own vendor profile at signup, and admins can create/re-create any during management.
       allow create: if isOwner(vendorId) || isAdmin();
       // Only the owner or an admin can update the vendor profile.
       allow update: if isOwner(vendorId) || isAdmin();
