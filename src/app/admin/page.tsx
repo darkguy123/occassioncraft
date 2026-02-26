@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -37,15 +36,19 @@ export default function AdminDashboardPage() {
   const { data: tickets } = useCollection<Ticket>(useMemoFirebase(() => (firestore && isAdmin) ? collection(firestore, 'tickets') : null, [firestore, isAdmin]));
 
   const { totalRevenue, salesData, totalUsers, usersData, totalEvents, pendingApprovals, totalVendors, vendorsData } = useMemo(() => {
-    const revenue = tickets?.reduce((acc, ticket) => acc + (ticket.price || 0), 0) || 0;
+    // Only count revenue from paid tickets
+    const paidTickets = tickets?.filter(t => t.isPaid) || [];
+    const revenue = paidTickets.reduce((acc, ticket) => acc + (ticket.price || 0), 0);
 
     const monthlySales = monthNames.map(month => ({ month, revenue: 0 }));
-    if (tickets) {
-      tickets.forEach(ticket => {
+    if (paidTickets) {
+      paidTickets.forEach(ticket => {
         if(ticket.purchaseDate) {
             try {
                 const monthIndex = getMonth(parseISO(ticket.purchaseDate));
-                monthlySales[monthIndex].revenue += ticket.price || 0;
+                if (monthlySales[monthIndex]) {
+                    monthlySales[monthIndex].revenue += ticket.price || 0;
+                }
             } catch (e) {
                 // Ignore invalid date formats
             }
@@ -59,7 +62,9 @@ export default function AdminDashboardPage() {
             if (user.dateJoined) {
                 try {
                     const monthIndex = getMonth(parseISO(user.dateJoined));
-                    monthlyUsers[monthIndex].users += 1;
+                    if (monthlyUsers[monthIndex]) {
+                        monthlyUsers[monthIndex].users += 1;
+                    }
                 } catch (e) {
                     // Ignore invalid date formats
                 }
@@ -73,7 +78,9 @@ export default function AdminDashboardPage() {
             if (vendor.createdAt) {
                  try {
                     const monthIndex = getMonth(parseISO(vendor.createdAt));
-                    monthlyVendors[monthIndex].vendors += 1;
+                    if (monthlyVendors[monthIndex]) {
+                        monthlyVendors[monthIndex].vendors += 1;
+                    }
                 } catch (e) {
                     // Ignore invalid date formats
                 }

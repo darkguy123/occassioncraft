@@ -9,8 +9,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, doc, writeBatch, query, where } from "firebase/firestore";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { v4 as uuidv4 } from 'uuid';
-import { ShoppingCart, Trash2, AlertTriangle } from "lucide-react";
+import { ShoppingCart, Trash2, AlertTriangle, Loader2 } from "lucide-react";
 import type { Ticket, Event } from "@/lib/types";
 import { useState, useCallback } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -29,6 +30,8 @@ export default function CheckoutPage() {
     const { toast } = useToast();
     const { user } = useUser();
     const firestore = useFirestore();
+    const router = useRouter();
+    const [isProcessing, setIsProcessing] = useState(false);
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
     const [isExpiredAlertOpen, setIsExpiredAlertOpen] = useState(false);
@@ -43,7 +46,7 @@ export default function CheckoutPage() {
     const paystackConfig = {
         reference: uuidv4(),
         email: user?.email || '',
-        amount: cartTotal * 100, // Amount in kobo
+        amount: Math.round(cartTotal * 100), // Amount in kobo
         currency: 'NGN',
         publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
     };
@@ -56,21 +59,24 @@ export default function CheckoutPage() {
             return;
         }
 
+        setIsProcessing(true);
         const batch = writeBatch(firestore);
+        const now = new Date().toISOString();
         
+        // Create individual ticket documents
         cart.forEach(item => {
+            const pricePerTicket = item.quantity > 0 ? item.price / item.quantity : 0;
+            
             for (let i = 0; i < item.quantity; i++) {
                 const ticketId = uuidv4();
                 const ticketRef = doc(firestore, 'tickets', ticketId);
                 const userTicketRef = doc(firestore, `users/${user.uid}/tickets`, ticketId);
                 
-                const pricePerTicket = item.quantity > 0 ? item.price / item.quantity : 0;
-
                 const ticketData: Omit<Ticket, 'id'> = {
                     eventId: item.eventId,
                     vendorId: user.uid,
                     userId: user.uid, // Initially assigned to the vendor
-                    purchaseDate: new Date().toISOString(),
+                    purchaseDate: now,
                     price: pricePerTicket,
                     isPaid: true,
                     package: item.package,
@@ -86,7 +92,13 @@ export default function CheckoutPage() {
                     maxScans: item.maxScans,
                 };
                  batch.set(ticketRef, ticketData);
-                 batch.set(userTicketRef, { ticketId: ticketId, eventId: item.eventId, purchaseDate: new Date().toISOString(), userId: user.uid, vendorId: user.uid });
+                 batch.set(userTicketRef, { 
+                    ticketId: ticketId, 
+                    eventId: item.eventId || '', 
+                    purchaseDate: now, 
+                    userId: user.uid, 
+                    vendorId: user.uid 
+                });
             }
         });
 
@@ -97,15 +109,19 @@ export default function CheckoutPage() {
                 description: 'Your tickets have been created and are available in your dashboard.',
             });
             clearCart();
+            // Redirect to the vendor's list of all crafted tickets
+            router.push('/vendor/tickets');
         } catch (error: any) {
             toast({
                 variant: 'destructive',
                 title: 'Ticket Creation Failed',
-                description: 'Payment was successful, but we failed to create the tickets. Please contact support.',
+                description: 'Payment was successful, but we encountered an error creating your tickets. Please contact support with reference: ' + reference.reference,
             });
             console.error('Failed to commit ticket batch:', error);
+        } finally {
+            setIsProcessing(false);
         }
-    }, [firestore, user, cart, clearCart, toast]);
+    }, [firestore, user, cart, clearCart, toast, router]);
 
     const onPaymentClose = useCallback(() => {
         toast({
@@ -120,7 +136,7 @@ export default function CheckoutPage() {
         
         if (vendorEvents) {
             for (const item of cart) {
-                if (!item.eventId) continue; // Skip standalone tickets with no event
+                if (!item.eventId) continue; 
                 const event = vendorEvents.find(e => e.id === item.eventId);
                 if (event && event.dates && event.dates.length > 0) {
                     const lastEventDateItem = event.dates[event.dates.length - 1];
@@ -128,7 +144,7 @@ export default function CheckoutPage() {
                     if (isBefore(eventDate, startOfToday())) {
                         setExpiredEventDetails({ name: event.name, date: lastEventDateItem.date });
                         setIsExpiredAlertOpen(true);
-                        return; // Stop the checkout process
+                        return;
                     }
                 }
             }
@@ -147,7 +163,7 @@ export default function CheckoutPage() {
             return;
         }
         if (!paystackConfig.publicKey) {
-            setCheckoutError('Paystack public key is not configured. Please add NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY to your .env file and restart the server.');
+            setCheckoutError('Paystack configuration missing. Please check your environment variables.');
             return;
         }
         
@@ -179,7 +195,7 @@ export default function CheckoutPage() {
                                                 <p className="text-sm text-muted-foreground">For: {item.eventName}</p>
                                                 <p className="text-sm font-bold text-primary mt-1">₦{item.price.toLocaleString()}</p>
                                             </div>
-                                            <Button variant="ghost" size="icon" onClick={() => removeFromCart(item.id)}>
+                                            <Button variant="ghost" size="icon" onClick={() => removeFromCart(item.id)} disabled={isProcessing}>
                                                 <Trash2 className="h-4 w-4 text-destructive" />
                                             </Button>
                                         </div>
@@ -224,8 +240,13 @@ export default function CheckoutPage() {
                                     </AlertDescription>
                                     </Alert>
                                 )}
-                                <Button className="w-full" size="lg" onClick={handleCheckout}>
-                                    Pay Now
+                                <Button 
+                                    className="w-full" 
+                                    size="lg" 
+                                    onClick={handleCheckout} 
+                                    disabled={isProcessing || cart.length === 0}
+                                >
+                                    {isProcessing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Processing...</> : 'Pay Now'}
                                 </Button>
                             </CardFooter>
                         </Card>

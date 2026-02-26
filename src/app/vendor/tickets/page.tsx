@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -54,11 +53,7 @@ export default function AllVendorTicketsPage() {
 
   const enrichedTickets = useMemo(() => {
     if (!tickets) return [];
-    if (areAssociatedEventsLoading && eventIds.length > 0) {
-      // If events are still loading, just return tickets for now to avoid flicker
-      return tickets.map(t => ({...t, event: undefined, isExpired: false}));
-    }
-
+    
     return tickets.map(ticket => {
       const event = events?.find(e => e.id === ticket.eventId);
       let isExpired = false;
@@ -70,7 +65,7 @@ export default function AllVendorTicketsPage() {
       }
       return { ...ticket, event, isExpired };
     });
-  }, [tickets, events, areAssociatedEventsLoading, eventIds]);
+  }, [tickets, events]);
 
 
   const isLoading = areTicketsLoading;
