@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card } from '@/components/ui/card';
@@ -37,7 +36,7 @@ export const TicketDesign = ({ eventData, ticketData, qrCodeUrl, user }: { event
 
                     <div className="flex justify-between items-start">
                         <div className="space-y-1">
-                            <p className="text-xs uppercase tracking-widest text-black/60 dark:text-white/60">Event Ticket</p>
+                            <p className="text-xs uppercase tracking-widest text-black/60 dark:text-white/60">Event Ticket • {ticketData.package}</p>
                             <h3 className="font-headline text-3xl font-bold leading-tight text-black dark:text-white">{eventData.name}</h3>
                         </div>
                         <TicketIcon className="h-8 w-8 text-black/60 dark:text-white/60" />
@@ -56,15 +55,19 @@ export const TicketDesign = ({ eventData, ticketData, qrCodeUrl, user }: { event
                             <UserIcon className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
                             <span className="truncate font-medium text-black dark:text-white">{ticketData.attendeeName || user?.displayName || 'Ticket Holder'}</span>
                         </div>
-                         {ticketData.class && (
-                            <div className="flex items-center gap-3">
-                                <TicketIcon className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
-                                <span className="truncate font-medium text-black dark:text-white">{ticketData.class}</span>
-                            </div>
-                         )}
+                         <div className="mt-2 p-2 rounded bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 inline-block">
+                            <p className="font-headline font-bold text-sm text-black dark:text-white uppercase">
+                                {ticketData.price === 0 ? 'FREE TICKET' : `PRICE: ₦${ticketData.price?.toLocaleString()}`}
+                            </p>
+                        </div>
                     </div>
 
                     <div className="mt-8 text-center flex flex-col items-center justify-center">
+                        {ticketData.package === 'Personal' && ticketData.guestPhotoUrl && (
+                            <div className="mb-4">
+                                <Image src={ticketData.guestPhotoUrl} alt="Guest" width={80} height={80} className="rounded-full h-20 w-20 object-cover border-2 border-white shadow-lg" />
+                            </div>
+                        )}
                         {qrCodeUrl ? (
                             <div className="bg-white p-2 rounded-lg shadow-lg">
                                 <Image

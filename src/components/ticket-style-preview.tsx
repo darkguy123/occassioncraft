@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { TicketFormValues } from '@/app/create-ticket/page';
@@ -39,21 +38,34 @@ export function TicketStylePreview({ eventData }: TicketStylePreviewProps) {
                 <div className="relative z-10 p-8">
                     <div className="flex justify-between items-start">
                     <div>
-                            <p className="text-xs uppercase tracking-widest text-black/60 dark:text-white/60">Event Ticket</p>
+                            <p className="text-xs uppercase tracking-widest text-black/60 dark:text-white/60">Event Ticket • {ticketPackage}</p>
                             <h3 className="font-headline text-3xl font-bold leading-tight text-black dark:text-white">{eventData.name || 'Your Event Title'}</h3>
                     </div>
                     <Ticket className="h-8 w-8 text-black/60 dark:text-white/60" />
                 </div>
 
                 <div className="mt-8 space-y-4 text-sm">
-                    <div className="flex items-center gap-3"><Calendar className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" /><span className="font-medium text-black dark:text-white">{eventData.dates?.[0]?.date ? format(eventData.dates[0].date, "EEEE, MMM d, yyyy") : 'Your Date'} at {eventData.dates?.[0]?.startTime || 'Your Time'}</span></div>
-                    <div className="flex items-center gap-3"><MapPin className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" /><span className="truncate font-medium text-black dark:text-white">{eventData.location || 'Your Location'}</span></div>
-                    <div className="flex items-center gap-3"><User className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" /><span className="truncate font-medium text-black dark:text-white">{eventData.attendeeName || 'Ticket Holder'}</span></div>
-                    {eventData.class && <p className="font-headline font-bold text-lg text-primary mt-1">{eventData.class}</p>}
+                    <div className="flex items-center gap-3">
+                        <Calendar className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
+                        <span className="font-medium text-black dark:text-white">Date and Time Placeholder</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <MapPin className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
+                        <span className="truncate font-medium text-black dark:text-white">Location Placeholder</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <User className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
+                        <span className="truncate font-medium text-black dark:text-white">{eventData.attendeeName || 'Ticket Holder'}</span>
+                    </div>
+                    <div className="mt-4 p-2 rounded bg-primary/10 border border-primary/20 inline-block">
+                        <p className="font-headline font-bold text-sm text-primary uppercase">
+                            {eventData.isFree ? 'FREE TICKET' : `PRICE: ₦${eventData.price?.toLocaleString()}`}
+                        </p>
+                    </div>
                 </div>
                     
                 <div className="mt-8 text-center flex flex-col items-center justify-center">
-                    {ticketPackage === 'Premium Individual' && guestPhotoUrl && (
+                    {ticketPackage === 'Personal' && guestPhotoUrl && (
                         <div className="mb-4">
                             <Image src={guestPhotoUrl} alt="Guest" width={80} height={80} className="rounded-full h-20 w-20 object-cover border-2 border-white shadow-lg" />
                         </div>

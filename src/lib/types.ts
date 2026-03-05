@@ -32,29 +32,31 @@ export type Event = {
   authorizedScanners?: string[]; 
 };
 
+export type TicketCategory = 'Standard' | 'VIP' | 'VVIP' | 'Personal';
+
 export type Ticket = {
   id: string;
   eventId?: string; // Optional: Tickets can be created without an event
   vendorId: string; // Denormalized for security rules
   userId: string; // The user who bought/owns the ticket
   purchaseDate: string; // ISO 8601 string
-  price: number;
-  isPaid?: boolean;
+  price: number; // The price defined by the vendor for the end user
+  isPaid?: boolean; // Whether the vendor paid the platform fee for this ticket
   
   // Design & Type from new ticket crafting flow
-  package: 'Regular' | 'Premium Individual' | 'Premium General' | 'Tiered';
-  tier?: 'Tier 1' | 'Tier 2' | 'Tier 3' | 'Tier 4' | 'Tier 5';
+  package: TicketCategory; 
+  tier?: string; // Kept for backward compatibility or future use
   templateId?: string; // Reference to a design template
   ticketImageUrl?: string; // Background image for the ticket
   ticketBrandingImageUrl?: string; // Branding image (e.g., logo on top)
-  guestPhotoUrl?: string; // For Premium Individual
-  class?: 'Regular' | 'VIP' | 'VVIP'; // For Premium Individual
+  guestPhotoUrl?: string; // For Personal tickets
+  class?: string; // Extra class info if needed
 
   // Attendee Info
-  attendeeName?: string; // For Premium Individual & Tier 4/5
+  attendeeName?: string; // For Personal tickets
   
   // Validation & Sharing
-  isPrivate: boolean; // For Tier 4/5
+  isPrivate: boolean; 
   scans: number; // Number of times ticket has been scanned
   maxScans: number; // How many times it CAN be scanned
   lastScannedAt?: string; // ISO 8601 string of the last scan

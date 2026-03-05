@@ -65,7 +65,8 @@ export default function CheckoutPage() {
         
         // Create individual ticket documents
         cart.forEach(item => {
-            const pricePerTicket = item.quantity > 0 ? item.price / item.quantity : 0;
+            // item.price is the platform service fee (1000 NGN)
+            // item.ticketPrice is the price for the attendee (stored in 'price' field of doc)
             
             for (let i = 0; i < item.quantity; i++) {
                 const ticketId = uuidv4();
@@ -77,9 +78,9 @@ export default function CheckoutPage() {
                     vendorId: user.uid,
                     userId: user.uid, // Initially assigned to the vendor
                     purchaseDate: now,
-                    price: pricePerTicket,
+                    price: item.price === 1000 ? (item as any).price_val || 0 : item.price, // Fallback if type casting is weird
                     isPaid: true,
-                    package: item.package,
+                    package: (item.package as any),
                     tier: item.tier,
                     templateId: item.templateId,
                     ticketImageUrl: item.ticketImageUrl,
@@ -91,7 +92,18 @@ export default function CheckoutPage() {
                     scans: 0,
                     maxScans: item.maxScans,
                 };
-                 batch.set(ticketRef, ticketData);
+
+                // Correction: item.price in CartItem is 1000. The attendee price is 'item.price' from form which we should pass.
+                // In create-ticket onSubmit, we set cartItem.price = 1000. 
+                // We need to pass the actual ticket price too.
+                const attendeePrice = (item as any).price_val !== undefined ? (item as any).price_val : 0;
+                
+                const correctTicketData: Omit<Ticket, 'id'> = {
+                    ...ticketData,
+                    price: attendeePrice,
+                };
+
+                 batch.set(ticketRef, correctTicketData);
                  batch.set(userTicketRef, { 
                     ticketId: ticketId, 
                     eventId: item.eventId || '', 
@@ -105,17 +117,16 @@ export default function CheckoutPage() {
         try {
             await batch.commit();
             toast({
-                title: 'Payment Successful!',
-                description: 'Your tickets have been created and are available in your dashboard.',
+                title: 'Publishing Successful!',
+                description: 'Your tickets have been generated and published.',
             });
             clearCart();
-            // Redirect to the vendor's list of all crafted tickets
             router.push('/vendor/tickets');
         } catch (error: any) {
             toast({
                 variant: 'destructive',
-                title: 'Ticket Creation Failed',
-                description: 'Payment was successful, but we encountered an error creating your tickets. Please contact support with reference: ' + reference.reference,
+                title: 'Generation Failed',
+                description: 'Payment was successful, but we encountered an error. Ref: ' + reference.reference,
             });
             console.error('Failed to commit ticket batch:', error);
         } finally {
@@ -124,11 +135,7 @@ export default function CheckoutPage() {
     }, [firestore, user, cart, clearCart, toast, router]);
 
     const onPaymentClose = useCallback(() => {
-        toast({
-            variant: 'default',
-            title: 'Payment Closed',
-            description: 'The payment modal was closed.',
-        });
+        toast({ title: 'Payment Closed' });
     }, [toast]);
     
     const handleCheckout = () => {
@@ -139,10 +146,9 @@ export default function CheckoutPage() {
                 if (!item.eventId) continue; 
                 const event = vendorEvents.find(e => e.id === item.eventId);
                 if (event && event.dates && event.dates.length > 0) {
-                    const lastEventDateItem = event.dates[event.dates.length - 1];
-                    const eventDate = new Date(lastEventDateItem.date);
-                    if (isBefore(eventDate, startOfToday())) {
-                        setExpiredEventDetails({ name: event.name, date: lastEventDateItem.date });
+                    const lastDate = event.dates[event.dates.length - 1];
+                    if (isBefore(new Date(lastDate.date), startOfToday())) {
+                        setExpiredEventDetails({ name: event.name, date: lastDate.date });
                         setIsExpiredAlertOpen(true);
                         return;
                     }
@@ -150,20 +156,9 @@ export default function CheckoutPage() {
             }
         }
 
-        if (cart.length === 0) {
-            toast({ variant: 'destructive', title: 'Your cart is empty!' });
-            return;
-        }
-        if (cartTotal <= 0) {
-             toast({
-                variant: 'destructive',
-                title: 'Invalid Cart Total',
-                description: 'Your cart total must be greater than zero to proceed.',
-            });
-            return;
-        }
+        if (cart.length === 0) return;
         if (!paystackConfig.publicKey) {
-            setCheckoutError('Paystack configuration missing. Please check your environment variables.');
+            setCheckoutError('Paystack configuration missing.');
             return;
         }
         
@@ -174,26 +169,24 @@ export default function CheckoutPage() {
         <>
             <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
                 <div className="space-y-2 mb-8">
-                    <h1 className="text-3xl font-bold tracking-tight">My Cart</h1>
-                    <p className="text-muted-foreground">Review your ticket batches and proceed to payment.</p>
+                    <h1 className="text-3xl font-bold tracking-tight">Checkout</h1>
+                    <p className="text-muted-foreground">Pay the platform publishing fee to generate your tickets.</p>
                 </div>
                 
                 <div className="grid md:grid-cols-3 gap-8">
                     <div className="md:col-span-2">
                         <Card>
-                            <CardHeader>
-                                <CardTitle>Order Items</CardTitle>
-                            </CardHeader>
+                            <CardHeader><CardTitle>Ticket Batches</CardTitle></CardHeader>
                             <CardContent className="p-0">
                                 {cart.length > 0 ? (
                                     <div className="divide-y">
                                     {cart.map(item => (
                                         <div key={item.id} className="p-4 flex justify-between items-start">
                                             <div>
-                                                <p className="font-semibold">{item.quantity} Tickets</p>
-                                                <p className="text-sm text-muted-foreground">{item.package} {item.tier || ''} {item.packageQuantity > 1 ? `(x${item.packageQuantity} packages)` : '(x1 package)'}</p>
-                                                <p className="text-sm text-muted-foreground">For: {item.eventName}</p>
-                                                <p className="text-sm font-bold text-primary mt-1">₦{item.price.toLocaleString()}</p>
+                                                <p className="font-semibold">{item.quantity} x {item.package} Tickets</p>
+                                                <p className="text-sm text-muted-foreground">Attendee Price: {item.isFree ? 'Free' : `₦${(item as any).price_val?.toLocaleString()}`}</p>
+                                                <p className="text-sm text-muted-foreground">Event: {item.eventName}</p>
+                                                <p className="text-sm font-bold text-primary mt-1">Publishing Fee: ₦{item.price.toLocaleString()}</p>
                                             </div>
                                             <Button variant="ghost" size="icon" onClick={() => removeFromCart(item.id)} disabled={isProcessing}>
                                                 <Trash2 className="h-4 w-4 text-destructive" />
@@ -205,7 +198,7 @@ export default function CheckoutPage() {
                                     <div className="p-12 text-center text-muted-foreground">
                                         <ShoppingCart className="h-12 w-12 mx-auto mb-4" />
                                         <p>Your cart is empty.</p>
-                                        <Button variant="link" asChild><Link href="/create-ticket">Start crafting tickets</Link></Button>
+                                        <Button variant="link" asChild><Link href="/create-ticket">Go back to crafting</Link></Button>
                                     </div>
                                 )}
                             </CardContent>
@@ -214,19 +207,19 @@ export default function CheckoutPage() {
                     <div className="md:col-span-1">
                         <Card className="sticky top-24">
                             <CardHeader>
-                                <CardTitle>Order Summary</CardTitle>
-                                <CardDescription>Final prices before payment.</CardDescription>
+                                <CardTitle>Summary</CardTitle>
+                                <CardDescription>Platform service fees for publishing.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
                             {cart.map(item => (
                                     <div key={item.id} className="flex justify-between text-sm">
-                                        <span className="text-muted-foreground truncate">{item.quantity} tickets ({item.package}{item.packageQuantity > 1 ? ` x${item.packageQuantity}`:''})</span>
+                                        <span className="text-muted-foreground truncate">{item.package} Batch ({item.quantity})</span>
                                         <span className="font-medium">₦{item.price.toLocaleString()}</span>
                                     </div>
                             ))}
                             <Separator />
                             <div className="flex justify-between text-lg font-bold">
-                                    <span>Total</span>
+                                    <span>Total Due</span>
                                     <span>₦{cartTotal.toLocaleString()}</span>
                             </div>
                             </CardContent>
@@ -234,19 +227,12 @@ export default function CheckoutPage() {
                                 {checkoutError && (
                                     <Alert variant="destructive" className="mb-4">
                                     <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>Checkout Error</AlertTitle>
-                                    <AlertDescription>
-                                        {checkoutError}
-                                    </AlertDescription>
+                                    <AlertTitle>Error</AlertTitle>
+                                    <AlertDescription>{checkoutError}</AlertDescription>
                                     </Alert>
                                 )}
-                                <Button 
-                                    className="w-full" 
-                                    size="lg" 
-                                    onClick={handleCheckout} 
-                                    disabled={isProcessing || cart.length === 0}
-                                >
-                                    {isProcessing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Processing...</> : 'Pay Now'}
+                                <Button className="w-full" size="lg" onClick={handleCheckout} disabled={isProcessing || cart.length === 0}>
+                                    {isProcessing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Processing...</> : 'Pay & Publish'}
                                 </Button>
                             </CardFooter>
                         </Card>
@@ -258,15 +244,9 @@ export default function CheckoutPage() {
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Event Has Ended</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            The event "{expiredEventDetails?.name}" on {expiredEventDetails?.date ? new Date(expiredEventDetails.date).toLocaleDateString() : ''} has already passed.
-                            <br/><br/>
-                            You cannot purchase tickets for it. Please remove this item from your cart to proceed.
-                        </AlertDialogDescription>
+                        <AlertDialogDescription>The event "{expiredEventDetails?.name}" has already passed. Please remove it from your cart.</AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogAction onClick={() => setIsExpiredAlertOpen(false)}>
-                        OK
-                    </AlertDialogAction>
+                    <AlertDialogAction onClick={() => setIsExpiredAlertOpen(false)}>OK</AlertDialogAction>
                 </AlertDialogContent>
             </AlertDialog>
         </>
