@@ -4,12 +4,12 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useFirebase, useCollection, useMemoFirebase, useDoc } from "@/firebase";
-import type { User as UserType, Event as EventType, Vendor as VendorType, TicketCategory } from "@/lib/types";
+import type { User as UserType, Event as EventType, Vendor as VendorType } from "@/lib/types";
 import { doc, collection, query, where } from "firebase/firestore";
 import { Suspense, useEffect, useState, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
@@ -21,14 +21,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { TicketStylePreview } from "@/components/ticket-style-preview"
 import Image from "next/image"
 import { generateBackgroundImage } from "@/ai/flows/generate-ticket-image-flow"
-import { Loader2, Wand2, Info, Upload, ShoppingCart, Check, PartyPopper, Shuffle, AlertTriangle } from "lucide-react"
+import { Loader2, Wand2, Upload, ShoppingCart, Check, Shuffle, AlertTriangle, PartyPopper } from "lucide-react"
 import { v4 as uuidv4 } from 'uuid';
 import { useCart, type CartItem } from "@/context/cart-context"
 import Link from "next/link";
 import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -39,7 +38,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Badge } from "@/components/ui/badge";
 import { ImageCropperDialog } from "@/components/shared/image-cropper-dialog";
 import backgroundsData from '@/lib/ticket-backgrounds.json';
-import { isBefore, startOfToday } from 'date-fns';
+import { isBefore, startOfToday, parseISO } from 'date-fns';
 
 const ticketFormSchema = z.object({
   eventId: z.string().min(1, "Please link this ticket to an event."),
@@ -99,7 +98,6 @@ function CreateTicketPageContent() {
   const [isUploading, setIsUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
-  const [lastAddedCartItem, setLastAddedCartItem] = useState<CartItem | null>(null);
   const [showNoEventsDialog, setShowNoEventsDialog] = useState(false);
 
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
@@ -138,7 +136,7 @@ function CreateTicketPageContent() {
       guestPhotoUrl: '',
       maxScans: 1,
       isPrivate: false,
-      ticketImageUrl: '',
+      ticketImageUrl: backgroundsData.backgrounds[0].url,
       ticketBrandingImageUrl: '',
     },
     mode: "onChange",
@@ -166,7 +164,6 @@ function CreateTicketPageContent() {
     return isBefore(new Date(lastEventDateItem.date), startOfToday());
   }, [selectedEvent]);
 
-  // Sync price with isFree toggle for Standard category
   useEffect(() => {
     if (selectedPackage === 'Standard' && isFree) {
         form.setValue('price', 0);
@@ -177,18 +174,18 @@ function CreateTicketPageContent() {
     if (!user) return;
     const linkedEvent = vendorEvents?.find(e => e.id === data.eventId);
 
+    const { price, ...rest } = data;
+
     const cartItem: CartItem = {
       id: uuidv4(),
-      ...data,
-      eventId: data.eventId,
-      // The price in the cart is the PLATFORM FEE, not the ticket price set by the vendor
-      price: PLATFORM_PUBLISH_FEE, 
+      ...rest,
+      attendeePrice: price,
+      price: PLATFORM_PUBLISH_FEE, // The fee per category
       quantity: data.packageQuantity,
       eventName: linkedEvent?.name || 'Standalone Ticket',
     };
     
     addToCart(cartItem);
-    setLastAddedCartItem(cartItem);
     setIsSuccessDialogOpen(true);
   };
   
@@ -199,7 +196,6 @@ function CreateTicketPageContent() {
         attendeeName: '',
         guestPhotoUrl: '',
     });
-    setLastAddedCartItem(null);
     setIsSuccessDialogOpen(false);
   }
   
@@ -221,12 +217,9 @@ function CreateTicketPageContent() {
     }
     
     const hasVendorRole = (userData?.roles || []).includes('vendor');
-    const isAdminRole = (userData?.roles || []).includes('admin');
     const isVendorApproved = vendorData?.status === 'approved';
 
-    const isAuthorized = isAdminRole || hasVendorRole || isVendorApproved;
-    
-    if (isAuthorized) {
+    if (hasVendorRole || isVendorApproved) {
         setAuthStatus('authorized');
     } else {
         setAuthStatus('unauthorized');
@@ -245,11 +238,6 @@ function CreateTicketPageContent() {
 
   const handleFileUpload = async (file: File | null, field: keyof TicketFormValues) => {
     if (!file || !user || !storage) return;
-    if (file.size > 4 * 1024 * 1024) {
-      toast({ variant: 'destructive', title: 'File too large', description: 'Image must be smaller than 4MB.' });
-      return;
-    }
-
     setIsUploading(true);
     try {
       const filePath = `public-uploads/ticket-assets/${user.uid}/${uuidv4()}-${file.name}`;
@@ -259,8 +247,11 @@ function CreateTicketPageContent() {
       form.setValue(field, downloadURL, { shouldValidate: true });
       toast({ title: 'Image Uploaded' });
     } catch (error: any) {
-      console.error("Upload error:", error);
-      toast({ variant: 'destructive', title: 'Upload Failed' });
+      let description = 'Upload failed.';
+      if (error.code === 'storage/retry-limit-exceeded') {
+        description = "Storage not enabled or network error. Check Firebase Console.";
+      }
+      toast({ variant: 'destructive', title: 'Upload Failed', description });
     } finally {
       setIsUploading(false);
     }
@@ -296,10 +287,9 @@ function CreateTicketPageContent() {
   
   const handleGenerateImage = async () => {
     if (!user || !storage) return;
-    const prompt = "abstract background for an event ticket, high resolution, colorful";
     setIsGenerating(true);
     try {
-      const dataUri = await generateBackgroundImage(prompt);
+      const dataUri = await generateBackgroundImage("abstract background for an event ticket, vibrant swirls, high resolution");
       const dataURItoBlob = (dataURI: string): Blob => {
           const byteString = atob(dataURI.split(',')[1]);
           const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
@@ -313,7 +303,6 @@ function CreateTicketPageContent() {
       await handleFileUpload(file, 'ticketImageUrl');
       toast({ title: "AI Background Generated!" });
     } catch (error: any) {
-      console.error(error);
       toast({ variant: 'destructive', title: 'Generation Failed' });
     } finally {
       setIsGenerating(false);
@@ -322,11 +311,9 @@ function CreateTicketPageContent() {
 
   const handleRandomImage = () => {
     const backgrounds = backgroundsData.backgrounds;
-    if (backgrounds.length > 0) {
-      const randomIndex = Math.floor(Math.random() * backgrounds.length);
-      form.setValue('ticketImageUrl', backgrounds[randomIndex].url, { shouldValidate: true });
-      toast({ title: 'Random Background Applied' });
-    }
+    const randomIndex = Math.floor(Math.random() * backgrounds.length);
+    form.setValue('ticketImageUrl', backgrounds[randomIndex].url, { shouldValidate: true });
+    toast({ title: 'Random Background Applied' });
   };
 
   if (authStatus !== 'authorized' || areEventsLoading) return <PageSkeleton />;
@@ -359,7 +346,7 @@ function CreateTicketPageContent() {
     <div className="container max-w-6xl mx-auto py-10 px-4">
         <div className="space-y-2 mb-8">
             <h1 className="text-4xl font-bold font-headline">Craft Tickets</h1>
-            <p className="text-muted-foreground">Define your ticket categories, set prices, and design your layout.</p>
+            <p className="text-muted-foreground">Define categories, set custom prices, and design your layout.</p>
         </div>
 
       <Form {...form}>
@@ -434,7 +421,7 @@ function CreateTicketPageContent() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Pricing & Quantity</CardTitle>
-                        <CardDescription>Set the cost for attendees and the number of tickets to generate.</CardDescription>
+                        <CardDescription>Set the cost for attendees and the quantity for this category batch.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
@@ -471,9 +458,7 @@ function CreateTicketPageContent() {
                                 name="isFree"
                                 render={({ field }) => (
                                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                                        <div className="space-y-0.5">
-                                            <FormLabel>Mark as Free</FormLabel>
-                                        </div>
+                                        <div className="space-y-0.5"><FormLabel>Mark as Free</FormLabel></div>
                                         <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                                     </FormItem>
                                 )}
@@ -484,8 +469,8 @@ function CreateTicketPageContent() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Design</CardTitle>
-                        <CardDescription>Customize the visual style of this ticket batch.</CardDescription>
+                        <CardTitle>Ticket Design</CardTitle>
+                        <CardDescription>Select or upload a custom background.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <FormField
@@ -493,7 +478,7 @@ function CreateTicketPageContent() {
                             name="ticketImageUrl"
                             render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Background Style</FormLabel>
+                                <FormLabel>Background Gallery</FormLabel>
                                 <FormControl>
                                     <div>
                                         <RadioGroup onValueChange={field.onChange} value={field.value || ''} className="grid grid-cols-4 gap-2 pt-2">
@@ -527,7 +512,7 @@ function CreateTicketPageContent() {
 
                 {selectedPackage === 'Personal' && (
                     <Card>
-                        <CardHeader><CardTitle>Personal Details</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>Personalization</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
                             <FormField
                                 control={form.control}
@@ -545,10 +530,10 @@ function CreateTicketPageContent() {
                                 name="guestPhotoUrl"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Attendee Photo (Optional)</FormLabel>
+                                        <FormLabel>Photo (Optional)</FormLabel>
                                         <FormControl>
                                             <div className="flex items-center gap-4">
-                                                {form.watch('guestPhotoUrl') && <Image src={form.watch('guestPhotoUrl')!} alt="guest" width={48} height={48} className="rounded-full h-12 w-12 object-cover" />}
+                                                {form.watch('guestPhotoUrl') && <Image src={form.watch('guestPhotoUrl')!} alt="guest" width={48} height={48} className="rounded-full h-12 w-12 object-cover border" />}
                                                 <Button asChild variant="outline">
                                                     <label htmlFor="guest-photo-upload" className="cursor-pointer"><Upload className="mr-2 h-4 w-4" /> Upload</label>
                                                 </Button>
@@ -566,21 +551,21 @@ function CreateTicketPageContent() {
             <div className="space-y-8">
                 <div className="sticky top-24 space-y-8">
                     <Card>
-                        <CardHeader><CardTitle>Ticket Preview</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>Live Preview</CardTitle></CardHeader>
                         <CardContent><TicketStylePreview eventData={{...form.watch(), name: selectedEvent?.name }} /></CardContent>
                     </Card>
                     <Card>
-                        <CardHeader><CardTitle>Publishing Fee</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>Category Batch Fee</CardTitle></CardHeader>
                         <CardContent>
                            <div className="flex justify-between items-center text-lg font-bold">
-                                <span>Platform Service Fee:</span>
+                                <span>Platform Publishing Fee:</span>
                                 <span>₦{PLATFORM_PUBLISH_FEE.toLocaleString()}</span>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-2">This flat fee covers the generation and hosting of your {form.watch('packageQuantity')} tickets.</p>
+                            <p className="text-xs text-muted-foreground mt-2">Platform fee is charged per ticket category added to your cart.</p>
                         </CardContent>
                     </Card>
                      <Button type="submit" size="lg" className="w-full" disabled={form.formState.isSubmitting || isEventExpired}>
-                        <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart
+                        <ShoppingCart className="mr-2 h-5 w-5" /> Add Category to Cart
                     </Button>
                 </div>
             </div>
@@ -592,12 +577,12 @@ function CreateTicketPageContent() {
         <AlertDialogContent>
             <AlertDialogHeader className="text-center items-center">
                 <PartyPopper className="h-12 w-12 text-primary" />
-                <AlertDialogTitle className="text-2xl">Ready to Publish!</AlertDialogTitle>
-                <AlertDialogDescription>Your ticket batch has been added to your cart for publishing.</AlertDialogDescription>
+                <AlertDialogTitle className="text-2xl">Batch Added!</AlertDialogTitle>
+                <AlertDialogDescription>Your ticket category batch has been added to your cart for publishing.</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <Button variant="outline" onClick={handleCraftAnother}>Craft More</Button>
-                 <Button onClick={handleViewCart}><ShoppingCart className="mr-2 h-4 w-4" /> Checkout</Button>
+                <Button variant="outline" onClick={handleCraftAnother}>Add Another Category</Button>
+                 <Button onClick={handleViewCart}><ShoppingCart className="mr-2 h-4 w-4" /> Go to Checkout</Button>
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>

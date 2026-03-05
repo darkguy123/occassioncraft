@@ -36,42 +36,39 @@ export type TicketCategory = 'Standard' | 'VIP' | 'VVIP' | 'Personal';
 
 export type Ticket = {
   id: string;
-  eventId?: string; // Optional: Tickets can be created without an event
-  vendorId: string; // Denormalized for security rules
-  userId: string; // The user who bought/owns the ticket
-  purchaseDate: string; // ISO 8601 string
-  price: number; // The price defined by the vendor for the end user
-  isPaid?: boolean; // Whether the vendor paid the platform fee for this ticket
+  eventId?: string;
+  vendorId: string;
+  userId: string;
+  purchaseDate: string;
+  price: number; // Attendee price
+  isPaid?: boolean;
+  batchId?: string; // To track the publishing transaction
   
-  // Design & Type from new ticket crafting flow
   package: TicketCategory; 
-  tier?: string; // Kept for backward compatibility or future use
-  templateId?: string; // Reference to a design template
-  ticketImageUrl?: string; // Background image for the ticket
-  ticketBrandingImageUrl?: string; // Branding image (e.g., logo on top)
-  guestPhotoUrl?: string; // For Personal tickets
-  class?: string; // Extra class info if needed
+  tier?: string;
+  templateId?: string;
+  ticketImageUrl?: string;
+  ticketBrandingImageUrl?: string;
+  guestPhotoUrl?: string;
+  class?: string;
 
-  // Attendee Info
-  attendeeName?: string; // For Personal tickets
+  attendeeName?: string;
   
-  // Validation & Sharing
   isPrivate: boolean; 
-  scans: number; // Number of times ticket has been scanned
-  maxScans: number; // How many times it CAN be scanned
-  lastScannedAt?: string; // ISO 8601 string of the last scan
+  scans: number;
+  maxScans: number;
+  lastScannedAt?: string;
 };
 
 
-// This represents a ticket in a user's collection
 export type UserTicket = {
   ticketId: string;
   eventId: string;
-  purchaseDate: string; // ISO 8601 string
+  purchaseDate: string;
   userId: string;
-  event?: Event; // Denormalized event data
+  event?: Event;
   isUsed?: boolean;
-  vendorId: string; // Denormalized for security rules
+  vendorId: string;
   attendeeName?: string;
   package?: string;
   tier?: string;
@@ -87,7 +84,7 @@ export type Vendor = {
   description?: string;
   contactEmail: string;
   status: 'pending' | 'approved' | 'rejected';
-  createdAt: string; // ISO 8601 string
+  createdAt: string;
   pricingTier?: 'Free' | 'Premium' | 'Diamond';
   authorizedScanners?: string[];
 }
@@ -97,7 +94,7 @@ export type Notification = {
   userId: string;
   title: string;
   description: string;
-  createdAt: string; // ISO 8601 string
+  createdAt: string;
   read: boolean;
   link?: string;
 }
@@ -109,7 +106,7 @@ export type SupportTicket = {
     subject: string;
     message: string;
     status: 'open' | 'in-progress' | 'closed';
-    createdAt: string; // ISO 8601
+    createdAt: string;
 }
 
 export type SiteSettings = {
@@ -133,5 +130,5 @@ export type DataDeletionRequest = {
     email: string;
     reason: string;
     status: 'pending' | 'completed' | 'rejected';
-    createdAt: string; // ISO 8601 string
+    createdAt: string;
 }

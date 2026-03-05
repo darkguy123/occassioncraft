@@ -35,19 +35,23 @@ export default function AdminDashboardPage() {
   const { data: vendors } = useCollection<Vendor>(useMemoFirebase(() => (firestore && isAdmin) ? collection(firestore, 'vendors') : null, [firestore, isAdmin]));
   const { data: tickets } = useCollection<Ticket>(useMemoFirebase(() => (firestore && isAdmin) ? collection(firestore, 'tickets') : null, [firestore, isAdmin]));
 
-  const { totalRevenue, salesData, totalUsers, usersData, totalEvents, pendingApprovals, totalVendors, vendorsData } = useMemo(() => {
-    // Only count revenue from paid tickets
+  const { totalRevenue, salesData, totalUsers, usersData, totalEvents, pendingApprovals, totalVendors } = useMemo(() => {
+    // Platform Revenue = Number of unique batches * 1000
     const paidTickets = tickets?.filter(t => t.isPaid) || [];
-    const revenue = paidTickets.reduce((acc, ticket) => acc + (ticket.price || 0), 0);
+    const uniqueBatches = new Set(paidTickets.map(t => t.batchId).filter(Boolean));
+    const revenue = uniqueBatches.size * 1000;
 
     const monthlySales = monthNames.map(month => ({ month, revenue: 0 }));
     if (paidTickets) {
+      // Track unique batches per month to avoid overcounting
+      const seenBatches = new Set();
       paidTickets.forEach(ticket => {
-        if(ticket.purchaseDate) {
+        if(ticket.purchaseDate && ticket.batchId && !seenBatches.has(ticket.batchId)) {
             try {
                 const monthIndex = getMonth(parseISO(ticket.purchaseDate));
                 if (monthlySales[monthIndex]) {
-                    monthlySales[monthIndex].revenue += ticket.price || 0;
+                    monthlySales[monthIndex].revenue += 1000; // Platfrom fee per batch
+                    seenBatches.add(ticket.batchId);
                 }
             } catch (e) {
                 // Ignore invalid date formats
@@ -72,22 +76,6 @@ export default function AdminDashboardPage() {
         });
     }
     
-    const monthlyVendors = monthNames.map(month => ({ month, vendors: 0 }));
-    if (vendors) {
-        vendors.forEach(vendor => {
-            if (vendor.createdAt) {
-                 try {
-                    const monthIndex = getMonth(parseISO(vendor.createdAt));
-                    if (monthlyVendors[monthIndex]) {
-                        monthlyVendors[monthIndex].vendors += 1;
-                    }
-                } catch (e) {
-                    // Ignore invalid date formats
-                }
-            }
-        });
-    }
-
     const pendingVendorCount = vendors?.filter(v => v.status === 'pending').length || 0;
 
     return {
@@ -96,7 +84,6 @@ export default function AdminDashboardPage() {
       totalUsers: users?.length || 0,
       usersData: monthlyUsers.slice(0, 6),
       totalVendors: vendors?.length || 0,
-      vendorsData: monthlyVendors.slice(0, 6),
       totalEvents: events?.length || 0,
       pendingApprovals: pendingVendorCount,
     }
@@ -117,25 +104,21 @@ export default function AdminDashboardPage() {
   const currentMonthUsers = usersData.length > 0 ? usersData[usersData.length - 1].users : 0;
   const usersPercentageChange = getPercentageChange(currentMonthUsers, lastMonthUsers);
 
-  const lastMonthVendors = vendorsData.length > 1 ? vendorsData[vendorsData.length - 2].vendors : 0;
-  const currentMonthVendors = vendorsData.length > 0 ? vendorsData[vendorsData.length - 1].vendors : 0;
-  const vendorsPercentageChange = getPercentageChange(currentMonthVendors, lastMonthVendors);
-
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
        <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Here&apos;s a quick overview of your platform.</p>
+        <h1 className="text-3xl font-bold tracking-tight">Platform Overview</h1>
+        <p className="text-muted-foreground">Monitoring platform earnings and user growth.</p>
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">Platform Earnings</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">₦{totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            <div className="text-3xl font-bold">₦{totalRevenue.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
                 {salesPercentageChange >= 0 ? '+' : ''}{salesPercentageChange.toFixed(1)}% from last month
             </p>
@@ -155,14 +138,12 @@ export default function AdminDashboardPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Vendors</CardTitle>
+            <CardTitle className="text-sm font-medium">Approved Vendors</CardTitle>
             <Building className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{totalVendors}</div>
-            <p className="text-xs text-muted-foreground">
-                {vendorsPercentageChange >= 0 ? '+' : ''}{vendorsPercentageChange.toFixed(1)}% from last month
-            </p>
+            <p className="text-xs text-muted-foreground">Active organizers</p>
           </CardContent>
         </Card>
         <Card>
@@ -172,18 +153,18 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{totalEvents}</div>
-            <p className="text-xs text-muted-foreground">Live on the platform</p>
+            <p className="text-xs text-muted-foreground">Shells created</p>
           </CardContent>
         </Card>
         <Link href="/admin/approvals">
-          <Card className="hover:shadow-lg transition-shadow">
+          <Card className="hover:shadow-lg transition-shadow border-primary/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Pending Apps</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{pendingApprovals}</div>
-              <p className="text-xs text-muted-foreground">Vendor applications awaiting review</p>
+              <p className="text-xs text-muted-foreground">Awaiting review</p>
             </CardContent>
           </Card>
         </Link>
@@ -192,8 +173,8 @@ export default function AdminDashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2">
          <Card>
             <CardHeader>
-                <CardTitle>Sales Overview</CardTitle>
-                <CardDescription>Monthly ticket sales revenue.</CardDescription>
+                <CardTitle>Revenue Flow</CardTitle>
+                <CardDescription>Platform service fees collected monthly.</CardDescription>
             </CardHeader>
             <CardContent className="pl-2">
                 <ResponsiveContainer width="100%" height={300}>
@@ -236,8 +217,8 @@ export default function AdminDashboardPage() {
         </Card>
         <Card>
             <CardHeader>
-                <CardTitle>New Users</CardTitle>
-                <CardDescription>Monthly new user sign-ups.</CardDescription>
+                <CardTitle>User Growth</CardTitle>
+                <CardDescription>New account registrations.</CardDescription>
             </CardHeader>
             <CardContent className="pl-2">
                 <ResponsiveContainer width="100%" height={300}>

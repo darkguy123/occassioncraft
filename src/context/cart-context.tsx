@@ -4,9 +4,10 @@ import { createContext, useContext, useState, ReactNode, useEffect, useCallback,
 import { useToast } from '@/hooks/use-toast';
 import type { TicketFormValues } from '@/app/create-ticket/page';
 
-export interface CartItem extends TicketFormValues {
+export interface CartItem extends Omit<TicketFormValues, 'price'> {
   id: string;
-  price: number;
+  attendeePrice: number; // Price for the attendee
+  price: number; // This is the PLATFORM FEE (e.g., 1000)
   quantity: number;
   eventName: string;
 }
@@ -48,7 +49,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setCart((prevCart) => prevCart.filter((item) => item.id !== itemId));
     toast({
         title: "Item Removed",
-        description: "The item has been removed from your cart."
+        description: "The category batch has been removed from your cart."
     })
   }, [toast]);
 
