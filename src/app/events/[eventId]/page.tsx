@@ -1,15 +1,15 @@
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Image from 'next/image';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import type { Event } from '@/lib/types';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { doc, collection, query, where, addDoc } from 'firebase/firestore';
+import type { Event, Ticket, TicketCategory } from '@/lib/types';
 import { useParams, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent } from '@/components/ui/card';
-import { AlertTriangle, Calendar, Clock, Lock, MapPin, Sparkles, Ticket as TicketIcon, Info } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { AlertTriangle, Calendar, Clock, Lock, MapPin, Ticket as TicketIcon, Info, Check, Loader2, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -20,7 +20,11 @@ import {
   AlertDialogDescription,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
+import { usePaystackPayment } from 'react-paystack';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function EventDetailsPage() {
     const { user } = useUser();
@@ -30,8 +34,9 @@ export default function EventDetailsPage() {
     const { toast } = useToast();
     const eventId = params.eventId as string;
 
-    const [isAlertOpen, setIsAlertOpen] = useState(false);
-    const [alertContent, setAlertContent] = useState({ title: '', description: '' });
+    const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState<any | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     const eventDocRef = useMemoFirebase(() => {
         if (!firestore || !eventId) return null;
@@ -40,38 +45,104 @@ export default function EventDetailsPage() {
 
     const { data: eventData, isLoading: isEventLoading } = useDoc<Event>(eventDocRef);
 
-    const isLoading = isEventLoading;
+    // Fetch tickets to determine available categories and prices
+    const ticketsQuery = useMemoFirebase(() => {
+        if (!firestore || !eventId) return null;
+        return query(collection(firestore, 'tickets'), where('eventId', '==', eventId));
+    }, [firestore, eventId]);
+
+    const { data: eventTickets, isLoading: isTicketsLoading } = useCollection<Ticket>(ticketsQuery);
+
+    const availableCategories = useMemo(() => {
+        if (!eventTickets) return [];
+        // Group by package and price to show unique categories
+        const groups: Record<string, { package: TicketCategory, price: number, ticketImageUrl?: string }> = {};
+        eventTickets.forEach(t => {
+            const key = `${t.package}-${t.price}`;
+            if (!groups[key]) {
+                groups[key] = { package: t.package, price: t.price, ticketImageUrl: t.ticketImageUrl };
+            }
+        });
+        return Object.values(groups).sort((a, b) => a.price - b.price);
+    }, [eventTickets]);
+
+    const handlePurchaseSuccess = async (reference?: any) => {
+        if (!user || !firestore || !eventData || !selectedCategory) return;
+
+        setIsProcessing(true);
+        const ticketId = uuidv4();
+        const now = new Date().toISOString();
+
+        const newTicket: Omit<Ticket, 'id'> = {
+            eventId: eventId,
+            vendorId: eventData.vendorId,
+            userId: user.uid,
+            purchaseDate: now,
+            price: selectedCategory.price,
+            isPaid: selectedCategory.price > 0,
+            package: selectedCategory.package,
+            ticketImageUrl: selectedCategory.ticketImageUrl || '',
+            attendeeName: user.displayName || 'Guest',
+            scans: 0,
+            maxScans: 1,
+            isPrivate: eventData.isPrivate || false,
+        };
+
+        try {
+            await addDoc(collection(firestore, 'tickets'), { ...newTicket, id: ticketId });
+            // Pointer for user collection
+            await addDoc(collection(firestore, `users/${user.uid}/tickets`), {
+                ticketId: ticketId,
+                eventId: eventId,
+                userId: user.uid,
+                purchaseDate: now,
+                vendorId: eventData.vendorId
+            });
+
+            toast({ title: "Purchase Successful!", description: "Your ticket is ready." });
+            router.push(`/events/${eventId}/tickets/${ticketId}`);
+        } catch (error: any) {
+            console.error("Error creating ticket:", error);
+            toast({ variant: 'destructive', title: "Purchase Error", description: "Payment was processed but ticket generation failed. Please contact support." });
+        } finally {
+            setIsProcessing(false);
+            setIsPurchaseDialogOpen(false);
+        }
+    };
+
+    const paystackConfig = {
+        reference: uuidv4(),
+        email: user?.email || '',
+        amount: Math.round((selectedCategory?.price || 0) * 100),
+        currency: 'NGN',
+        publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
+    };
+
+    const initializePayment = usePaystackPayment(paystackConfig);
 
     const handleGetTicket = () => {
         if (!user) {
-            router.push('/login?redirect=/events/' + eventId);
+            router.push(`/login?redirect=/events/${eventId}`);
             return;
         }
-
-        if (eventData?.isPrivate) {
-            setAlertContent({
-                title: 'Private Event',
-                description: 'This event is private and strictly by invitation. You cannot claim tickets directly.'
-            });
-            setIsAlertOpen(true);
-            return;
-        }
-
-        // If the current user is the vendor for this event, redirect to craft tickets
-        if (user.uid === eventData?.vendorId) {
-            router.push(`/create-ticket?eventId=${eventId}`);
-            return;
-        }
-        
-        // For public users, since there's no direct purchase flow, show an info alert.
-        setAlertContent({
-            title: 'How to Get Tickets',
-            description: "The vendor for this event has not made public tickets available for direct purchase on this page. Please check the event organizer's official channels."
-        });
-        setIsAlertOpen(true);
+        setIsPurchaseDialogOpen(true);
     };
 
-    if (isLoading) {
+    const onConfirmPurchase = () => {
+        if (!selectedCategory) return;
+        
+        if (selectedCategory.price === 0) {
+            handlePurchaseSuccess();
+        } else {
+            if (!paystackConfig.publicKey) {
+                toast({ variant: 'destructive', title: 'Payment Error', description: 'Payment gateway is not configured.' });
+                return;
+            }
+            initializePayment(handlePurchaseSuccess, () => toast({ title: 'Payment Cancelled' }));
+        }
+    };
+
+    if (isEventLoading) {
         return (
             <div className="container mx-auto max-w-4xl py-12 px-4 space-y-8">
                 <Skeleton className="h-96 w-full rounded-2xl" />
@@ -129,19 +200,62 @@ export default function EventDetailsPage() {
 
     return (
         <>
-            <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-                <AlertDialogContent>
+            <AlertDialog open={isPurchaseDialogOpen} onOpenChange={setIsPurchaseDialogOpen}>
+                <AlertDialogContent className="max-w-md">
                     <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2">
-                            <Info className="h-5 w-5" /> {alertContent.title}
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>{alertContent.description}</AlertDialogDescription>
+                        <AlertDialogTitle>Select Your Ticket</AlertDialogTitle>
+                        <AlertDialogDescription>Choose a category to attend {eventData.name}.</AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogAction onClick={() => setIsAlertOpen(false)}>
-                        OK
-                    </AlertDialogAction>
+                    
+                    <div className="grid gap-4 py-4">
+                        {isTicketsLoading ? (
+                            <div className="space-y-2">
+                                <Skeleton className="h-16 w-full" />
+                                <Skeleton className="h-16 w-full" />
+                            </div>
+                        ) : availableCategories.length > 0 ? (
+                            availableCategories.map((cat, idx) => (
+                                <div 
+                                    key={idx}
+                                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex justify-between items-center ${selectedCategory === cat ? 'border-primary bg-primary/5 shadow-md' : 'border-border hover:border-primary/50'}`}
+                                    onClick={() => setSelectedCategory(cat)}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${selectedCategory === cat ? 'border-primary bg-primary' : 'border-muted-foreground'}`}>
+                                            {selectedCategory === cat && <Check className="h-3 w-3 text-white" />}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold">{cat.package}</p>
+                                            <p className="text-xs text-muted-foreground">Standard Entry</p>
+                                        </div>
+                                    </div>
+                                    <p className="font-bold text-lg">
+                                        {cat.price === 0 ? 'FREE' : `₦${cat.price.toLocaleString()}`}
+                                    </p>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="text-center py-8 text-muted-foreground">
+                                <Info className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                                <p>No ticket categories available for this event yet.</p>
+                            </div>
+                        )}
+                    </div>
+
+                    <AlertDialogFooter className="grid grid-cols-2 gap-2">
+                        <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
+                        <Button 
+                            onClick={onConfirmPurchase} 
+                            disabled={!selectedCategory || isProcessing}
+                            className="font-bold"
+                        >
+                            {isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CreditCard className="h-4 w-4 mr-2" />}
+                            {selectedCategory?.price === 0 ? 'Claim Free Ticket' : 'Purchase Ticket'}
+                        </Button>
+                    </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
             <div>
                 <section className="relative w-full h-[60vh] bg-secondary">
                     {eventData.bannerUrl && (
@@ -167,7 +281,7 @@ export default function EventDetailsPage() {
                             <p className="text-muted-foreground whitespace-pre-wrap">{eventData.description || 'No description provided.'}</p>
                         </div>
                         <div className="md:row-start-1 md:col-start-3">
-                            <Card className="p-6 sticky top-24">
+                            <Card className="p-6 sticky top-24 shadow-xl border-t-4 border-t-primary">
                                 <div className="space-y-4 text-sm">
                                     <div className="flex items-center">
                                         <Calendar className="h-5 w-5 mr-3 text-primary" />
@@ -195,10 +309,13 @@ export default function EventDetailsPage() {
                                     </div>
                                 )}
                                 </div>
-                                <Button size="lg" className="w-full font-bold text-lg" onClick={handleGetTicket}>
+                                <Button size="lg" className="w-full font-bold text-lg h-14" onClick={handleGetTicket} disabled={isTicketsLoading || availableCategories.length === 0}>
                                     <TicketIcon className="mr-2 h-5 w-5" />
                                     Get Tickets
                                 </Button>
+                                {availableCategories.length === 0 && !isTicketsLoading && (
+                                    <p className="text-[10px] text-center text-muted-foreground mt-2 italic">Sales haven't started yet.</p>
+                                )}
                             </Card>
                         </div>
                     </div>
