@@ -47,7 +47,7 @@ export default function CheckoutPage() {
     const paystackConfig = {
         reference: uuidv4(),
         email: user?.email || '',
-        amount: Math.round(cartTotal * 100), // Total of platform fees
+        amount: Math.round(cartTotal * 100), // Total of platform fees in Kobo
         currency: 'NGN',
         publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
     };
@@ -60,11 +60,21 @@ export default function CheckoutPage() {
             return;
         }
 
+        // Verify the status from Paystack
+        if (reference.status !== 'success') {
+            toast({ 
+                variant: 'destructive', 
+                title: 'Payment Verification Failed', 
+                description: 'The payment was not successfully processed by the gateway.' 
+            });
+            return;
+        }
+
         setIsProcessing(true);
         const batch = writeBatch(firestore);
         const now = new Date().toISOString();
         
-        // Generate a ticket for each item in each batch category
+        // Process each item in the cart
         cart.forEach(item => {
             const batchId = uuidv4();
             for (let i = 0; i < item.quantity; i++) {
@@ -80,6 +90,7 @@ export default function CheckoutPage() {
                     price: item.attendeePrice || 0,
                     isPaid: true,
                     batchId: batchId,
+                    paystackReference: reference.reference,
                     package: (item.package as any),
                     ticketImageUrl: item.ticketImageUrl,
                     ticketBrandingImageUrl: item.ticketBrandingImageUrl,

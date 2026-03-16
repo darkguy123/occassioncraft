@@ -43,6 +43,7 @@ export type Ticket = {
   price: number; // Attendee price
   isPaid?: boolean;
   batchId?: string; // To track the publishing transaction
+  paystackReference?: string; // Paystack transaction reference
   
   package: TicketCategory; 
   tier?: string;

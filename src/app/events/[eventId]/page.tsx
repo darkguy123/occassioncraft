@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -69,6 +68,16 @@ export default function EventDetailsPage() {
     const handlePurchaseSuccess = async (reference?: any) => {
         if (!user || !firestore || !eventData || !selectedCategory) return;
 
+        // If a reference is provided (from Paystack), check its status
+        if (reference && reference.status !== 'success') {
+            toast({ 
+                variant: 'destructive', 
+                title: "Payment Not Verified", 
+                description: "The payment gateway did not return a success status." 
+            });
+            return;
+        }
+
         setIsProcessing(true);
         const ticketId = uuidv4();
         const now = new Date().toISOString();
@@ -79,7 +88,8 @@ export default function EventDetailsPage() {
             userId: user.uid,
             purchaseDate: now,
             price: selectedCategory.price,
-            isPaid: selectedCategory.price > 0,
+            isPaid: true,
+            paystackReference: reference?.reference || 'FREE_CLAIM',
             package: selectedCategory.package,
             ticketImageUrl: selectedCategory.ticketImageUrl || '',
             attendeeName: user.displayName || 'Guest',
@@ -103,7 +113,11 @@ export default function EventDetailsPage() {
             router.push(`/events/${eventId}/tickets/${ticketId}`);
         } catch (error: any) {
             console.error("Error creating ticket:", error);
-            toast({ variant: 'destructive', title: "Purchase Error", description: "Payment was processed but ticket generation failed. Please contact support." });
+            toast({ 
+                variant: 'destructive', 
+                title: "Purchase Error", 
+                description: "Transaction was verified but ticket generation failed. Reference: " + (reference?.reference || 'N/A')
+            });
         } finally {
             setIsProcessing(false);
             setIsPurchaseDialogOpen(false);
@@ -113,7 +127,7 @@ export default function EventDetailsPage() {
     const paystackConfig = {
         reference: uuidv4(),
         email: user?.email || '',
-        amount: Math.round((selectedCategory?.price || 0) * 100),
+        amount: Math.round((selectedCategory?.price || 0) * 100), // in Kobo
         currency: 'NGN',
         publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
     };
