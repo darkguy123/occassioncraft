@@ -24,6 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 
 export default function CheckoutPage() {
     const { cart, removeFromCart, clearCart, cartTotal } = useCart();
@@ -76,7 +77,7 @@ export default function CheckoutPage() {
                     vendorId: user.uid,
                     userId: user.uid, 
                     purchaseDate: now,
-                    price: item.attendeePrice,
+                    price: item.attendeePrice || 0,
                     isPaid: true,
                     batchId: batchId,
                     package: (item.package as any),
@@ -84,9 +85,9 @@ export default function CheckoutPage() {
                     ticketBrandingImageUrl: item.ticketBrandingImageUrl,
                     guestPhotoUrl: item.guestPhotoUrl,
                     attendeeName: item.attendeeName,
-                    isPrivate: item.isPrivate,
+                    isPrivate: !!item.isPrivate,
                     scans: 0,
-                    maxScans: item.maxScans,
+                    maxScans: item.maxScans || 1,
                 };
 
                  batch.set(ticketRef, ticketData);
@@ -170,9 +171,9 @@ export default function CheckoutPage() {
                                         <div key={item.id} className="p-4 flex justify-between items-start">
                                             <div className="space-y-1">
                                                 <p className="font-semibold text-lg">{item.quantity} x {item.package} Tickets</p>
-                                                <p className="text-sm text-muted-foreground">Attendee Price: {item.attendeePrice === 0 ? 'Free' : `₦${item.attendeePrice.toLocaleString()}`}</p>
+                                                <p className="text-sm text-muted-foreground">Attendee Price: {item.attendeePrice === 0 ? 'Free' : `₦${(item.attendeePrice ?? 0).toLocaleString()}`}</p>
                                                 <p className="text-sm text-muted-foreground">Event: {item.eventName}</p>
-                                                <Badge variant="outline" className="mt-2 text-primary border-primary">Platform Fee: ₦{item.price.toLocaleString()}</Badge>
+                                                <Badge variant="outline" className="mt-2 text-primary border-primary">Platform Fee: ₦{(item.price ?? 0).toLocaleString()}</Badge>
                                             </div>
                                             <Button variant="ghost" size="icon" onClick={() => removeFromCart(item.id)} disabled={isProcessing}>
                                                 <Trash2 className="h-4 w-4 text-destructive" />
@@ -200,7 +201,7 @@ export default function CheckoutPage() {
                             {cart.map(item => (
                                     <div key={item.id} className="flex justify-between text-sm">
                                         <span className="text-muted-foreground truncate">{item.package} category</span>
-                                        <span className="font-medium">₦{item.price.toLocaleString()}</span>
+                                        <span className="font-medium">₦{(item.price ?? 0).toLocaleString()}</span>
                                     </div>
                             ))}
                             <Separator />
