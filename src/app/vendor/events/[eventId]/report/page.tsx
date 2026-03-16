@@ -12,10 +12,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle, Ticket, Share2, Info } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
-import type { Ticket as TicketType } from '@/lib/types';
+import { ArrowLeft, CheckCircle, Ticket, Share2, Info, Copy, ExternalLink } from 'lucide-react';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
+import { collection, query, where, doc } from 'firebase/firestore';
+import type { Ticket as TicketType, Event } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +29,13 @@ export default function VendorTicketManagementPage() {
   const { toast } = useToast();
   const eventId = params.eventId as string;
 
+  const eventDocRef = useMemoFirebase(() => {
+    if (!firestore || !eventId) return null;
+    return doc(firestore, 'events', eventId);
+  }, [firestore, eventId]);
+
+  const { data: eventData, isLoading: isEventLoading } = useDoc<Event>(eventDocRef);
+
   const ticketsQuery = useMemoFirebase(() => {
     if (!firestore || !eventId || !user) return null;
     return query(
@@ -38,9 +45,9 @@ export default function VendorTicketManagementPage() {
     );
   }, [firestore, eventId, user]);
 
-  const { data: tickets, isLoading } = useCollection<TicketType>(ticketsQuery);
+  const { data: tickets, isLoading: areTicketsLoading } = useCollection<TicketType>(ticketsQuery);
 
-  const handleShare = (ticketId: string) => {
+  const handleShareTicket = (ticketId: string) => {
     const shareUrl = `${window.location.origin}/shared-ticket/${ticketId}`;
     navigator.clipboard.writeText(shareUrl).then(() => {
         toast({
@@ -57,14 +64,40 @@ export default function VendorTicketManagementPage() {
     });
   };
 
+  const handleShareEvent = () => {
+    const shareUrl = `${window.location.origin}/events/${eventId}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+        toast({
+            title: 'Event Link Copied!',
+            description: 'Attendees can use this link to purchase tickets.',
+        });
+    });
+  };
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
        <div className="space-y-2">
          <Button variant="ghost" asChild>
             <Link href="/vendor/dashboard"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard</Link>
          </Button>
-        <h1 className="text-3xl font-bold tracking-tight">Ticket Management</h1>
-        <p className="text-muted-foreground">Manage, share, and track all tickets for this event.</p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">Ticket Management</h1>
+                <p className="text-muted-foreground">Manage, share, and track all tickets for "{eventData?.name || 'this event'}".</p>
+            </div>
+            <div className="flex gap-2">
+                <Button variant="outline" onClick={handleShareEvent}>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy Purchase Link
+                </Button>
+                <Button asChild>
+                    <Link href={`/events/${eventId}`} target="_blank">
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        View Public Page
+                    </Link>
+                </Button>
+            </div>
+        </div>
       </div>
 
       <Card>
@@ -84,7 +117,7 @@ export default function VendorTicketManagementPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && Array.from({length: 5}).map((_, i) => (
+              {(areTicketsLoading || isEventLoading) && Array.from({length: 5}).map((_, i) => (
                 <TableRow key={i}>
                     <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-32" /></TableCell>
@@ -93,7 +126,7 @@ export default function VendorTicketManagementPage() {
                     <TableCell className="text-right"><Skeleton className="h-8 w-20" /></TableCell>
                 </TableRow>
               ))}
-              {!isLoading && tickets && tickets.length > 0 ? (
+              {!areTicketsLoading && !isEventLoading && tickets && tickets.length > 0 ? (
                 tickets.map(ticket => (
                     <TableRow key={ticket.id}>
                         <TableCell className="font-mono text-xs">{ticket.id.substring(0, 8)}...</TableCell>
@@ -110,7 +143,7 @@ export default function VendorTicketManagementPage() {
                             )}
                         </TableCell>
                         <TableCell className="text-right space-x-2">
-                           <Button variant="outline" size="sm" onClick={() => handleShare(ticket.id)}>
+                           <Button variant="outline" size="sm" onClick={() => handleShareTicket(ticket.id)}>
                                 <Share2 className="mr-2 h-4 w-4" /> Share
                             </Button>
                             <Button asChild size="sm">
@@ -122,7 +155,7 @@ export default function VendorTicketManagementPage() {
                     </TableRow>
                 ))
               ) : (
-                !isLoading && (
+                (!areTicketsLoading && !isEventLoading) && (
                      <TableRow>
                         <TableCell colSpan={5} className="text-center text-muted-foreground py-12">
                            <Ticket className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />

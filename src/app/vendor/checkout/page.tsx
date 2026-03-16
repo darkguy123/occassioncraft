@@ -74,8 +74,12 @@ export default function CheckoutPage() {
         const batch = writeBatch(firestore);
         const now = new Date().toISOString();
         
+        // Track unique event IDs for the success page
+        const affectedEventIds = new Set<string>();
+
         // Process each item in the cart
         cart.forEach(item => {
+            if (item.eventId) affectedEventIds.add(item.eventId);
             const batchId = uuidv4();
             for (let i = 0; i < item.quantity; i++) {
                 const ticketId = uuidv4();
@@ -119,7 +123,10 @@ export default function CheckoutPage() {
                 description: 'Your tickets have been generated and published.',
             });
             clearCart();
-            router.push('/vendor/tickets');
+            
+            // Redirect to success page with event context
+            const eventIdParam = affectedEventIds.size === 1 ? Array.from(affectedEventIds)[0] : '';
+            router.push(`/vendor/checkout/success?eventId=${eventIdParam}`);
         } catch (error: any) {
             toast({
                 variant: 'destructive',
@@ -182,7 +189,7 @@ export default function CheckoutPage() {
                                         <div key={item.id} className="p-4 flex justify-between items-start">
                                             <div className="space-y-1">
                                                 <p className="font-semibold text-lg">{item.quantity} x {item.package} Tickets</p>
-                                                <p className="text-sm text-muted-foreground">Attendee Price: {item.attendeePrice === 0 ? 'Free' : `₦${(item.attendeePrice ?? 0).toLocaleString()}`}</p>
+                                                <p className="text-sm text-muted-foreground">Attendee Price: {(item.attendeePrice === 0 || item.attendeePrice === undefined) ? 'Free' : `₦${item.attendeePrice.toLocaleString()}`}</p>
                                                 <p className="text-sm text-muted-foreground">Event: {item.eventName}</p>
                                                 <Badge variant="outline" className="mt-2 text-primary border-primary">Platform Fee: ₦{(item.price ?? 0).toLocaleString()}</Badge>
                                             </div>

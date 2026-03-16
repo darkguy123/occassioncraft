@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -77,6 +76,16 @@ export default function ProfileSettingsPage() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Validate file
+      if (!file.type.startsWith('image/')) {
+        toast({ variant: 'destructive', title: 'Invalid File', description: 'Please select an image file.' });
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) { // 2MB for avatars
+        toast({ variant: 'destructive', title: 'File Too Large', description: 'Profile picture must be smaller than 2MB.' });
+        return;
+      }
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setImageSrc(reader.result as string);
@@ -108,14 +117,15 @@ export default function ProfileSettingsPage() {
     setIsAvatarUploading(true);
     try {
         const blob = dataURItoBlob(croppedImageBase64);
-        const filePath = `public-uploads/avatars/${user.uid}/profile.png`;
+        // Folder-based security: avatars stored under user's specific subfolder
+        const filePath = `public-uploads/avatars/${user.uid}/profile_${uuidv4().substring(0, 8)}.png`;
         const storageRef = ref(storage, filePath);
         
         const uploadResult = await uploadBytes(storageRef, blob);
         const downloadURL = await getDownloadURL(uploadResult.ref);
         
         form.setValue('profileImageUrl', downloadURL);
-        toast({ title: 'Avatar Updated', description: 'Click "Save Changes" to apply your new picture.' });
+        toast({ title: 'Avatar Ready', description: 'Click "Save Changes" to apply your new picture.' });
 
     } catch (error: any) {
         console.error("Error uploading avatar:", error);
@@ -123,7 +133,7 @@ export default function ProfileSettingsPage() {
         if (error.code === 'storage/retry-limit-exceeded') {
           description = "The network request timed out. This can happen if Firebase Storage is not enabled for this project. Please go to the Firebase Console, navigate to Storage, and complete the setup process."
         } else if (error.code === 'storage/unauthorized') {
-          description = "You don't have permission to upload files. Please ensure you are logged in."
+          description = "You don't have permission to upload files to this secured folder."
         }
         toast({ variant: 'destructive', title: 'Avatar Upload Failed', description: description });
     } finally {
@@ -276,15 +286,15 @@ export default function ProfileSettingsPage() {
                     </div>
                     <div>
                         <Label htmlFor="avatar-upload" className="cursor-pointer">
-                             <Button asChild variant="outline">
+                             <Button asChild variant="outline" disabled={isAvatarUploading}>
                                 <div>
                                     <Upload className="mr-2 h-4 w-4"/>
                                     Upload new picture
                                 </div>
                             </Button>
                         </Label>
-                        <Input id="avatar-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange} disabled={isAvatarUploading}/>
-                        <p className="text-xs text-muted-foreground mt-2">Recommended: a square 400x400px image.</p>
+                        <Input id="avatar-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/webp" onChange={handleFileChange} disabled={isAvatarUploading}/>
+                        <p className="text-xs text-muted-foreground mt-2">Recommended: a square 400x400px image (Max 2MB).</p>
                     </div>
                 </div>
 

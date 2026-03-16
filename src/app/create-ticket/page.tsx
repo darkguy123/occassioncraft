@@ -238,18 +238,32 @@ function CreateTicketPageContent() {
 
   const handleFileUpload = async (file: File | null, field: keyof TicketFormValues) => {
     if (!file || !user || !storage) return;
+
+    // Secure Folder & malware protection check: MIME type and Size
+    if (!file.type.startsWith('image/')) {
+        toast({ variant: 'destructive', title: 'Invalid File', description: 'Only image files are allowed.' });
+        return;
+    }
+    if (file.size > 5 * 1024 * 1024) { // 5MB Limit
+        toast({ variant: 'destructive', title: 'File Too Large', description: 'Images must be smaller than 5MB.' });
+        return;
+    }
+
     setIsUploading(true);
     try {
-      const filePath = `public-uploads/ticket-assets/${user.uid}/${uuidv4()}-${file.name}`;
+      // Structure into a secured vendor-specific folder
+      const filePath = `public-uploads/ticket-assets/${user.uid}/${uuidv4()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
       const storageRef = ref(storage, filePath);
       const uploadResult = await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(uploadResult.ref);
       form.setValue(field, downloadURL, { shouldValidate: true });
-      toast({ title: 'Image Uploaded' });
+      toast({ title: 'Image Uploaded Successfully' });
     } catch (error: any) {
       let description = 'Upload failed.';
       if (error.code === 'storage/retry-limit-exceeded') {
         description = "Storage not enabled or network error. Check Firebase Console.";
+      } else if (error.code === 'storage/unauthorized') {
+        description = "You do not have permission to upload to this folder.";
       }
       toast({ variant: 'destructive', title: 'Upload Failed', description });
     } finally {
@@ -260,6 +274,13 @@ function CreateTicketPageContent() {
   const handleOpenCropper = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    
+    // Quick validation before cropping
+    if (!file.type.startsWith('image/')) {
+        toast({ variant: 'destructive', title: 'Invalid File', description: 'Please select an image file.' });
+        return;
+    }
+
     const reader = new FileReader();
     reader.onloadend = () => {
       setImageToCrop(reader.result as string);
@@ -493,10 +514,10 @@ function CreateTicketPageContent() {
                                         ))}
                                         </RadioGroup>
                                         <div className="flex gap-2 mt-4">
-                                            <Button asChild variant="outline" size="icon" className="cursor-pointer">
+                                            <Button asChild variant="outline" size="icon" className="cursor-pointer" disabled={isUploading || isGenerating}>
                                                 <label htmlFor="bg-upload"><Upload className="h-4 w-4" /><span className="sr-only">Upload</span></label>
                                             </Button>
-                                            <Input id="bg-upload" type="file" className="hidden" accept="image/*" onChange={handleOpenCropper} disabled={isUploading || isGenerating} />
+                                            <Input id="bg-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/webp" onChange={handleOpenCropper} disabled={isUploading || isGenerating} />
                                             <Button variant="outline" size="icon" onClick={handleGenerateImage} disabled={isGenerating || isUploading}>
                                                 {isGenerating ? <Loader2 className="h-4 w-4 animate-spin"/> : <Wand2 className="h-4 w-4" />}
                                             </Button>
@@ -534,10 +555,10 @@ function CreateTicketPageContent() {
                                         <FormControl>
                                             <div className="flex items-center gap-4">
                                                 {form.watch('guestPhotoUrl') && <Image src={form.watch('guestPhotoUrl')!} alt="guest" width={48} height={48} className="rounded-full h-12 w-12 object-cover border" />}
-                                                <Button asChild variant="outline">
+                                                <Button asChild variant="outline" disabled={isUploading}>
                                                     <label htmlFor="guest-photo-upload" className="cursor-pointer"><Upload className="mr-2 h-4 w-4" /> Upload</label>
                                                 </Button>
-                                                <Input id="guest-photo-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e.target.files?.[0] || null, 'guestPhotoUrl')} disabled={isUploading} />
+                                                <Input id="guest-photo-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/webp" onChange={(e) => handleFileUpload(e.target.files?.[0] || null, 'guestPhotoUrl')} disabled={isUploading} />
                                             </div>
                                         </FormControl>
                                     </FormItem>
@@ -564,7 +585,7 @@ function CreateTicketPageContent() {
                             <p className="text-xs text-muted-foreground mt-2">Platform fee is charged per ticket category added to your cart.</p>
                         </CardContent>
                     </Card>
-                     <Button type="submit" size="lg" className="w-full" disabled={form.formState.isSubmitting || isEventExpired}>
+                     <Button type="submit" size="lg" className="w-full" disabled={form.formState.isSubmitting || isEventExpired || isUploading}>
                         <ShoppingCart className="mr-2 h-5 w-5" /> Add Category to Cart
                     </Button>
                 </div>
