@@ -59,6 +59,14 @@ export default function VendorEditEventPage() {
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
+    defaultValues: {
+      name: "",
+      dates: [],
+      isOnline: false,
+      location: "",
+      description: "",
+      bannerUrl: "",
+    },
     mode: "onChange",
   });
 
@@ -126,10 +134,10 @@ export default function VendorEditEventPage() {
       form.reset({
         name: eventData.name,
         dates: eventData.dates.map(d => ({...d, date: new Date(d.date)})),
-        isOnline: eventData.isOnline,
+        isOnline: !!eventData.isOnline,
         location: eventData.location,
-        description: eventData.description,
-        bannerUrl: eventData.bannerUrl,
+        description: eventData.description || "",
+        bannerUrl: eventData.bannerUrl || "",
       });
     }
   }, [eventData, form]);
