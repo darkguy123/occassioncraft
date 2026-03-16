@@ -13,10 +13,11 @@ service firebase.storage {
     }
 
     match /public-uploads {
-      
+      // Global read access for all public uploads
+      allow read: if true;
+
       // Avatar uploads: Users can only upload their own, and it must be an image < 2MB
       match /avatars/{userId}/{fileName} {
-        allow read: if true;
         allow write: if request.auth != null && request.auth.uid == userId
                      && request.resource.size < 2 * 1024 * 1024
                      && request.resource.contentType.matches('image/.*');
@@ -24,7 +25,6 @@ service firebase.storage {
       
       // Ticket background uploads: Vendors can only upload their own, and it must be an image < 5MB
       match /ticket-assets/{userId}/{fileName} {
-        allow read: if true;
         allow write: if request.auth != null && request.auth.uid == userId
                      && request.resource.size < 5 * 1024 * 1024
                      && request.resource.contentType.matches('image/.*');
@@ -32,14 +32,13 @@ service firebase.storage {
       
       // Admin shared assets: Only admins can manage these
       match /admin-assets/{allPaths=**} {
-        allow read: if true;
         allow write: if isAdmin()
                      && request.resource.size < 5 * 1024 * 1024
                      && request.resource.contentType.matches('image/.*');
       }
     }
 
-    // Default deny for all other paths
+    // Default deny for all other paths not explicitly allowed above
     match /{allPaths=**} {
       allow read: if false;
       allow write: if false;
