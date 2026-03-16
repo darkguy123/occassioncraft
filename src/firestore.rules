@@ -83,14 +83,15 @@ service cloud.firestore {
       // A user can read a single ticket if they are the owner, the vendor, or an admin.
       allow get: if (request.auth != null && (resource.data.userId == request.auth.uid || resource.data.vendorId == request.auth.uid)) || isAdmin();
       
-      // Allow authenticated users to LIST tickets. The 'get' rule above will secure access.
-      allow list: if request.auth != null;
+      // Only admins can list ALL tickets. Non-admins should use filtered queries (by userId/vendorId) or subcollections.
+      allow list: if isAdmin() || (request.auth != null && (request.query.filters.userId == request.auth.uid || request.query.filters.vendorId == request.auth.uid));
 
       // Allow creation for any authenticated user
       allow create: if request.auth != null;
       
-      // No updates or deletes from the client
-      allow update, delete: if false;
+      // Only admins can update (for scanning). Non-admins cannot update tickets directly.
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
     
     // Admin role definitions are readable and writable by other admins, or a user creating their own.

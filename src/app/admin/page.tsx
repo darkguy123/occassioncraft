@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -17,7 +18,7 @@ import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@
 import { collection, doc } from "firebase/firestore";
 import type { Event, User, Vendor, Ticket } from "@/lib/types";
 import { useMemo } from "react";
-import { format, getMonth, parseISO } from "date-fns";
+import { format, getMonth, parseISO, subMonths, startOfMonth } from "date-fns";
 import Link from "next/link";
 
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -26,41 +27,50 @@ export default function AdminDashboardPage() {
   const firestore = useFirestore();
   const { user } = useUser();
 
+  // Robust Admin check (matches AdminLayout)
   const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
+  const adminRoleDocRef = useMemoFirebase(() => user ? doc(firestore, 'roles_admin', user.uid) : null, [firestore, user]);
+  
   const { data: userData } = useDoc<User>(userDocRef);
-  const isAdmin = useMemo(() => userData?.roles?.includes('admin'), [userData]);
+  const { data: adminRoleData } = useDoc(adminRoleDocRef);
+
+  const isAdmin = useMemo(() => {
+    const isAdminByRole = (userData?.roles || []).includes('admin');
+    const isAdminByCollection = adminRoleData && Object.keys(adminRoleData).length > 0;
+    return !!(isAdminByRole || isAdminByCollection);
+  }, [userData, adminRoleData]);
 
   const { data: events } = useCollection<Event>(useMemoFirebase(() => (firestore && isAdmin) ? collection(firestore, 'events') : null, [firestore, isAdmin]));
   const { data: users } = useCollection<User>(useMemoFirebase(() => (firestore && isAdmin) ? collection(firestore, 'users') : null, [firestore, isAdmin]));
   const { data: vendors } = useCollection<Vendor>(useMemoFirebase(() => (firestore && isAdmin) ? collection(firestore, 'vendors') : null, [firestore, isAdmin]));
   const { data: tickets } = useCollection<Ticket>(useMemoFirebase(() => (firestore && isAdmin) ? collection(firestore, 'tickets') : null, [firestore, isAdmin]));
 
-  const { totalRevenue, salesData, totalUsers, usersData, totalEvents, pendingApprovals, totalVendors } = useMemo(() => {
+  const dashboardData = useMemo(() => {
     // Platform Revenue = Number of unique batches * 1000
     const paidTickets = tickets?.filter(t => t.isPaid) || [];
     const uniqueBatches = new Set(paidTickets.map(t => t.batchId).filter(Boolean));
-    const revenue = uniqueBatches.size * 1000;
+    const totalRev = uniqueBatches.size * 1000;
 
+    // Initialize full year of data
     const monthlySales = monthNames.map(month => ({ month, revenue: 0 }));
+    const monthlyUsers = monthNames.map(month => ({ month, users: 0 }));
+
     if (paidTickets) {
-      // Track unique batches per month to avoid overcounting
       const seenBatches = new Set();
       paidTickets.forEach(ticket => {
         if(ticket.purchaseDate && ticket.batchId && !seenBatches.has(ticket.batchId)) {
             try {
-                const monthIndex = getMonth(parseISO(ticket.purchaseDate));
+                const date = parseISO(ticket.purchaseDate);
+                const monthIndex = getMonth(date);
                 if (monthlySales[monthIndex]) {
-                    monthlySales[monthIndex].revenue += 1000; // Platfrom fee per batch
+                    monthlySales[monthIndex].revenue += 1000;
                     seenBatches.add(ticket.batchId);
                 }
-            } catch (e) {
-                // Ignore invalid date formats
-            }
+            } catch (e) {}
         }
       });
     }
 
-    const monthlyUsers = monthNames.map(month => ({ month, users: 0 }));
     if (users) {
         users.forEach(user => {
             if (user.dateJoined) {
@@ -69,41 +79,47 @@ export default function AdminDashboardPage() {
                     if (monthlyUsers[monthIndex]) {
                         monthlyUsers[monthIndex].users += 1;
                     }
-                } catch (e) {
-                    // Ignore invalid date formats
-                }
+                } catch (e) {}
             }
         });
     }
     
+    // Dynamic slicing: Get the last 6 months ending with current month
+    const currentMonthIndex = new Date().getMonth();
+    const last6SalesData = [];
+    const last6UsersData = [];
+    
+    for (let i = 5; i >= 0; i--) {
+        const idx = (currentMonthIndex - i + 12) % 12;
+        last6SalesData.push(monthlySales[idx]);
+        last6UsersData.push(monthlyUsers[idx]);
+    }
+
     const pendingVendorCount = vendors?.filter(v => v.status === 'pending').length || 0;
 
     return {
-      totalRevenue: revenue,
-      salesData: monthlySales.slice(0, 6), // First 6 months for demo
+      totalRevenue: totalRev,
+      salesData: last6SalesData,
       totalUsers: users?.length || 0,
-      usersData: monthlyUsers.slice(0, 6),
+      usersData: last6UsersData,
       totalVendors: vendors?.length || 0,
       totalEvents: events?.length || 0,
       pendingApprovals: pendingVendorCount,
     }
   }, [events, users, vendors, tickets]);
 
-  const getPercentageChange = (currentMonth: number, lastMonth: number) => {
-    if (lastMonth > 0) {
-      return ((currentMonth - lastMonth) / lastMonth) * 100;
-    }
-    return currentMonth > 0 ? 100 : 0;
+  const getPercentageChange = (current: number, last: number) => {
+    if (last > 0) return ((current - last) / last) * 100;
+    return current > 0 ? 100 : 0;
   }
 
-  const lastMonthSales = salesData.length > 1 ? salesData[salesData.length - 2].revenue : 0;
-  const currentMonthSales = salesData.length > 0 ? salesData[salesData.length - 1].revenue : 0;
+  const lastMonthSales = dashboardData.salesData.length > 1 ? dashboardData.salesData[dashboardData.salesData.length - 2].revenue : 0;
+  const currentMonthSales = dashboardData.salesData.length > 0 ? dashboardData.salesData[dashboardData.salesData.length - 1].revenue : 0;
   const salesPercentageChange = getPercentageChange(currentMonthSales, lastMonthSales);
 
-  const lastMonthUsers = usersData.length > 1 ? usersData[usersData.length - 2].users : 0;
-  const currentMonthUsers = usersData.length > 0 ? usersData[usersData.length - 1].users : 0;
+  const lastMonthUsers = dashboardData.usersData.length > 1 ? dashboardData.usersData[dashboardData.usersData.length - 2].users : 0;
+  const currentMonthUsers = dashboardData.usersData.length > 0 ? dashboardData.usersData[dashboardData.usersData.length - 1].users : 0;
   const usersPercentageChange = getPercentageChange(currentMonthUsers, lastMonthUsers);
-
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -118,7 +134,7 @@ export default function AdminDashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">₦{totalRevenue.toLocaleString()}</div>
+            <div className="text-3xl font-bold">₦{dashboardData.totalRevenue.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
                 {salesPercentageChange >= 0 ? '+' : ''}{salesPercentageChange.toFixed(1)}% from last month
             </p>
@@ -130,7 +146,7 @@ export default function AdminDashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{totalUsers}</div>
+            <div className="text-3xl font-bold">{dashboardData.totalUsers}</div>
             <p className="text-xs text-muted-foreground">
                 {usersPercentageChange >= 0 ? '+' : ''}{usersPercentageChange.toFixed(1)}% from last month
             </p>
@@ -142,7 +158,7 @@ export default function AdminDashboardPage() {
             <Building className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{totalVendors}</div>
+            <div className="text-3xl font-bold">{dashboardData.totalVendors}</div>
             <p className="text-xs text-muted-foreground">Active organizers</p>
           </CardContent>
         </Card>
@@ -152,7 +168,7 @@ export default function AdminDashboardPage() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{totalEvents}</div>
+            <div className="text-3xl font-bold">{dashboardData.totalEvents}</div>
             <p className="text-xs text-muted-foreground">Shells created</p>
           </CardContent>
         </Card>
@@ -163,7 +179,7 @@ export default function AdminDashboardPage() {
               <AlertTriangle className="h-4 w-4 text-amber-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{pendingApprovals}</div>
+              <div className="text-3xl font-bold">{dashboardData.pendingApprovals}</div>
               <p className="text-xs text-muted-foreground">Awaiting review</p>
             </CardContent>
           </Card>
@@ -173,12 +189,12 @@ export default function AdminDashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2">
          <Card>
             <CardHeader>
-                <CardTitle>Revenue Flow</CardTitle>
-                <CardDescription>Platform service fees collected monthly.</CardDescription>
+                <CardTitle>Revenue Flow (Recent)</CardTitle>
+                <CardDescription>Platform service fees collected over the last 6 months.</CardDescription>
             </CardHeader>
             <CardContent className="pl-2">
                 <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={salesData}>
+                    <AreaChart data={dashboardData.salesData}>
                         <defs>
                             <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8}/>
@@ -217,12 +233,12 @@ export default function AdminDashboardPage() {
         </Card>
         <Card>
             <CardHeader>
-                <CardTitle>User Growth</CardTitle>
-                <CardDescription>New account registrations.</CardDescription>
+                <CardTitle>User Growth (Recent)</CardTitle>
+                <CardDescription>New account registrations over the last 6 months.</CardDescription>
             </CardHeader>
             <CardContent className="pl-2">
                 <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={usersData}>
+                    <BarChart data={dashboardData.usersData}>
                          <CartesianGrid strokeDasharray="3 3" vertical={false}/>
                         <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
                         <YAxis tickLine={false} axisLine={false} tickMargin={8} />
