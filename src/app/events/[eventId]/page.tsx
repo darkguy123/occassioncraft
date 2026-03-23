@@ -109,6 +109,18 @@ export default function EventDetailsPage() {
                 vendorId: eventData.vendorId
             });
 
+            // Trigger email notification asynchronously
+            fetch('/api/tickets/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ticketId,
+                    eventId,
+                    userId: user.uid,
+                    vendorId: eventData.vendorId
+                })
+            }).catch(e => console.error("Email notify trigger failed:", e));
+
             toast({ title: "Purchase Successful!", description: "Your ticket is ready." });
             router.push(`/events/${eventId}/tickets/${ticketId}`);
         } catch (error: any) {
