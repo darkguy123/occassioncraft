@@ -42,7 +42,7 @@ import { isBefore, startOfToday, parseISO } from 'date-fns';
 
 const ticketFormSchema = z.object({
   eventId: z.string().min(1, "Please link this ticket to an event."),
-  package: z.enum(["Standard", "VIP", "VVIP", "Personal"]),
+  package: z.enum(["Standard", "VIP", "VVIP", "Personal", "Tier 1", "Tier 2", "Tier 3", "Tier 4", "Tier 5"]),
   price: z.coerce.number().min(0, "Price cannot be negative."),
   packageQuantity: z.coerce.number().min(1, "Quantity must be at least 1.").default(1),
   isFree: z.boolean().default(false),
@@ -420,8 +420,8 @@ function CreateTicketPageContent() {
                     <FormItem className="space-y-3">
                       <FormLabel>Ticket Category</FormLabel>
                       <FormControl>
-                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="grid grid-cols-2 gap-4">
-                          {["Standard", "VIP", "VVIP", "Personal"].map((cat) => (
+                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {["Standard", "VIP", "VVIP", "Personal", "Tier 1", "Tier 2", "Tier 3", "Tier 4", "Tier 5"].map((cat) => (
                              <FormItem key={cat}>
                                 <RadioGroupItem value={cat} id={cat} className="sr-only peer" />
                                 <Label htmlFor={cat} className="flex h-full flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:shadow-md relative cursor-pointer">
