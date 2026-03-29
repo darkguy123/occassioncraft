@@ -53,9 +53,16 @@ export function TicketStylePreview({ eventData }: TicketStylePreviewProps) {
                         <MapPin className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
                         <span className="truncate font-medium text-black dark:text-white">Location Placeholder</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <User className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
-                        <span className="truncate font-medium text-black dark:text-white">{eventData.attendeeName || 'Ticket Holder'}</span>
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-3">
+                            <User className="h-4 w-4 shrink-0 text-black/60 dark:text-white/60" />
+                            <span className="truncate font-medium text-black dark:text-white">{eventData.attendeeName || 'Ticket Holder'}</span>
+                        </div>
+                        {ticketPackage === 'Personal' && guestPhotoUrl && (
+                            <div className="mt-1 ml-7">
+                                <Image src={guestPhotoUrl} alt="Guest" width={64} height={64} className="rounded-full h-16 w-16 object-cover border-2 border-white shadow-md" />
+                            </div>
+                        )}
                     </div>
                     <div className="mt-4 p-2 rounded bg-primary/10 border border-primary/20 inline-block">
                         <p className="font-headline font-bold text-sm text-primary uppercase">
@@ -65,11 +72,7 @@ export function TicketStylePreview({ eventData }: TicketStylePreviewProps) {
                 </div>
                     
                 <div className="mt-8 text-center flex flex-col items-center justify-center">
-                    {ticketPackage === 'Personal' && guestPhotoUrl && (
-                        <div className="mb-4">
-                            <Image src={guestPhotoUrl} alt="Guest" width={80} height={80} className="rounded-full h-20 w-20 object-cover border-2 border-white shadow-lg" />
-                        </div>
-                    )}
+
                     {qrCodeUrl ? <div className="bg-white p-2 rounded-lg shadow-lg"><Image src={qrCodeUrl} alt="Ticket QR Code" width={200} height={200} /></div> : <Skeleton className="h-48 w-48" />}
                     <p className="text-xs mt-3 text-black/60 dark:text-white/60">Scan this at the event entrance</p>
                 </div>

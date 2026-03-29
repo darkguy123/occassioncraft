@@ -420,19 +420,50 @@ function CreateTicketPageContent() {
                     <FormItem className="space-y-3">
                       <FormLabel>Ticket Category</FormLabel>
                       <FormControl>
-                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                          {["Standard", "VIP", "VVIP", "Personal", "Tier 1", "Tier 2", "Tier 3", "Tier 4", "Tier 5"].map((cat) => (
-                             <FormItem key={cat}>
-                                <RadioGroupItem value={cat} id={cat} className="sr-only peer" />
-                                <Label htmlFor={cat} className="flex h-full flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:shadow-md relative cursor-pointer">
-                                  <div className="absolute top-2 right-2 hidden h-5 w-5 items-center justify-center rounded-full bg-primary text-white peer-data-[state=checked]:flex">
-                                      <Check className="h-3 w-3" />
-                                  </div>
-                                  <span className="font-semibold text-center">{cat}</span>
-                                </Label>
-                              </FormItem>
-                          ))}
-                        </RadioGroup>
+                        <div className="space-y-4">
+                          <RadioGroup 
+                            onValueChange={(val) => {
+                               if (val === 'Tiered' && !field.value?.startsWith('Tier ')) {
+                                 field.onChange('Tier 1');
+                               } else if (val !== 'Tiered') {
+                                 field.onChange(val);
+                               }
+                            }} 
+                            value={field.value?.startsWith('Tier ') ? 'Tiered' : field.value} 
+                            className="grid grid-cols-2 md:grid-cols-3 gap-4"
+                          >
+                            {["Standard", "VIP", "VVIP", "Personal", "Tiered"].map((cat) => (
+                               <FormItem key={cat}>
+                                  <RadioGroupItem value={cat} id={cat} className="sr-only peer" />
+                                  <Label htmlFor={cat} className="flex h-full flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:shadow-md relative cursor-pointer">
+                                    <div className="absolute top-2 right-2 hidden h-5 w-5 items-center justify-center rounded-full bg-primary text-white peer-data-[state=checked]:flex">
+                                        <Check className="h-3 w-3" />
+                                    </div>
+                                    <span className="font-semibold text-center">{cat}</span>
+                                  </Label>
+                                </FormItem>
+                            ))}
+                          </RadioGroup>
+
+                          {field.value?.startsWith('Tier ') && (
+                            <div className="p-4 border rounded-lg bg-slate-50 dark:bg-slate-900/40 relative animate-in fade-in slide-in-from-top-2">
+                               <Label className="mb-3 block text-sm font-semibold text-muted-foreground uppercase tracking-wide">Select Tier Level</Label>
+                               <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                                  {["Tier 1", "Tier 2", "Tier 3", "Tier 4", "Tier 5"].map((tier) => (
+                                     <FormItem key={tier}>
+                                        <RadioGroupItem value={tier} id={tier} className="sr-only peer" />
+                                        <Label htmlFor={tier} className="flex h-full flex-col items-center justify-center rounded-md border-2 border-muted bg-white dark:bg-slate-950 p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:shadow-md relative cursor-pointer text-sm">
+                                          <div className="absolute top-1 right-1 hidden h-4 w-4 items-center justify-center rounded-full bg-primary text-white peer-data-[state=checked]:flex">
+                                              <Check className="h-3 w-3" />
+                                          </div>
+                                          <span className="font-semibold text-center">{tier}</span>
+                                        </Label>
+                                     </FormItem>
+                                  ))}
+                               </RadioGroup>
+                            </div>
+                          )}
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
