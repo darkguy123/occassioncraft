@@ -11,18 +11,21 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon, MapPin, Save, PartyPopper, PlusCircle, Trash2 } from "lucide-react"
+import { CalendarIcon, MapPin, Save, PartyPopper, PlusCircle, Trash2, Upload, Loader2, Image as ImageIcon } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
 import type { User as UserType, Vendor as VendorType, Event as EventType, EventDate } from "@/lib/types";
 import { doc, collection, addDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { v4 as uuidv4 } from "uuid";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton"
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import Link from "next/link"
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import Image from "next/image";
 
 const eventDateSchema = z.object({
   date: z.date({ required_error: "A date is required." }),
@@ -47,7 +50,7 @@ export type EventFormValues = z.infer<typeof eventFormSchema>;
 export default function CreateEventPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { user, isUserLoading, firestore } = useFirebase();
+  const { user, isUserLoading, firestore, storage } = useFirebase();
   
   const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
@@ -76,6 +79,7 @@ export default function CreateEventPage() {
       location: "",
       description: "",
       isPrivate: false,
+      bannerUrl: "",
     },
     mode: "onChange",
   });
@@ -85,49 +89,34 @@ export default function CreateEventPage() {
     name: "dates",
   });
 
-  const generateGradientBanner = (text: string): string => {
-    const sanitizedText = text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
+  const [isUploading, setIsUploading] = useState(false);
 
-    const color1_hue = Math.floor(Math.random() * 360);
-    const color2_hue = (color1_hue + Math.floor(Math.random() * 80) + 40) % 360;
+  const handleFileUpload = async (file: File | null) => {
+    if (!file || !user || !firestore) return;
 
-    const color1 = `hsl(${color1_hue}, 90%, 65%)`;
-    const color2 = `hsl(${color2_hue}, 90%, 55%)`;
+    if (!file.type.startsWith('image/')) {
+        toast({ variant: 'destructive', title: 'Invalid File', description: 'Only image files are allowed.' });
+        return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+        toast({ variant: 'destructive', title: 'File Too Large', description: 'Images must be smaller than 5MB.' });
+        return;
+    }
 
-    const svg = `
-      <svg width="600" height="400" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="${color1}" />
-            <stop offset="100%" stop-color="${color2}" />
-          </linearGradient>
-        </defs>
-        <rect width="600" height="400" fill="url(#grad)" />
-        <text
-          x="50%"
-          y="50%"
-          dominant-baseline="middle"
-          text-anchor="middle"
-          font-family="Poppins, sans-serif"
-          font-size="48"
-          font-weight="bold"
-          fill="white"
-          stroke="rgba(0,0,0,0.1)"
-          stroke-width="1"
-        >
-          ${sanitizedText}
-        </text>
-      </svg>
-    `;
-    const base64 = btoa(unescape(encodeURIComponent(svg.trim())));
-    return `data:image/svg+xml;base64,${base64}`;
+    setIsUploading(true);
+    try {
+      const filePath = `public-uploads/event-banners/${user.uid}/${uuidv4()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+      const storageRef = ref(storage, filePath);
+      const uploadResult = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(uploadResult.ref);
+      form.setValue('bannerUrl', downloadURL, { shouldValidate: true, shouldDirty: true });
+      toast({ title: 'Banner Uploaded Successfully' });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Upload Failed', description: error.message || 'Upload failed.' });
+    } finally {
+      setIsUploading(false);
+    }
   };
-  
   const onSubmit = async (data: EventFormValues) => {
      if (!user || !firestore || !userData) {
         toast({ variant: 'destructive', title: 'Error', description: 'Authentication or database error.' });
@@ -137,7 +126,7 @@ export default function CreateEventPage() {
     try {
         const eventCollectionRef = collection(firestore, 'events');
         
-        const bannerUrl = generateGradientBanner(data.name);
+        const bannerUrl = data.bannerUrl || '';
         const eventStatus = 'published';
 
         const formattedDates: EventDate[] = data.dates.map(d => ({
@@ -389,6 +378,36 @@ export default function CreateEventPage() {
                 </FormItem>
               )}
             />
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Event Banner</CardTitle>
+                <CardDescription>Upload a banner for your event.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {form.watch('bannerUrl') ? (
+                  <Image src={form.watch('bannerUrl')!} alt="Event banner preview" width={600} height={400} className="rounded-md w-full aspect-[3/2] object-cover" />
+                ) : (
+                  <div className="w-full aspect-[3/2] bg-secondary rounded-md flex items-center justify-center border-2 border-dashed">
+                    <p className="text-muted-foreground">No banner uploaded.</p>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Button asChild variant="outline" disabled={isUploading}>
+                      <label className="cursor-pointer">
+                          {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                          {form.watch('bannerUrl') ? 'Replace Banner' : 'Upload Banner'}
+                          <input type="file" className="hidden" accept="image/png, image/jpeg, image/webp" onChange={(e) => handleFileUpload(e.target.files?.[0] || null)} disabled={isUploading} />
+                      </label>
+                  </Button>
+                  {form.watch('bannerUrl') && (
+                      <Button type="button" variant="ghost" className="text-destructive" onClick={() => form.setValue('bannerUrl', '', { shouldDirty: true })} disabled={isUploading}>
+                          <Trash2 className="h-4 w-4" />
+                      </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
             <div className="flex justify-end pt-4 border-t">
                 <Button type="submit" size="lg" disabled={form.formState.isSubmitting}>
