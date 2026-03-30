@@ -45,11 +45,15 @@ export default function EventDetailsPage() {
     const { data: eventData, isLoading: isEventLoading } = useDoc<Event>(eventDocRef);
 
     // Fetch tickets to determine available categories and prices
+    // Filter by the vendor's ID to only download the ticket templates, avoiding fetching all purchased tickets.
     const ticketsQuery = useMemoFirebase(() => {
-        if (!firestore || !eventId) return null;
-        return query(collection(firestore, 'tickets'), where('eventId', '==', eventId));
-    }, [firestore, eventId]);
-
+        if (!firestore || !eventId || !eventData?.vendorId) return null;
+        return query(
+            collection(firestore, 'tickets'), 
+            where('eventId', '==', eventId),
+            where('userId', '==', eventData.vendorId) // Fetch only templates defined by the vendor
+        );
+    }, [firestore, eventId, eventData?.vendorId]);
     const { data: eventTickets, isLoading: isTicketsLoading } = useCollection<Ticket>(ticketsQuery);
 
     const availableCategories = useMemo(() => {

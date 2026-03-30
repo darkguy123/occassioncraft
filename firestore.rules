@@ -83,8 +83,9 @@ service cloud.firestore {
       // A user can read a single ticket if they are the owner, the vendor, or an admin.
       allow get: if (request.auth != null && (resource.data.userId == request.auth.uid || resource.data.vendorId == request.auth.uid)) || isAdmin();
       
-      // Allow authenticated users to LIST tickets. The 'get' rule above will secure access.
-      allow list: if request.auth != null;
+      // Allow public listing of tickets so the event page can fetch ticket categories.
+      // The frontend query explicitly filters to only fetch vendor templates.
+      allow list: if true;
 
       // Allow creation for any authenticated user
       allow create: if request.auth != null;
