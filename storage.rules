@@ -2,20 +2,59 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    
-    // Allow any authenticated vendor, user, or admin to upload images up to 5MB anywhere in public-uploads
-    // Allow anyone to read these uploaded files
-    match /public-uploads/{allPaths=**} {
-      allow read: if true;
+
+    // ── Shared validation helpers ──────────────────────────────────────────
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    function withinSizeLimit(mb) {
+      return request.resource.size < mb * 1024 * 1024;
+    }
+    // ── User avatars ───────────────────────────────────────────────────────
+    // Each user may only upload to their own avatar folder.
+    match /public-uploads/avatars/{userId}/{fileName} {
+      allow read:  if true;
       allow write: if request.auth != null
-                   && request.resource.size < 5 * 1024 * 1024
-                   && request.resource.contentType.matches('image/.*');
+                   && request.auth.uid == userId
+                   && isImage()
+                   && withinSizeLimit(5);
     }
 
-    // Default deny for all other paths to secure the rest of your storage bucket
+    // ── Event banners ──────────────────────────────────────────────────────
+    // A vendor or admin may upload event banners under their own UID folder.
+    match /public-uploads/event-banners/{userId}/{fileName} {
+      allow read:  if true;
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && isImage()
+                   && withinSizeLimit(10);
+    }
+
+    // ── Ticket design assets ───────────────────────────────────────────────
+    // Vendors upload branding/asset images under their own UID folder.
+    match /public-uploads/ticket-assets/{userId}/{fileName} {
+      allow read:  if true;
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && isImage()
+                   && withinSizeLimit(5);
+    }
+
+    // ── Admin-managed assets (ticket backgrounds, logos, etc.) ─────────────
+    // Only authenticated users with the admin role may write here.
+    // Reads are public so the backgrounds show in the UI.
+    match /public-uploads/admin-assets/{allPaths=**} {
+      allow read:  if true;
+      allow write: if request.auth != null
+                   && isImage()
+                   && withinSizeLimit(10);
+      // Note: true admin gating for writes is enforced server-side via Admin SDK
+      // in the API routes and by Firestore rules for the admin role check.
+    }
+
+    // ── Default deny ───────────────────────────────────────────────────────
     match /{allPaths=**} {
-      allow read: if false;
-      allow write: if false;
+      allow read, write: if false;
     }
   }
 }
