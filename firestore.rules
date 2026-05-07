@@ -108,6 +108,17 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /withdrawalRequests/{requestId} {
+      allow create: if request.auth != null && request.resource.data.vendorId == request.auth.uid;
+      allow get, list: if isAdmin() || (request.auth != null && resource.data.vendorId == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    match /transactionAudits/{auditId} {
+      allow list, get: if isAdmin();
+      allow create: if isAdmin();
+    }
+
     match /dataDeletionRequests/{requestId} {
       // Users can create their own deletion request.
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;

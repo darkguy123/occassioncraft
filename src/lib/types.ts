@@ -33,6 +33,7 @@ export type Event = {
 };
 
 export type TicketCategory = 'Standard' | 'VIP' | 'VVIP' | 'Personal';
+export type PaymentGateway = 'paystack' | 'korapay';
 
 export type Ticket = {
   id: string;
@@ -44,6 +45,10 @@ export type Ticket = {
   isPaid?: boolean;
   batchId?: string; // To track the publishing transaction
   paystackReference?: string; // Paystack transaction reference
+  paymentGateway?: PaymentGateway;
+  transactionReference?: string;
+  platformFeeAmount?: number;
+  vendorNetAmount?: number;
   
   package: TicketCategory; 
   tier?: string;
@@ -89,6 +94,34 @@ export type Vendor = {
   pricingTier?: 'Free' | 'Premium' | 'Diamond';
   authorizedScanners?: string[];
 }
+
+export type WithdrawalRequest = {
+  id: string;
+  vendorId: string;
+  amount: number;
+  accountName: string;
+  accountNumber: string;
+  bankName: string;
+  status: 'pending' | 'approved' | 'rejected' | 'paid';
+  createdAt: string;
+  note?: string;
+};
+
+export type TransactionAudit = {
+  id: string;
+  type: 'ticket_purchase' | 'withdrawal_request' | 'withdrawal_payout' | 'platform_fee' | 'refund';
+  vendorId?: string;
+  userId?: string;
+  amount: number;
+  currency: string;
+  status: 'completed' | 'pending' | 'failed' | 'reversed';
+  description: string;
+  reference?: string;
+  gateway?: PaymentGateway;
+  metadata?: Record<string, any>;
+  createdAt: string;
+  updatedAt?: string;
+};
 
 export type Notification = {
   id: string;

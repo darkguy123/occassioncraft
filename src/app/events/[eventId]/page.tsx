@@ -1,11 +1,11 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, collection, query, where, addDoc } from 'firebase/firestore';
-import type { Event, Ticket, TicketCategory } from '@/lib/types';
-import { useParams, useRouter } from 'next/navigation';
+import type { Event, Ticket, TicketCategory, PaymentGateway } from '@/lib/types';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { AlertTriangle, Calendar, Clock, Lock, MapPin, Ticket as TicketIcon, Info, Check, Loader2, CreditCard } from 'lucide-react';
@@ -22,19 +22,28 @@ import {
   AlertDialogFooter,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
-import { usePaystackPayment } from 'react-paystack';
 import { v4 as uuidv4 } from 'uuid';
+import { calculatePlatformFee, calculateVendorNet } from '@/lib/payments';
+
+type CategoryOption = {
+        package: TicketCategory;
+        price: number;
+        ticketImageUrl?: string;
+};
 
 export default function EventDetailsPage() {
     const { user } = useUser();
     const firestore = useFirestore();
     const params = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { toast } = useToast();
     const eventId = params.eventId as string;
+    const processedReferenceRef = useRef<string | null>(null);
 
     const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
-    const [selectedCategory, setSelectedCategory] = useState<any | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<CategoryOption | null>(null);
+    const [selectedGateway, setSelectedGateway] = useState<PaymentGateway>('paystack');
     const [isProcessing, setIsProcessing] = useState(false);
 
     const eventDocRef = useMemoFirebase(() => {
@@ -56,7 +65,7 @@ export default function EventDetailsPage() {
     }, [firestore, eventId, eventData?.vendorId]);
     const { data: eventTickets, isLoading: isTicketsLoading } = useCollection<Ticket>(ticketsQuery);
 
-    const availableCategories = useMemo(() => {
+    const availableCategories = useMemo<CategoryOption[]>(() => {
         if (!eventTickets) return [];
         // Group by package and price to show unique categories
         const groups: Record<string, { package: TicketCategory, price: number, ticketImageUrl?: string }> = {};
@@ -69,33 +78,38 @@ export default function EventDetailsPage() {
         return Object.values(groups).sort((a, b) => a.price - b.price);
     }, [eventTickets]);
 
-    const handlePurchaseSuccess = async (reference?: any) => {
-        if (!user || !firestore || !eventData || !selectedCategory) return;
-
-        // If a reference is provided (from Paystack), check its status
-        if (reference && reference.status !== 'success') {
-            toast({ 
-                variant: 'destructive', 
-                title: "Payment Not Verified", 
-                description: "The payment gateway did not return a success status." 
-            });
-            return;
-        }
+    const handlePurchaseSuccess = async ({
+        category,
+        gateway,
+        reference,
+    }: {
+        category: CategoryOption;
+        gateway?: PaymentGateway;
+        reference?: string;
+    }) => {
+        if (!user || !firestore || !eventData) return;
 
         setIsProcessing(true);
         const ticketId = uuidv4();
         const now = new Date().toISOString();
+        const price = category.price;
+        const platformFeeAmount = calculatePlatformFee(price);
+        const vendorNetAmount = calculateVendorNet(price);
 
         const newTicket: Omit<Ticket, 'id'> = {
             eventId: eventId,
             vendorId: eventData.vendorId,
             userId: user.uid,
             purchaseDate: now,
-            price: selectedCategory.price,
+            price,
             isPaid: true,
-            paystackReference: reference?.reference || 'FREE_CLAIM',
-            package: selectedCategory.package,
-            ticketImageUrl: selectedCategory.ticketImageUrl || '',
+            paystackReference: gateway === 'paystack' ? reference || 'UNKNOWN' : undefined,
+            transactionReference: reference || 'FREE_CLAIM',
+            paymentGateway: gateway,
+            platformFeeAmount,
+            vendorNetAmount,
+            package: category.package,
+            ticketImageUrl: category.ticketImageUrl || '',
             attendeeName: user.displayName || 'Guest',
             scans: 0,
             maxScans: 1,
@@ -112,6 +126,29 @@ export default function EventDetailsPage() {
                 purchaseDate: now,
                 vendorId: eventData.vendorId
             });
+
+            await fetch('/api/audit/log-transaction', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                type: 'ticket_purchase',
+                vendorId: eventData.vendorId,
+                userId: user.uid,
+                amount: price,
+                currency: 'NGN',
+                status: 'completed',
+                description: `Ticket purchase - ${category.package} for ${eventData.name}`,
+                reference,
+                gateway,
+                metadata: {
+                  eventId,
+                  ticketId,
+                  packageType: category.package,
+                  platformFee: platformFeeAmount,
+                  vendorNet: vendorNetAmount,
+                },
+              }),
+            }).catch(err => console.error('Audit logging error:', err));
 
             // Trigger email notification asynchronously
             fetch('/api/tickets/send-email', {
@@ -132,7 +169,7 @@ export default function EventDetailsPage() {
             toast({ 
                 variant: 'destructive', 
                 title: "Purchase Error", 
-                description: "Transaction was verified but ticket generation failed. Reference: " + (reference?.reference || 'N/A')
+                description: "Transaction was verified but ticket generation failed. Reference: " + (reference || 'N/A')
             });
         } finally {
             setIsProcessing(false);
@@ -140,15 +177,104 @@ export default function EventDetailsPage() {
         }
     };
 
-    const paystackConfig = {
-        reference: uuidv4(),
-        email: user?.email || '',
-        amount: Math.round((selectedCategory?.price || 0) * 100), // in Kobo
-        currency: 'NGN',
-        publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
+    const initializeGatewayPayment = async (category: CategoryOption) => {
+        if (!user) {
+            router.push(`/login?redirect=/events/${eventId}`);
+            return;
+        }
+
+        setIsProcessing(true);
+        try {
+            const callbackUrl = `${window.location.origin}/events/${eventId}?gateway=${selectedGateway}`;
+            const response = await fetch('/api/payments/initialize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    gateway: selectedGateway,
+                    amount: category.price,
+                    email: user.email,
+                    callbackUrl,
+                    metadata: {
+                        eventId,
+                        package: category.package,
+                        userId: user.uid,
+                    },
+                }),
+            });
+
+            const payload = await response.json();
+            if (!response.ok || !payload?.checkoutUrl || !payload?.reference) {
+                throw new Error(payload?.error || 'Failed to initialize payment checkout.');
+            }
+
+            localStorage.setItem(
+                `ticketCheckout:${payload.reference}`,
+                JSON.stringify({ category, eventId, gateway: selectedGateway })
+            );
+
+            window.location.assign(payload.checkoutUrl);
+        } catch (error: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Payment Error',
+                description: error?.message || 'Could not start payment. Please try again.',
+            });
+            setIsProcessing(false);
+        }
     };
 
-    const initializePayment = usePaystackPayment(paystackConfig);
+    useEffect(() => {
+        if (!user || !eventData) return;
+
+        const gateway = searchParams.get('gateway') as PaymentGateway | null;
+        const reference = searchParams.get('reference') || searchParams.get('trxref');
+
+        if (!gateway || !reference || processedReferenceRef.current === reference) return;
+        if (gateway !== 'paystack' && gateway !== 'korapay') return;
+
+        const rawPendingCheckout = localStorage.getItem(`ticketCheckout:${reference}`);
+        if (!rawPendingCheckout) return;
+
+        processedReferenceRef.current = reference;
+        setIsProcessing(true);
+
+        const verifyAndFinalize = async () => {
+            try {
+                const pendingCheckout = JSON.parse(rawPendingCheckout) as { category: CategoryOption; eventId: string };
+                if (!pendingCheckout?.category || pendingCheckout.eventId !== eventId) {
+                    throw new Error('Could not restore your pending ticket purchase.');
+                }
+
+                const verifyResponse = await fetch('/api/payments/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gateway, reference }),
+                });
+
+                const verifyPayload = await verifyResponse.json();
+                if (!verifyResponse.ok || !verifyPayload?.verified) {
+                    throw new Error(verifyPayload?.error || 'Payment was not verified.');
+                }
+
+                localStorage.removeItem(`ticketCheckout:${reference}`);
+                await handlePurchaseSuccess({
+                    category: pendingCheckout.category,
+                    gateway,
+                    reference,
+                });
+            } catch (error: any) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Verification Failed',
+                    description: error?.message || 'We could not verify your payment.',
+                });
+                router.replace(`/events/${eventId}`);
+                setIsProcessing(false);
+            }
+        };
+
+        verifyAndFinalize();
+    }, [searchParams, user, eventData, eventId, router, toast]);
 
     const handleGetTicket = () => {
         if (!user) {
@@ -162,13 +288,9 @@ export default function EventDetailsPage() {
         if (!selectedCategory) return;
         
         if (selectedCategory.price === 0) {
-            handlePurchaseSuccess();
+            handlePurchaseSuccess({ category: selectedCategory });
         } else {
-            if (!paystackConfig.publicKey) {
-                toast({ variant: 'destructive', title: 'Payment Error', description: 'Payment gateway is not configured.' });
-                return;
-            }
-            initializePayment(handlePurchaseSuccess, () => toast({ title: 'Payment Cancelled' }));
+            initializeGatewayPayment(selectedCategory);
         }
     };
 
@@ -234,7 +356,7 @@ export default function EventDetailsPage() {
                 <AlertDialogContent className="max-w-md">
                     <AlertDialogHeader>
                         <AlertDialogTitle>Select Your Ticket</AlertDialogTitle>
-                        <AlertDialogDescription>Choose a category to attend {eventData.name}.</AlertDialogDescription>
+                        <AlertDialogDescription>Choose a category and payment gateway for {eventData.name}.</AlertDialogDescription>
                     </AlertDialogHeader>
                     
                     <div className="grid gap-4 py-4">
@@ -268,6 +390,27 @@ export default function EventDetailsPage() {
                             <div className="text-center py-8 text-muted-foreground">
                                 <Info className="h-8 w-8 mx-auto mb-2 opacity-20" />
                                 <p>No ticket categories available for this event yet.</p>
+                            </div>
+                        )}
+
+                        {selectedCategory && selectedCategory.price > 0 && (
+                            <div className="grid grid-cols-2 gap-2">
+                                <Button
+                                    type="button"
+                                    variant={selectedGateway === 'paystack' ? 'default' : 'outline'}
+                                    onClick={() => setSelectedGateway('paystack')}
+                                    disabled={isProcessing}
+                                >
+                                    Paystack
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant={selectedGateway === 'korapay' ? 'default' : 'outline'}
+                                    onClick={() => setSelectedGateway('korapay')}
+                                    disabled={isProcessing}
+                                >
+                                    Korapay
+                                </Button>
                             </div>
                         )}
                     </div>

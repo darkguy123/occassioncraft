@@ -18,8 +18,9 @@ import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@
 import { collection, doc } from "firebase/firestore";
 import type { Event, User, Vendor, Ticket } from "@/lib/types";
 import { useMemo } from "react";
-import { format, getMonth, parseISO, subMonths, startOfMonth } from "date-fns";
+import { getMonth, parseISO } from "date-fns";
 import Link from "next/link";
+import { calculatePlatformFee } from "@/lib/payments";
 
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -46,30 +47,24 @@ export default function AdminDashboardPage() {
   const { data: tickets } = useCollection<Ticket>(useMemoFirebase(() => (firestore && isAdmin) ? collection(firestore, 'tickets') : null, [firestore, isAdmin]));
 
   const dashboardData = useMemo(() => {
-    // Platform Revenue = Number of unique batches * 1000
-    const paidTickets = tickets?.filter(t => t.isPaid) || [];
-    const uniqueBatches = new Set(paidTickets.map(t => t.batchId).filter(Boolean));
-    const totalRev = uniqueBatches.size * 1000;
+    const soldTickets = (tickets || []).filter(t => t.isPaid && t.userId !== t.vendorId);
+    const totalRev = soldTickets.reduce((acc, ticket) => acc + (ticket.platformFeeAmount ?? calculatePlatformFee(ticket.price || 0)), 0);
 
     // Initialize full year of data
     const monthlySales = monthNames.map(month => ({ month, revenue: 0 }));
     const monthlyUsers = monthNames.map(month => ({ month, users: 0 }));
 
-    if (paidTickets) {
-      const seenBatches = new Set();
-      paidTickets.forEach(ticket => {
-        if(ticket.purchaseDate && ticket.batchId && !seenBatches.has(ticket.batchId)) {
-            try {
-                const date = parseISO(ticket.purchaseDate);
-                const monthIndex = getMonth(date);
-                if (monthlySales[monthIndex]) {
-                    monthlySales[monthIndex].revenue += 1000;
-                    seenBatches.add(ticket.batchId);
-                }
-            } catch (e) {}
-        }
-      });
-    }
+    soldTickets.forEach(ticket => {
+      if (ticket.purchaseDate) {
+        try {
+          const date = parseISO(ticket.purchaseDate);
+          const monthIndex = getMonth(date);
+          if (monthlySales[monthIndex]) {
+            monthlySales[monthIndex].revenue += ticket.platformFeeAmount ?? calculatePlatformFee(ticket.price || 0);
+          }
+        } catch (e) {}
+      }
+    });
 
     if (users) {
         users.forEach(user => {

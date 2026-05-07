@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Calendar, Ticket, Building, Settings, ShieldCheck, Image, MailCheck } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Ticket, Building, Settings, ShieldCheck, Image, MailCheck, Wallet } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import type { Vendor } from '@/lib/types';
@@ -17,6 +17,7 @@ const navItems = [
     { href: '/admin/users', icon: Users, label: 'Users' },
     { href: '/admin/vendors', icon: Building, label: 'Vendors' },
     { href: '/admin/tickets', icon: Ticket, label: 'All Tickets' },
+    { href: '/admin/withdrawals', icon: Wallet, label: 'Withdrawals' },
     { href: '/admin/backgrounds', icon: Image, label: 'Backgrounds' },
     { href: '/admin/settings', icon: Settings, label: 'Settings' },
 ];

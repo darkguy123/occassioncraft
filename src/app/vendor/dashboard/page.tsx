@@ -3,11 +3,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "@/components/ui/table";
-import { BarChart2, Ticket, DollarSign, CalendarPlus, QrCode, AlertTriangle, MoreHorizontal, Edit, Trash2, Palette, Calendar } from "lucide-react";
+import { BarChart2, Ticket, DollarSign, CalendarPlus, QrCode, AlertTriangle, MoreHorizontal, Edit, Trash2, Palette, Calendar, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useUser, useFirestore, useMemoFirebase, useCollection, deleteDocumentNonBlocking } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
-import type { Event, Ticket as TicketType } from "@/lib/types";
+import type { Event, Ticket as TicketType, WithdrawalRequest } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +20,7 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge";
+import { calculatePlatformFee, calculateVendorNet } from "@/lib/payments";
 
 export default function VendorDashboardPage() {
     const { user, isUserLoading } = useUser();
@@ -40,13 +41,33 @@ export default function VendorDashboardPage() {
 
     const { data: tickets, isLoading: areTicketsLoading } = useCollection<TicketType>(ticketsQuery);
 
-    const totalRevenue = useMemo(() => {
-        if (!tickets) return 0;
-        return tickets.reduce((acc, ticket) => acc + (ticket?.price || 0), 0);
-    }, [tickets]);
+    const withdrawalsQuery = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return query(collection(firestore, 'withdrawalRequests'), where('vendorId', '==', user.uid));
+    }, [user, firestore]);
+
+    const { data: withdrawalRequests, isLoading: areWithdrawalsLoading } = useCollection<WithdrawalRequest>(withdrawalsQuery);
+
+    const salesMetrics = useMemo(() => {
+        const soldTickets = (tickets || []).filter(ticket => ticket.userId !== ticket.vendorId && ticket.isPaid);
+        const grossSales = soldTickets.reduce((acc, ticket) => acc + (ticket.price || 0), 0);
+        const platformFees = soldTickets.reduce((acc, ticket) => acc + (ticket.platformFeeAmount ?? calculatePlatformFee(ticket.price || 0)), 0);
+        const walletCredits = soldTickets.reduce((acc, ticket) => acc + (ticket.vendorNetAmount ?? calculateVendorNet(ticket.price || 0)), 0);
+        const withdrawalTotal = (withdrawalRequests || [])
+          .filter(item => ['pending', 'approved', 'paid'].includes(item.status))
+          .reduce((acc, item) => acc + item.amount, 0);
+
+        return {
+          grossSales,
+          platformFees,
+          walletCredits,
+          availableBalance: Math.max(walletCredits - withdrawalTotal, 0),
+          soldCount: soldTickets.length,
+        };
+    }, [tickets, withdrawalRequests]);
 
 
-    const isLoading = areEventsLoading || areTicketsLoading || isUserLoading;
+    const isLoading = areEventsLoading || areTicketsLoading || areWithdrawalsLoading || isUserLoading;
     
     const handleDelete = (eventId: string, eventName: string) => {
         if (!firestore) return;
@@ -78,22 +99,32 @@ export default function VendorDashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">Gross Ticket Sales</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₦{totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-            <p className="text-xs text-muted-foreground">From all ticket sales</p>
+            <div className="text-2xl font-bold">₦{salesMetrics.grossSales.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+            <p className="text-xs text-muted-foreground">All paid attendee ticket purchases</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tickets Crafted</CardTitle>
+            <CardTitle className="text-sm font-medium">Available Wallet Balance</CardTitle>
+            <Wallet className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₦{salesMetrics.availableBalance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+            <p className="text-xs text-muted-foreground">Net sales after 5% platform fee and withdrawal requests</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Tickets Sold</CardTitle>
             <Ticket className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+{tickets?.length || 0}</div>
-            <p className="text-xs text-muted-foreground">Across all events</p>
+            <div className="text-2xl font-bold">+{salesMetrics.soldCount}</div>
+            <p className="text-xs text-muted-foreground">Purchased by attendees</p>
           </CardContent>
         </Card>
         <Card>
@@ -104,6 +135,16 @@ export default function VendorDashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{vendorEvents?.length || 0}</div>
              <p className="text-xs text-muted-foreground">Total events you've created</p>
+          </CardContent>
+        </Card>
+        <Card className="sm:col-span-2 lg:col-span-1">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Platform Fee Collected</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₦{salesMetrics.platformFees.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+            <p className="text-xs text-muted-foreground">5% deduction from your ticket sales</p>
           </CardContent>
         </Card>
       </div>
