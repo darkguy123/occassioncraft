@@ -48,6 +48,8 @@ export function useDoc<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
+    let hasTerminalError = false;
+
     // If the document reference is not yet available, do nothing and wait.
     // This is the critical guard to prevent invalid queries.
     if (!memoizedDocRef) {
@@ -74,6 +76,7 @@ export function useDoc<T = any>(
         setIsLoading(false);
       },
       (error: FirestoreError) => {
+        hasTerminalError = true;
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: memoizedDocRef.path,
@@ -87,7 +90,11 @@ export function useDoc<T = any>(
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      if (!hasTerminalError) {
+        unsubscribe();
+      }
+    };
   }, [memoizedDocRef]);
 
   return { data, isLoading, error };

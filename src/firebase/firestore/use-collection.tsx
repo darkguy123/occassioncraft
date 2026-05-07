@@ -9,7 +9,6 @@ import {
   QuerySnapshot,
   CollectionReference,
 } from 'firebase/firestore';
-import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
 /** Utility type to add an 'id' field to a given type T. */
@@ -62,6 +61,8 @@ export function useCollection<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
+    let hasTerminalError = false;
+
     // If the query is not yet available, do nothing and wait.
     // This is the critical guard to prevent invalid queries.
     if (!memoizedTargetRefOrQuery) {
@@ -87,6 +88,7 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (error: FirestoreError) => {
+        hasTerminalError = true;
         const path: string =
           memoizedTargetRefOrQuery.type === 'collection'
             ? (memoizedTargetRefOrQuery as CollectionReference).path
@@ -97,15 +99,17 @@ export function useCollection<T = any>(
           path,
         })
 
-        setError(contextualError)
-        setData(null)
-        setIsLoading(false)
-
-        errorEmitter.emit('permission-error', contextualError);
+        setError(contextualError);
+        setData(null);
+        setIsLoading(false);
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      if (!hasTerminalError) {
+        unsubscribe();
+      }
+    };
   }, [memoizedTargetRefOrQuery]);
 
   if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
