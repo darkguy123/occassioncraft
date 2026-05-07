@@ -7,6 +7,7 @@ import { RootProvider } from '@/components/shared/root-provider';
 
 const APP_NAME = "OccasionCraft";
 const APP_DESCRIPTION = "Create, discover, and celebrate events with OccasionCraft.";
+const MANIFEST_PATH = "/manifest.json?v=20260507";
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
     template: `%s | ${APP_NAME}`,
   },
   description: APP_DESCRIPTION,
-  manifest: "/manifest.json",
+  manifest: MANIFEST_PATH,
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -41,7 +42,7 @@ export default function RootLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#1e40af" />
-        <link rel="manifest" href="/manifest.json" />
+        <link rel="manifest" href={MANIFEST_PATH} />
         <link rel='icon' href='/download.png' />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

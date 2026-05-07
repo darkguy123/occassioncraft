@@ -89,6 +89,15 @@ export function useCollection<T = any>(
       },
       (error: FirestoreError) => {
         hasTerminalError = true;
+        const isPermissionDenied = error.code === 'permission-denied';
+
+        if (!isPermissionDenied) {
+          setError(error);
+          setData(null);
+          setIsLoading(false);
+          return;
+        }
+
         const path: string =
           memoizedTargetRefOrQuery.type === 'collection'
             ? (memoizedTargetRefOrQuery as CollectionReference).path

@@ -77,6 +77,15 @@ export function useDoc<T = any>(
       },
       (error: FirestoreError) => {
         hasTerminalError = true;
+        const isPermissionDenied = error.code === 'permission-denied';
+
+        if (!isPermissionDenied) {
+          setError(error);
+          setData(null);
+          setIsLoading(false);
+          return;
+        }
+
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: memoizedDocRef.path,

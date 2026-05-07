@@ -25,13 +25,8 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
-      const isDismissed = sessionStorage.getItem('pwaInstallPromptDismissed') === 'true';
-      if (isDismissed) {
-        // Let the browser handle the install banner if user dismissed custom UI.
-        return;
-      }
-      e.preventDefault();
-      setInstallPrompt(e as BeforeInstallPromptEvent);
+      // Let the browser show its native install UX to avoid stale deferred prompts.
+      setInstallPrompt(null);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);

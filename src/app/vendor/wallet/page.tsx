@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { addDoc, collection, query, where, orderBy } from 'firebase/firestore';
+import { addDoc, collection, query, where } from 'firebase/firestore';
 import type { Ticket, WithdrawalRequest } from '@/lib/types';
 import { calculatePlatformFee, calculateVendorNet } from '@/lib/payments';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,15 +32,19 @@ export default function VendorWalletPage() {
 
   const withdrawalsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return query(
-      collection(firestore, 'withdrawalRequests'),
-      where('vendorId', '==', user.uid),
-      orderBy('createdAt', 'desc')
-    );
+    return query(collection(firestore, 'withdrawalRequests'), where('vendorId', '==', user.uid));
   }, [user, firestore]);
 
   const { data: tickets, isLoading: isTicketsLoading } = useCollection<Ticket>(ticketsQuery);
   const { data: withdrawals, isLoading: isWithdrawalsLoading } = useCollection<WithdrawalRequest>(withdrawalsQuery);
+
+  const sortedWithdrawals = useMemo(() => {
+    return [...(withdrawals || [])].sort((a, b) => {
+      const left = Date.parse(a.createdAt || '');
+      const right = Date.parse(b.createdAt || '');
+      return Number.isNaN(right) ? -1 : Number.isNaN(left) ? 1 : right - left;
+    });
+  }, [withdrawals]);
 
   const walletMetrics = useMemo(() => {
     const soldTickets = (tickets || []).filter((ticket) => ticket.userId !== ticket.vendorId && ticket.isPaid);
@@ -54,11 +58,11 @@ export default function VendorWalletPage() {
       0
     );
 
-    const pendingWithdrawals = (withdrawals || [])
+    const pendingWithdrawals = sortedWithdrawals
       .filter((request) => request.status === 'pending' || request.status === 'approved')
       .reduce((acc, request) => acc + request.amount, 0);
 
-    const paidOut = (withdrawals || [])
+    const paidOut = sortedWithdrawals
       .filter((request) => request.status === 'paid')
       .reduce((acc, request) => acc + request.amount, 0);
 
@@ -70,7 +74,7 @@ export default function VendorWalletPage() {
       paidOut,
       availableBalance: Math.max(walletCredits - pendingWithdrawals - paidOut, 0),
     };
-  }, [tickets, withdrawals]);
+  }, [tickets, sortedWithdrawals]);
 
   const handleRequestWithdrawal = async () => {
     if (!firestore || !user) return;
@@ -246,14 +250,14 @@ export default function VendorWalletPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(withdrawals || []).length === 0 ? (
+                  {sortedWithdrawals.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
                         No withdrawal requests yet.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    (withdrawals || []).map((request) => (
+                    sortedWithdrawals.map((request) => (
                       <TableRow key={request.id}>
                         <TableCell>{new Date(request.createdAt).toLocaleDateString()}</TableCell>
                         <TableCell>₦{request.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
