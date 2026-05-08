@@ -4,10 +4,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Calendar, Ticket, Building, Settings, ShieldCheck, Image, MailCheck, Wallet } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Ticket, Building, Settings, ShieldCheck, Image, MailCheck, Wallet, HeadphonesIcon } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import type { Vendor } from '@/lib/types';
+import type { Vendor, SupportTicket } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 
 const navItems = [
@@ -18,6 +18,7 @@ const navItems = [
     { href: '/admin/vendors', icon: Building, label: 'Vendors' },
     { href: '/admin/tickets', icon: Ticket, label: 'All Tickets' },
     { href: '/admin/withdrawals', icon: Wallet, label: 'Withdrawals' },
+    { href: '/admin/support', icon: HeadphonesIcon, label: 'Support' },
     { href: '/admin/backgrounds', icon: Image, label: 'Backgrounds' },
     { href: '/admin/settings', icon: Settings, label: 'Settings' },
 ];
@@ -33,6 +34,14 @@ export function AdminSidebar() {
 
     const { data: pendingVendors } = useCollection<Vendor>(pendingVendorsQuery);
     const pendingCount = pendingVendors?.length || 0;
+
+    const openSupportQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(collection(firestore, 'support_tickets'), where('status', '==', 'open'));
+    }, [firestore]);
+
+    const { data: openSupportTickets } = useCollection<SupportTicket>(openSupportQuery);
+    const openSupportCount = openSupportTickets?.length || 0;
 
     return (
         <aside className="w-full h-full md:w-64 flex-shrink-0 border-r bg-background">
@@ -61,6 +70,9 @@ export function AdminSidebar() {
                                 </div>
                                 {item.label === 'Approvals' && pendingCount > 0 && (
                                     <Badge variant="destructive" className="h-5 w-5 p-0 flex items-center justify-center">{pendingCount}</Badge>
+                                )}
+                                {item.label === 'Support' && openSupportCount > 0 && (
+                                    <Badge variant="destructive" className="h-5 w-5 p-0 flex items-center justify-center">{openSupportCount}</Badge>
                                 )}
                             </Link>
                         );

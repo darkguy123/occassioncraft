@@ -133,13 +133,26 @@ export type Notification = {
   link?: string;
 }
 
+export type SupportTicketCategory = 
+  | 'Billing & Payments'
+  | 'Ticket Issue'
+  | 'Account & Login'
+  | 'Event Management'
+  | 'Technical Problem'
+  | 'Vendor Application'
+  | 'Other';
+
 export type SupportTicket = {
     id: string;
     userId: string;
+    userName?: string;
     email: string;
     subject: string;
+    category: SupportTicketCategory;
     message: string;
     status: 'open' | 'in-progress' | 'closed';
+    adminReply?: string;
+    repliedAt?: string;
     createdAt: string;
 }
 

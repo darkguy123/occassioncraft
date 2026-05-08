@@ -8,7 +8,7 @@ import type { Event, Ticket, TicketCategory, PaymentGateway } from '@/lib/types'
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { AlertTriangle, Calendar, Clock, Lock, MapPin, Ticket as TicketIcon, Info, Check, Loader2, CreditCard } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Calendar, Clock, Lock, MapPin, Ticket as TicketIcon, Info, Check, Loader2, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -441,6 +441,13 @@ export default function EventDetailsPage() {
                         />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                    <button
+                        onClick={() => router.back()}
+                        className="absolute top-4 left-4 z-10 flex items-center justify-center h-10 w-10 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white transition-colors"
+                        aria-label="Go back"
+                    >
+                        <ArrowLeft className="h-5 w-5" />
+                    </button>
                     <div className="relative z-10 flex flex-col items-start justify-end h-full p-8 md:p-12 container mx-auto">
                         <h1 className="text-4xl md:text-6xl font-headline font-bold text-white shadow-lg">{eventData.name}</h1>
                         <p className="text-lg text-white/90 mt-2 shadow-md">Hosted by {eventData.organizer || 'the organizer'}</p>
