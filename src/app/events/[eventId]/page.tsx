@@ -442,13 +442,7 @@ export default function EventDetailsPage() {
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                     <button
-                        onClick={() => {
-                            if (window.history.state?.idx > 0) {
-                                router.back();
-                            } else {
-                                router.push('/events');
-                            }
-                        }}
+                        onClick={() => router.push('/')}
                         className="absolute top-4 left-4 z-10 flex items-center justify-center h-10 w-10 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white transition-colors"
                         aria-label="Go back"
                     >
