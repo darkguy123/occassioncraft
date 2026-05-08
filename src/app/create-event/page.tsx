@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon, MapPin, Save, PartyPopper, PlusCircle, Trash2, Upload, Loader2, Image as ImageIcon } from "lucide-react"
+import { ArrowLeft, CalendarIcon, MapPin, Save, PartyPopper, PlusCircle, Trash2, Upload, Loader2, Image as ImageIcon } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
@@ -227,6 +227,12 @@ export default function CreateEventPage() {
   return (
     <>
     <div className="container max-w-2xl mx-auto py-10 px-4">
+        <div className="mb-6">
+            <Button type="button" variant="ghost" size="sm" onClick={() => router.push('/vendor')} className="-ml-2 text-muted-foreground hover:text-foreground">
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back
+            </Button>
+        </div>
         <div className="space-y-2 mb-8">
             <h1 className="text-4xl font-bold font-headline">Create a New Event</h1>
             <p className="text-muted-foreground">Fill in the details below to create your event shell.</p>

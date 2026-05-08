@@ -21,7 +21,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { TicketStylePreview } from "@/components/ticket-style-preview"
 import Image from "next/image"
 import { generateBackgroundImage } from "@/ai/flows/generate-ticket-image-flow"
-import { Loader2, Wand2, Upload, ShoppingCart, Check, Shuffle, AlertTriangle, PartyPopper } from "lucide-react"
+import { ArrowLeft, Loader2, Wand2, Upload, ShoppingCart, Check, Shuffle, AlertTriangle, PartyPopper } from "lucide-react"
 import { v4 as uuidv4 } from 'uuid';
 import { useCart, type CartItem } from "@/context/cart-context"
 import Link from "next/link";
@@ -365,6 +365,12 @@ function CreateTicketPageContent() {
     </AlertDialog>
 
     <div className="container max-w-6xl mx-auto py-10 px-4">
+        <div className="mb-6">
+            <Button type="button" variant="ghost" size="sm" onClick={() => router.push('/vendor')} className="-ml-2 text-muted-foreground hover:text-foreground">
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back
+            </Button>
+        </div>
         <div className="space-y-2 mb-8">
             <h1 className="text-4xl font-bold font-headline">Craft Tickets</h1>
             <p className="text-muted-foreground">Define categories, set custom prices, and design your layout.</p>
