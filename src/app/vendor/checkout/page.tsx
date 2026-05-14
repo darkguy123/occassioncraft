@@ -41,6 +41,7 @@ export default function CheckoutPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
     const [isGatewayDialogOpen, setIsGatewayDialogOpen] = useState(false);
+    const [selectedGateway, setSelectedGateway] = useState<PaymentGateway>('paystack');
 
     const [isExpiredAlertOpen, setIsExpiredAlertOpen] = useState(false);
     const [expiredEventDetails, setExpiredEventDetails] = useState<{name: string, date: string} | null>(null);
@@ -60,6 +61,13 @@ export default function CheckoutPage() {
     };
 
     const initializePayment = usePaystackPayment(paystackConfig);
+
+    useEffect(() => {
+        const savedGateway = window.localStorage.getItem('vendorCheckout:lastGateway');
+        if (savedGateway === 'paystack' || savedGateway === 'korapay') {
+            setSelectedGateway(savedGateway);
+        }
+    }, []);
 
     const completeCheckout = useCallback(async (reference: string, gateway: PaymentGateway) => {
         if (!firestore || !user) {
@@ -159,6 +167,8 @@ export default function CheckoutPage() {
     const startGatewayCheckout = async (gateway: PaymentGateway) => {
         if (!user || cart.length === 0) return;
 
+        setSelectedGateway(gateway);
+        window.localStorage.setItem('vendorCheckout:lastGateway', gateway);
         setCheckoutError(null);
         setIsGatewayDialogOpen(false);
 
@@ -341,9 +351,14 @@ export default function CheckoutPage() {
                                     <AlertDescription>{checkoutError}</AlertDescription>
                                     </Alert>
                                 )}
-                                <Button className="w-full" size="lg" onClick={handleCheckout} disabled={isProcessing || cart.length === 0}>
-                                    {isProcessing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Processing...</> : 'Pay Now'}
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                    <Button className="w-full" size="lg" onClick={handleCheckout} disabled={isProcessing || cart.length === 0}>
+                                        {isProcessing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Processing...</> : 'Pay Now'}
+                                    </Button>
+                                    <Badge variant="secondary" className="shrink-0 text-[10px] tracking-wide whitespace-nowrap">
+                                        Selected: {selectedGateway.charAt(0).toUpperCase() + selectedGateway.slice(1)}
+                                    </Badge>
+                                </div>
                                 <p className="text-[10px] text-center text-muted-foreground">Secure payment powered by Paystack or Korapay.</p>
                             </CardFooter>
                         </Card>
@@ -360,7 +375,7 @@ export default function CheckoutPage() {
                     <div className="grid gap-3 py-2">
                         <button
                             type="button"
-                            className="w-full rounded-md border p-3 hover:bg-muted/50 transition-colors text-left"
+                            className={`w-full rounded-md border p-3 hover:bg-muted/50 transition-colors text-left ${selectedGateway === 'paystack' ? 'border-primary bg-primary/5' : ''}`}
                             onClick={() => startGatewayCheckout('paystack')}
                             disabled={isProcessing}
                         >
@@ -373,7 +388,7 @@ export default function CheckoutPage() {
                         </button>
                         <button
                             type="button"
-                            className="w-full rounded-md border p-3 hover:bg-muted/50 transition-colors text-left"
+                            className={`w-full rounded-md border p-3 hover:bg-muted/50 transition-colors text-left ${selectedGateway === 'korapay' ? 'border-primary bg-primary/5' : ''}`}
                             onClick={() => startGatewayCheckout('korapay')}
                             disabled={isProcessing}
                         >
