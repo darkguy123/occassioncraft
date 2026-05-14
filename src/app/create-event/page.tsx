@@ -40,6 +40,7 @@ const eventFormSchema = z.object({
   location: z.string().optional(),
   description: z.string().optional(),
   isPrivate: z.boolean().default(false),
+  bannerUrl: z.string().optional(),
 }).refine(data => !data.isOnline ? !!data.location : true, {
     message: "Location is required for physical events.",
     path: ["location"],
