@@ -350,6 +350,15 @@ export default function EventDetailsPage() {
 
     const { formattedDate, formattedTime } = renderDateInfo();
 
+    const handleBackNavigation = () => {
+        if (typeof window !== 'undefined' && window.history.length > 1) {
+            router.back();
+            return;
+        }
+
+        router.push('/events');
+    };
+
     return (
         <>
             <AlertDialog open={isPurchaseDialogOpen} onOpenChange={setIsPurchaseDialogOpen}>
@@ -442,7 +451,7 @@ export default function EventDetailsPage() {
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                     <button
-                        onClick={() => router.push('/')}
+                        onClick={handleBackNavigation}
                         className="absolute top-4 left-4 z-10 flex items-center justify-center h-10 w-10 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white transition-colors"
                         aria-label="Go back"
                     >
@@ -455,6 +464,10 @@ export default function EventDetailsPage() {
                 </section>
 
                 <div className="container mx-auto max-w-5xl py-12 px-4">
+                    <Button type="button" variant="outline" size="sm" onClick={handleBackNavigation} className="mb-6">
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Back
+                    </Button>
                     <div className="grid md:grid-cols-3 gap-8 md:gap-12">
                         <div className="md:col-span-2">
                             <h2 className="font-headline text-2xl font-bold mb-4">About this event</h2>

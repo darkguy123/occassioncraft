@@ -9,19 +9,22 @@ import { useToast } from "@/hooks/use-toast";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, doc, writeBatch, query, where } from "firebase/firestore";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { v4 as uuidv4 } from 'uuid';
 import { ShoppingCart, Trash2, AlertTriangle, Loader2 } from "lucide-react";
-import type { Ticket, Event } from "@/lib/types";
-import { useState, useCallback } from "react";
+import type { Ticket, Event, PaymentGateway } from "@/lib/types";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { isBefore, startOfToday } from "date-fns";
 import { getPaystackPublicKey } from "@/lib/payment-public-config";
+import Image from "next/image";
 import {
   AlertDialog,
   AlertDialogAction,
+    AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
+    AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
@@ -33,8 +36,11 @@ export default function CheckoutPage() {
     const { user } = useUser();
     const firestore = useFirestore();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const processedReferenceRef = useRef<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
+    const [isGatewayDialogOpen, setIsGatewayDialogOpen] = useState(false);
 
     const [isExpiredAlertOpen, setIsExpiredAlertOpen] = useState(false);
     const [expiredEventDetails, setExpiredEventDetails] = useState<{name: string, date: string} | null>(null);
@@ -55,19 +61,9 @@ export default function CheckoutPage() {
 
     const initializePayment = usePaystackPayment(paystackConfig);
 
-    const onPaymentSuccess = useCallback(async (reference: any) => {
+    const completeCheckout = useCallback(async (reference: string, gateway: PaymentGateway) => {
         if (!firestore || !user) {
             toast({ variant: 'destructive', title: 'Error', description: 'Session expired. Please log in again.' });
-            return;
-        }
-
-        // Verify the status from Paystack
-        if (reference.status !== 'success') {
-            toast({ 
-                variant: 'destructive', 
-                title: 'Payment Verification Failed', 
-                description: 'The payment was not successfully processed by the gateway.' 
-            });
             return;
         }
 
@@ -95,7 +91,9 @@ export default function CheckoutPage() {
                     price: item.attendeePrice || 0,
                     isPaid: true,
                     batchId: batchId,
-                    paystackReference: reference.reference,
+                    paystackReference: gateway === 'paystack' ? reference : undefined,
+                    paymentGateway: gateway,
+                    transactionReference: reference,
                     package: (item.package as any),
                     ticketImageUrl: item.ticketImageUrl,
                     ticketBrandingImageUrl: item.ticketBrandingImageUrl,
@@ -132,7 +130,7 @@ export default function CheckoutPage() {
             toast({
                 variant: 'destructive',
                 title: 'Critical Error',
-                description: 'Payment verified, but ticket generation failed. Please contact support with reference: ' + reference.reference,
+                description: 'Payment verified, but ticket generation failed. Please contact support with reference: ' + reference,
             });
             console.error('Failed to commit ticket batch:', error);
         } finally {
@@ -140,9 +138,120 @@ export default function CheckoutPage() {
         }
     }, [firestore, user, cart, clearCart, toast, router]);
 
+    const onPaymentSuccess = useCallback(async (reference: any) => {
+        if (reference?.status !== 'success' || !reference?.reference) {
+            toast({ 
+                variant: 'destructive', 
+                title: 'Payment Verification Failed', 
+                description: 'The payment was not successfully processed by the gateway.' 
+            });
+            return;
+        }
+
+        await completeCheckout(reference.reference, 'paystack');
+    }, [completeCheckout, toast]);
+
     const onPaymentClose = useCallback(() => {
+        setIsProcessing(false);
         toast({ title: 'Checkout Cancelled' });
     }, [toast]);
+
+    const startGatewayCheckout = async (gateway: PaymentGateway) => {
+        if (!user || cart.length === 0) return;
+
+        setCheckoutError(null);
+        setIsGatewayDialogOpen(false);
+
+        if (gateway === 'paystack') {
+            if (!paystackConfig.publicKey) {
+                setCheckoutError('Payment gateway is not configured. Set NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY (or PAYSTACK_PUBLIC_KEY) and redeploy.');
+                return;
+            }
+
+            setIsProcessing(true);
+            initializePayment(onPaymentSuccess, onPaymentClose);
+            return;
+        }
+
+        setIsProcessing(true);
+        try {
+            const callbackUrl = `${window.location.origin}/vendor/checkout?gateway=korapay`;
+            const response = await fetch('/api/payments/initialize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    gateway,
+                    amount: cartTotal,
+                    email: user.email,
+                    callbackUrl,
+                    metadata: {
+                        userId: user.uid,
+                        itemCount: cart.length,
+                    },
+                }),
+            });
+
+            const payload = await response.json();
+            if (!response.ok || !payload?.checkoutUrl || !payload?.reference) {
+                throw new Error(payload?.error || 'Failed to initialize payment checkout.');
+            }
+
+            localStorage.setItem(`vendorCheckout:${payload.reference}`, JSON.stringify({ gateway }));
+            window.location.assign(payload.checkoutUrl);
+        } catch (error: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Payment Error',
+                description: error?.message || 'Could not start payment. Please try again.',
+            });
+            setIsProcessing(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!user || !firestore || cart.length === 0) return;
+
+        const gateway = searchParams.get('gateway') as PaymentGateway | null;
+        const reference = searchParams.get('reference') || searchParams.get('trxref');
+
+        if (!gateway || !reference || processedReferenceRef.current === reference) return;
+        if (gateway !== 'paystack' && gateway !== 'korapay') return;
+
+        const pendingCheckout = localStorage.getItem(`vendorCheckout:${reference}`);
+        if (!pendingCheckout) return;
+
+        processedReferenceRef.current = reference;
+        setIsProcessing(true);
+
+        const verifyAndFinalize = async () => {
+            try {
+                const verifyResponse = await fetch('/api/payments/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gateway, reference }),
+                });
+
+                const verifyPayload = await verifyResponse.json();
+                if (!verifyResponse.ok || !verifyPayload?.verified) {
+                    throw new Error(verifyPayload?.error || 'Payment was not verified.');
+                }
+
+                localStorage.removeItem(`vendorCheckout:${reference}`);
+                await completeCheckout(reference, gateway);
+                router.replace('/vendor/checkout');
+            } catch (error: any) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Verification Failed',
+                    description: error?.message || 'We could not verify your payment.',
+                });
+                setIsProcessing(false);
+                router.replace('/vendor/checkout');
+            }
+        };
+
+        verifyAndFinalize();
+    }, [searchParams, user, firestore, cart.length, completeCheckout, router, toast]);
     
     const handleCheckout = () => {
         setCheckoutError(null);
@@ -163,12 +272,7 @@ export default function CheckoutPage() {
         }
 
         if (cart.length === 0) return;
-        if (!paystackConfig.publicKey) {
-            setCheckoutError('Payment gateway is not configured. Set NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY (or PAYSTACK_PUBLIC_KEY) and redeploy.');
-            return;
-        }
-        
-        initializePayment(onPaymentSuccess, onPaymentClose);
+        setIsGatewayDialogOpen(true);
     }
 
     return (
@@ -240,13 +344,52 @@ export default function CheckoutPage() {
                                 <Button className="w-full" size="lg" onClick={handleCheckout} disabled={isProcessing || cart.length === 0}>
                                     {isProcessing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Processing...</> : 'Pay Now'}
                                 </Button>
-                                <p className="text-[10px] text-center text-muted-foreground">Secure payment powered by Paystack.</p>
+                                <p className="text-[10px] text-center text-muted-foreground">Secure payment powered by Paystack or Korapay.</p>
                             </CardFooter>
                         </Card>
                     </div>
                 </div>
 
             </div>
+            <AlertDialog open={isGatewayDialogOpen} onOpenChange={setIsGatewayDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Select Payment Gateway</AlertDialogTitle>
+                        <AlertDialogDescription>Choose the gateway you want to use for this checkout.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="grid gap-3 py-2">
+                        <button
+                            type="button"
+                            className="w-full rounded-md border p-3 hover:bg-muted/50 transition-colors text-left"
+                            onClick={() => startGatewayCheckout('paystack')}
+                            disabled={isProcessing}
+                        >
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Image src="/images/paystack-logo.svg" alt="Paystack logo" width={92} height={22} />
+                                    <span className="text-sm text-muted-foreground">Fast card and bank payments</span>
+                                </div>
+                            </div>
+                        </button>
+                        <button
+                            type="button"
+                            className="w-full rounded-md border p-3 hover:bg-muted/50 transition-colors text-left"
+                            onClick={() => startGatewayCheckout('korapay')}
+                            disabled={isProcessing}
+                        >
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Image src="/images/korapay-logo.svg" alt="Korapay logo" width={92} height={22} />
+                                    <span className="text-sm text-muted-foreground">Pay with cards and transfers</span>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             <AlertDialog open={isExpiredAlertOpen} onOpenChange={setIsExpiredAlertOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
