@@ -16,6 +16,7 @@ import type { Ticket, Event } from "@/lib/types";
 import { useState, useCallback } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { isBefore, startOfToday } from "date-fns";
+import { getPaystackPublicKey } from "@/lib/payment-public-config";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,7 +50,7 @@ export default function CheckoutPage() {
         email: user?.email || '',
         amount: Math.round(cartTotal * 100), // Total of platform fees in Kobo
         currency: 'NGN',
-        publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
+        publicKey: getPaystackPublicKey(),
     };
 
     const initializePayment = usePaystackPayment(paystackConfig);
@@ -163,7 +164,7 @@ export default function CheckoutPage() {
 
         if (cart.length === 0) return;
         if (!paystackConfig.publicKey) {
-            setCheckoutError('Payment gateway is not configured.');
+            setCheckoutError('Payment gateway is not configured. Set NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY (or PAYSTACK_PUBLIC_KEY) and redeploy.');
             return;
         }
         

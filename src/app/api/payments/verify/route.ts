@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getKorapaySecretKey, getPaystackSecretKey } from '@/lib/payment-server-secrets';
 
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 const KORAPAY_BASE_URL = 'https://api.korapay.com';
@@ -60,7 +61,7 @@ export async function POST(req: Request) {
     }
 
     if (gateway === 'paystack') {
-      const paystackSecret = process.env.PAYSTACK_SECRET_KEY;
+      const paystackSecret = getPaystackSecretKey();
       if (!paystackSecret) {
         return NextResponse.json({ error: 'PAYSTACK_SECRET_KEY is not configured.' }, { status: 500 });
       }
@@ -87,7 +88,7 @@ export async function POST(req: Request) {
     }
 
     if (gateway === 'korapay') {
-      const korapaySecret = process.env.KORAPAY_SECRET_KEY;
+      const korapaySecret = getKorapaySecretKey();
       if (!korapaySecret) {
         return NextResponse.json({ error: 'KORAPAY_SECRET_KEY is not configured.' }, { status: 500 });
       }

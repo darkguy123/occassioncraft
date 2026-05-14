@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import crypto from 'crypto';
+import { getKorapaySecretKey } from '@/lib/payment-server-secrets';
 
 function isValidSignature(body: string, signature: string, secret: string) {
   const expected = crypto
@@ -30,7 +31,7 @@ async function writeAuditOnce(docId: string, payload: Record<string, unknown>) {
 export async function POST(req: Request) {
   try {
     const signature = req.headers.get('x-korapay-signature');
-    const secret = process.env.KORAPAY_SECRET_KEY || '';
+    const secret = getKorapaySecretKey();
 
     if (!signature || !secret) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

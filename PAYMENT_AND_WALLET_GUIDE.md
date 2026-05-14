@@ -49,18 +49,49 @@ This system integrates Paystack and Korapay payment gateways, vendor wallet mana
 
 ## Setup Instructions
 
+### Quick Migration From Hardcoded Keys (One Command)
+
+If you are temporarily using hardcoded payment keys in code and want to move them back into Firebase App Hosting secrets later without manual file edits, use:
+
+```bash
+npm run secrets:apphosting:bootstrap -- --project=YOUR_FIREBASE_PROJECT_ID
+```
+
+What this command does:
+
+- Reads the current hardcoded Paystack/Korapay keys from the payment config files.
+- Creates/updates App Hosting secrets using Firebase CLI.
+- Grants backend access to those secrets.
+- Updates `apphosting.yaml` with secret references for:
+  - `PAYSTACK_SECRET_KEY`
+  - `KORAPAY_SECRET_KEY`
+  - `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY`
+  - `NEXT_PUBLIC_KORAPAY_PUBLIC_KEY`
+
+After that, commit `apphosting.yaml` and trigger a rollout.
+
+When you are ready to remove hardcoded fallbacks from source code:
+
+```bash
+npm run payments:dehardcode
+```
+
+Then deploy again so only App Hosting/environment secrets are used.
+
 ### 1. Environment Variables
 
 Copy `.env.example` to `.env.local` and fill in your credentials:
 
 ```bash
 # Paystack
-PAYSTACK_SECRET_KEY=sk_live_1889a3ecb770bb0b0480183bd08e2b76f691ff8f
-NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=pk_live_2b2908cd72c948b9dda38b1ad9e85e00d1c46304
+PAYSTACK_SECRET_KEY=your_paystack_secret_key
+NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=your_paystack_public_key
+PAYSTACK_PUBLIC_KEY=your_paystack_public_key
 
 # Korapay
-KORAPAY_SECRET_KEY=sk_live_soSJnnV3P6g9Ey88rxFeryaCfUWyTAgDhthjyxo9
-NEXT_PUBLIC_KORAPAY_PUBLIC_KEY=pk_live_w1sXEJFS5Qoj1wjwDiaLdV3u4uGVjpVkn8Vr9RNo
+KORAPAY_SECRET_KEY=your_korapay_secret_key
+NEXT_PUBLIC_KORAPAY_PUBLIC_KEY=your_korapay_public_key
+KORAPAY_PUBLIC_KEY=your_korapay_public_key
 
 # App URL
 NEXT_PUBLIC_APP_URL=https://yourdomain.com

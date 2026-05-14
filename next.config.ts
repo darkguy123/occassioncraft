@@ -6,13 +6,17 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
-  fallbacks: {
-    document: '/offline', // A dedicated offline page
-  },
+  // Avoid generated async plugin wrappers that can emit missing helper refs in sw.js.
+  dynamicStartUrl: false,
   workboxOptions: {
-    // This is a common fix for the _async_to_generator error.
-    // It ensures the service worker has the necessary runtime.
-    babelPresetEnvTargets: ['> 0.25%, not dead'],
+    // Keep SW output modern to avoid injecting external Babel helpers at runtime.
+    babelPresetEnvTargets: [
+      'chrome >= 93',
+      'edge >= 93',
+      'firefox >= 91',
+      'safari >= 15.4',
+    ],
+    navigateFallback: '/offline',
     // Exclude API calls from caching by the service worker
     runtimeCaching: [
       {
@@ -24,6 +28,12 @@ const withPWA = require('@ducanh2912/next-pwa').default({
 });
 
 const nextConfig: NextConfig = {
+  env: {
+    NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY:
+      process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || '',
+    NEXT_PUBLIC_KORAPAY_PUBLIC_KEY:
+      process.env.NEXT_PUBLIC_KORAPAY_PUBLIC_KEY || process.env.KORAPAY_PUBLIC_KEY || '',
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
