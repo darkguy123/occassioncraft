@@ -99,7 +99,7 @@ export default function CheckoutPage() {
                     price: item.attendeePrice || 0,
                     isPaid: true,
                     batchId: batchId,
-                    paystackReference: gateway === 'paystack' ? reference : undefined,
+                    ...(gateway === 'paystack' && reference ? { paystackReference: reference } : {}),
                     paymentGateway: gateway,
                     transactionReference: reference,
                     package: (item.package as any),

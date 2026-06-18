@@ -103,7 +103,7 @@ export default function EventDetailsPage() {
             purchaseDate: now,
             price,
             isPaid: true,
-            paystackReference: gateway === 'paystack' ? reference || 'UNKNOWN' : undefined,
+            ...(gateway === 'paystack' ? { paystackReference: reference || 'UNKNOWN' } : {}),
             transactionReference: reference || 'FREE_CLAIM',
             paymentGateway: gateway,
             platformFeeAmount,
