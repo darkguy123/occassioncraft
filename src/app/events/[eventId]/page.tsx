@@ -185,7 +185,7 @@ export default function EventDetailsPage() {
 
         setIsProcessing(true);
         try {
-            const callbackUrl = `${window.location.origin}/events/${eventId}?gateway=${selectedGateway}`;
+            const callbackUrl = `${window.location.origin}/payments/status?gateway=${selectedGateway}`;
             const response = await fetch('/api/payments/initialize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -222,59 +222,6 @@ export default function EventDetailsPage() {
             setIsProcessing(false);
         }
     };
-
-    useEffect(() => {
-        if (!user || !eventData) return;
-
-        const gateway = searchParams.get('gateway') as PaymentGateway | null;
-        const reference = searchParams.get('reference') || searchParams.get('trxref');
-
-        if (!gateway || !reference || processedReferenceRef.current === reference) return;
-        if (gateway !== 'paystack' && gateway !== 'korapay') return;
-
-        const rawPendingCheckout = localStorage.getItem(`ticketCheckout:${reference}`);
-        if (!rawPendingCheckout) return;
-
-        processedReferenceRef.current = reference;
-        setIsProcessing(true);
-
-        const verifyAndFinalize = async () => {
-            try {
-                const pendingCheckout = JSON.parse(rawPendingCheckout) as { category: CategoryOption; eventId: string };
-                if (!pendingCheckout?.category || pendingCheckout.eventId !== eventId) {
-                    throw new Error('Could not restore your pending ticket purchase.');
-                }
-
-                const verifyResponse = await fetch('/api/payments/verify', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ gateway, reference }),
-                });
-
-                const verifyPayload = await verifyResponse.json();
-                if (!verifyResponse.ok || !verifyPayload?.verified) {
-                    throw new Error(verifyPayload?.error || 'Payment was not verified.');
-                }
-
-                localStorage.removeItem(`ticketCheckout:${reference}`);
-                await handlePurchaseSuccess({
-                    category: pendingCheckout.category,
-                    gateway,
-                    reference,
-                });
-            } catch (error: any) {
-                toast({
-                    variant: 'destructive',
-                    title: 'Verification Failed',
-                    description: error?.message || 'We could not verify your payment.',
-                });
-                router.replace(`/events/${eventId}`);
-                setIsProcessing(false);
-            }
-        };
-
-        verifyAndFinalize();
-    }, [searchParams, user, eventData, eventId, router, toast]);
 
     const handleGetTicket = () => {
         if (!user) {

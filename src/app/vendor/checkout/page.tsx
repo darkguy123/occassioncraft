@@ -185,7 +185,7 @@ export default function CheckoutPage() {
 
         setIsProcessing(true);
         try {
-            const callbackUrl = `${window.location.origin}/vendor/checkout?gateway=korapay`;
+            const callbackUrl = `${window.location.origin}/payments/status?gateway=korapay`;
             const response = await fetch('/api/payments/initialize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -217,51 +217,6 @@ export default function CheckoutPage() {
             setIsProcessing(false);
         }
     };
-
-    useEffect(() => {
-        if (!user || !firestore || cart.length === 0) return;
-
-        const gateway = searchParams.get('gateway') as PaymentGateway | null;
-        const reference = searchParams.get('reference') || searchParams.get('trxref');
-
-        if (!gateway || !reference || processedReferenceRef.current === reference) return;
-        if (gateway !== 'paystack' && gateway !== 'korapay') return;
-
-        const pendingCheckout = localStorage.getItem(`vendorCheckout:${reference}`);
-        if (!pendingCheckout) return;
-
-        processedReferenceRef.current = reference;
-        setIsProcessing(true);
-
-        const verifyAndFinalize = async () => {
-            try {
-                const verifyResponse = await fetch('/api/payments/verify', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ gateway, reference }),
-                });
-
-                const verifyPayload = await verifyResponse.json();
-                if (!verifyResponse.ok || !verifyPayload?.verified) {
-                    throw new Error(verifyPayload?.error || 'Payment was not verified.');
-                }
-
-                localStorage.removeItem(`vendorCheckout:${reference}`);
-                await completeCheckout(reference, gateway);
-                router.replace('/vendor/checkout');
-            } catch (error: any) {
-                toast({
-                    variant: 'destructive',
-                    title: 'Verification Failed',
-                    description: error?.message || 'We could not verify your payment.',
-                });
-                setIsProcessing(false);
-                router.replace('/vendor/checkout');
-            }
-        };
-
-        verifyAndFinalize();
-    }, [searchParams, user, firestore, cart.length, completeCheckout, router, toast]);
     
     const handleCheckout = () => {
         setCheckoutError(null);

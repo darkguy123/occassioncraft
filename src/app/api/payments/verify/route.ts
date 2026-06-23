@@ -46,6 +46,7 @@ async function verifyKorapay(reference: string, secret: string) {
       raw: payload,
       amount: transaction?.amount,
       currency: transaction?.currency,
+      metadata: transaction?.metadata || {},
     };
   }
 
@@ -83,6 +84,7 @@ export async function POST(req: Request) {
         verified: String(payload?.data?.status).toLowerCase() === 'success',
         amount: payload?.data?.amount,
         currency: payload?.data?.currency,
+        metadata: payload?.data?.metadata || {},
         raw: payload,
       });
     }
@@ -98,6 +100,7 @@ export async function POST(req: Request) {
         verified: result.isPaid,
         amount: result.amount,
         currency: result.currency,
+        metadata: result.metadata || {},
         raw: result.raw,
       });
     }
