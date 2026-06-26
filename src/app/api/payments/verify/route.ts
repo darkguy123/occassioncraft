@@ -53,6 +53,8 @@ async function verifyKorapay(reference: string, secret: string) {
   throw new Error('Unable to verify Korapay transaction.');
 }
 
+import { processAttendeeTicket } from '@/lib/ticket-service-admin';
+
 export async function POST(req: Request) {
   try {
     const { gateway, reference }: { gateway: Gateway; reference: string } = await req.json();
@@ -80,11 +82,33 @@ export async function POST(req: Request) {
         );
       }
 
+      const verified = String(payload?.data?.status).toLowerCase() === 'success';
+      const amount = payload?.data?.amount;
+      const currency = payload?.data?.currency;
+      const metadata = payload?.data?.metadata || {};
+
+      let ticketId = null;
+      if (verified && metadata.eventId && metadata.userId) {
+        try {
+          ticketId = await processAttendeeTicket({
+            reference,
+            eventId: metadata.eventId,
+            userId: metadata.userId,
+            packageName: metadata.package || 'Standard',
+            amountPaid: amount / 100,
+            gateway: 'paystack',
+          });
+        } catch (ticketError) {
+          console.error('Failed to generate attendee ticket during Paystack verify fallback:', ticketError);
+        }
+      }
+
       return NextResponse.json({
-        verified: String(payload?.data?.status).toLowerCase() === 'success',
-        amount: payload?.data?.amount,
-        currency: payload?.data?.currency,
-        metadata: payload?.data?.metadata || {},
+        verified,
+        amount,
+        currency,
+        metadata,
+        ticketId,
         raw: payload,
       });
     }
@@ -96,11 +120,29 @@ export async function POST(req: Request) {
       }
 
       const result = await verifyKorapay(reference, korapaySecret);
+
+      let ticketId = null;
+      if (result.isPaid && result.metadata.eventId && result.metadata.userId) {
+        try {
+          ticketId = await processAttendeeTicket({
+            reference,
+            eventId: result.metadata.eventId,
+            userId: result.metadata.userId,
+            packageName: result.metadata.package || 'Standard',
+            amountPaid: result.amount,
+            gateway: 'korapay',
+          });
+        } catch (ticketError) {
+          console.error('Failed to generate attendee ticket during Korapay verify fallback:', ticketError);
+        }
+      }
+
       return NextResponse.json({
         verified: result.isPaid,
         amount: result.amount,
         currency: result.currency,
         metadata: result.metadata || {},
+        ticketId,
         raw: result.raw,
       });
     }

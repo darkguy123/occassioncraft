@@ -3,6 +3,8 @@ import { adminDb } from '@/lib/firebase-admin';
 import crypto from 'crypto';
 import { getPaystackSecretKey } from '@/lib/payment-server-secrets';
 
+import { processAttendeeTicket } from '@/lib/ticket-service-admin';
+
 function isValidSignature(body: string, signature: string, secret: string) {
   const expected = crypto
     .createHmac('sha512', secret)
@@ -50,6 +52,22 @@ export async function POST(req: Request) {
       const amount = data.amount / 100;
       const email = data.customer.email;
       const metadata = data.metadata || {};
+
+      // If it's an attendee ticket purchase, generate the ticket server-side
+      if (metadata.eventId && metadata.userId) {
+        try {
+          await processAttendeeTicket({
+            reference,
+            eventId: metadata.eventId,
+            userId: metadata.userId,
+            packageName: metadata.package || 'Standard',
+            amountPaid: amount,
+            gateway: 'paystack',
+          });
+        } catch (ticketError) {
+          console.error('Failed to generate attendee ticket in webhook:', ticketError);
+        }
+      }
 
       const auditId = `webhook_paystack_completed_${reference}`;
       await writeAuditOnce(auditId, {

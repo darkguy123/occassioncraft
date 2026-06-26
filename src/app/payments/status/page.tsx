@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, query, where, getDocs, addDoc, doc, writeBatch } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, doc, setDoc, writeBatch } from 'firebase/firestore';
 import { calculatePlatformFee, calculateVendorNet } from '@/lib/payments';
 import type { Ticket, Event, PaymentGateway } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle2, XCircle, ArrowRight, Ticket as TicketIcon, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 
 function StatusContent() {
   const router = useRouter();
@@ -83,6 +84,24 @@ function StatusContent() {
         const rawVendorPending = localStorage.getItem(vendorCheckoutKey);
 
         const now = new Date().toISOString();
+
+        // Redirect immediately if the ticket was successfully generated on the server (via webhook or verification request)
+        if (verifyPayload.ticketId && (rawTicketPending || gatewayMetadata.eventId)) {
+          let eventId = gatewayMetadata.eventId;
+          if (rawTicketPending) {
+            try {
+              const pendingData = JSON.parse(rawTicketPending);
+              eventId = pendingData.eventId || eventId;
+            } catch (e) {}
+          }
+          localStorage.removeItem(ticketCheckoutKey);
+          setMessage('Success! Redirecting to your ticket details...');
+          setStatus('success');
+          const targetUrl = `/events/${eventId}/tickets/${verifyPayload.ticketId}`;
+          setRedirectUrl(targetUrl);
+          router.replace(targetUrl);
+          return;
+        }
 
         if (rawTicketPending || gatewayMetadata.eventId) {
           // --- Case A: Attendee Ticket Purchase ---
@@ -159,11 +178,11 @@ function StatusContent() {
             isPrivate: eventData.isPrivate || false,
           };
 
-          // Save ticket to general tickets collection
-          await addDoc(collection(firestore, 'tickets'), { ...newTicket, id: ticketId });
+          // Save ticket to general tickets collection (using setDoc to ensure doc ID matches ticketId)
+          await setDoc(doc(firestore, 'tickets', ticketId), { ...newTicket, id: ticketId });
 
           // Save pointer in user's subcollection
-          await addDoc(collection(firestore, `users/${user.uid}/tickets`), {
+          await setDoc(doc(firestore, `users/${user.uid}/tickets`, ticketId), {
             ticketId: ticketId,
             eventId: eventId,
             userId: user.uid,
@@ -296,105 +315,146 @@ function StatusContent() {
     verifyAndProcess();
   }, [firestore, user, reference, gatewayParam, router]);
 
-  if (status === 'loading') {
-    return (
-      <Card className="w-full max-w-md mx-auto border shadow-xl bg-background/50 backdrop-blur-md relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-purple-500 to-indigo-500 animate-pulse" />
-        <CardHeader className="text-center pt-8">
-          <div className="flex justify-center mb-4">
-            <Loader2 className="h-12 w-12 text-primary animate-spin" />
-          </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">{message}</CardTitle>
-          <CardDescription className="text-sm text-muted-foreground mt-2">
-            {detailMessage}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pb-8 text-center space-y-2">
-          <div className="text-[11px] text-muted-foreground bg-secondary/30 p-2.5 rounded-lg font-mono break-all border">
-            Ref: {reference || 'Loading...'}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (status === 'success') {
-    return (
-      <Card className="w-full max-w-md mx-auto border shadow-xl border-green-100 bg-background/60 backdrop-blur-md relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1.5 bg-green-500" />
-        <CardHeader className="text-center pt-8">
-          <div className="flex justify-center mb-4 bg-green-50 p-3 rounded-full w-fit mx-auto border border-green-100">
-            <CheckCircle2 className="h-12 w-12 text-green-600" />
-          </div>
-          <CardTitle className="text-2xl font-bold tracking-tight text-green-700">Payment Verified!</CardTitle>
-          <CardDescription className="text-sm mt-1">
-            Your transaction has been processed successfully.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-center space-y-4">
-          <p className="text-sm text-muted-foreground">
-            If you are not automatically redirected, please click the button below.
-          </p>
-          <div className="text-[11px] text-muted-foreground bg-secondary/30 p-2.5 rounded-lg font-mono break-all border">
-            Ref: {reference}
-          </div>
-        </CardContent>
-        <CardFooter className="pb-8 pt-4">
-          {redirectUrl && (
-            <Button className="w-full font-bold h-12" asChild>
-              <Link href={redirectUrl}>
-                Go to Ticket
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
-          )}
-        </CardFooter>
-      </Card>
-    );
-  }
-
   return (
-    <Card className="w-full max-w-md mx-auto border shadow-xl border-destructive/20 bg-background/60 backdrop-blur-md relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-1.5 bg-destructive" />
-      <CardHeader className="text-center pt-8">
-        <div className="flex justify-center mb-4 bg-destructive/10 p-3 rounded-full w-fit mx-auto border border-destructive/10">
-          <XCircle className="h-12 w-12 text-destructive" />
-        </div>
-        <CardTitle className="text-2xl font-bold tracking-tight text-destructive">Verification Failed</CardTitle>
-        <CardDescription className="text-sm mt-1 text-muted-foreground">
-          We encountered an issue while verifying your transaction.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="bg-destructive/5 rounded-xl p-4 border border-destructive/10 text-sm flex gap-3 text-left">
-          <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-          <div>
-            <p className="font-semibold text-destructive">Error Details</p>
-            <p className="text-muted-foreground mt-1 text-xs">{errorDetails || 'Unknown verification error'}</p>
-          </div>
-        </div>
-        
-        <div className="text-[11px] text-muted-foreground bg-secondary/30 p-2.5 rounded-lg font-mono break-all border">
-          Ref: {reference || 'N/A'}
-        </div>
-        
-        <p className="text-xs text-muted-foreground text-center">
-          If your account has been debited, please take a screenshot of this page and contact support with your transaction reference.
-        </p>
-      </CardContent>
-      <CardFooter className="pb-8 pt-4 grid grid-cols-2 gap-2">
-        <Button variant="outline" className="w-full font-bold h-12" asChild>
-          <Link href="/">
-            Go Home
-          </Link>
-        </Button>
-        <Button className="w-full font-bold h-12" asChild>
-          <Link href="/support">
-            Contact Support
-          </Link>
-        </Button>
-      </CardFooter>
-    </Card>
+    <div className="w-full max-w-md mx-auto">
+      <AnimatePresence mode="wait">
+        {status === 'loading' && (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0, y: 15, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -15, scale: 0.98 }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
+          >
+            <Card className="w-full border shadow-xl bg-background/50 backdrop-blur-md relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-purple-500 to-indigo-500 animate-pulse" />
+              <CardHeader className="text-center pt-8">
+                <div className="flex justify-center mb-4">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 1.2, ease: 'linear' }}
+                  >
+                    <Loader2 className="h-12 w-12 text-primary" />
+                  </motion.div>
+                </div>
+                <CardTitle className="text-2xl font-bold tracking-tight">{message}</CardTitle>
+                <CardDescription className="text-sm text-muted-foreground mt-2">
+                  {detailMessage}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pb-8 text-center space-y-2">
+                <div className="text-[11px] text-muted-foreground bg-secondary/30 p-2.5 rounded-lg font-mono break-all border">
+                  Ref: {reference || 'Loading...'}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {status === 'success' && (
+          <motion.div
+            key="success"
+            initial={{ opacity: 0, y: 15, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -15, scale: 0.98 }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
+          >
+            <Card className="w-full border shadow-xl border-green-100 bg-background/60 backdrop-blur-md relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-green-500" />
+              <CardHeader className="text-center pt-8">
+                <motion.div 
+                  initial={{ scale: 0.5, rotate: -15 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: 'spring', damping: 10, stiffness: 100 }}
+                  className="flex justify-center mb-4 bg-green-50 p-3 rounded-full w-fit mx-auto border border-green-100"
+                >
+                  <CheckCircle2 className="h-12 w-12 text-green-600" />
+                </motion.div>
+                <CardTitle className="text-2xl font-bold tracking-tight text-green-700">Payment Verified!</CardTitle>
+                <CardDescription className="text-sm mt-1">
+                  Your transaction has been processed successfully.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-center space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  If you are not automatically redirected, please click the button below.
+                </p>
+                <div className="text-[11px] text-muted-foreground bg-secondary/30 p-2.5 rounded-lg font-mono break-all border">
+                  Ref: {reference}
+                </div>
+              </CardContent>
+              <CardFooter className="pb-8 pt-4">
+                {redirectUrl && (
+                  <Button className="w-full font-bold h-12" asChild>
+                    <Link href={redirectUrl}>
+                      Go to Ticket
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Link>
+                  </Button>
+                )}
+              </CardFooter>
+            </Card>
+          </motion.div>
+        )}
+
+        {status === 'error' && (
+          <motion.div
+            key="error"
+            initial={{ opacity: 0, y: 15, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -15, scale: 0.98 }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
+          >
+            <Card className="w-full border shadow-xl border-destructive/20 bg-background/60 backdrop-blur-md relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-destructive" />
+              <CardHeader className="text-center pt-8">
+                <motion.div 
+                  initial={{ scale: 0.5, y: -10 }}
+                  animate={{ scale: 1, y: 0 }}
+                  transition={{ type: 'spring', damping: 10, stiffness: 100 }}
+                  className="flex justify-center mb-4 bg-destructive/10 p-3 rounded-full w-fit mx-auto border border-destructive/10"
+                >
+                  <XCircle className="h-12 w-12 text-destructive" />
+                </motion.div>
+                <CardTitle className="text-2xl font-bold tracking-tight text-destructive">Verification Failed</CardTitle>
+                <CardDescription className="text-sm mt-1 text-muted-foreground">
+                  We encountered an issue while verifying your transaction.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-destructive/5 rounded-xl p-4 border border-destructive/10 text-sm flex gap-3 text-left">
+                  <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-destructive">Error Details</p>
+                    <p className="text-muted-foreground mt-1 text-xs">{errorDetails || 'Unknown verification error'}</p>
+                  </div>
+                </div>
+                
+                <div className="text-[11px] text-muted-foreground bg-secondary/30 p-2.5 rounded-lg font-mono break-all border">
+                  Ref: {reference || 'N/A'}
+                </div>
+                
+                <p className="text-xs text-muted-foreground text-center">
+                  If your account has been debited, please take a screenshot of this page and contact support with your transaction reference.
+                </p>
+              </CardContent>
+              <CardFooter className="pb-8 pt-4 grid grid-cols-2 gap-2">
+                <Button variant="outline" className="w-full font-bold h-12" asChild>
+                  <Link href="/">
+                    Go Home
+                  </Link>
+                </Button>
+                <Button className="w-full font-bold h-12" asChild>
+                  <Link href="/support">
+                    Contact Support
+                  </Link>
+                </Button>
+              </CardFooter>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
