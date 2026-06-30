@@ -297,7 +297,7 @@ function StatusContent() {
           setMessage('Success! Ticket categories published.');
           setStatus('success');
           const eventIdParam = affectedEventIds.size === 1 ? Array.from(affectedEventIds)[0] : '';
-          const targetUrl = `/vendor/checkout/success?eventId=${eventIdParam}`;
+          const targetUrl = eventIdParam ? `/vendor/events/${eventIdParam}/report` : '/vendor/tickets';
           setRedirectUrl(targetUrl);
           router.replace(targetUrl);
         } else {
