@@ -10,7 +10,8 @@ import { Badge } from '../ui/badge';
 const navItems = [
     { href: '/vendor/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/create-event', icon: CalendarPlus, label: 'Create Event' },
-    { href: '/vendor/tickets', icon: Ticket, label: 'All Tickets' },
+    { href: '/vendor/crafted-tickets', icon: Palette, label: 'Crafted Tickets' },
+    { href: '/vendor/tickets', icon: Ticket, label: 'Purchased Tickets' },
     { href: '/vendor/wallet', icon: Wallet, label: 'Wallet' },
     { href: '/create-ticket', icon: Palette, label: 'Craft Ticket' },
     { href: '/vendor/scanners', icon: UserPlus, label: 'Scanners' },

@@ -147,7 +147,7 @@ export default function CheckoutPage() {
     }, [firestore, user, cart, clearCart, toast, router]);
 
     const onPaymentSuccess = useCallback(async (reference: any) => {
-        if (reference?.status !== 'success' || !reference?.reference) {
+        if (!reference || !reference.reference) {
             toast({ 
                 variant: 'destructive', 
                 title: 'Payment Verification Failed', 

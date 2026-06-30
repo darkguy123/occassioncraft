@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, isBefore, startOfToday } from 'date-fns';
 import TicketCard from '@/components/ticket-card';
 
-export default function AllVendorTicketsPage() {
+export default function AllVendorCraftedTicketsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -22,6 +22,7 @@ export default function AllVendorTicketsPage() {
     if (!firestore || !user) return null;
     return query(
       collection(firestore, 'tickets'),
+      where('vendorId', '==', user.uid),
       where('userId', '==', user.uid),
       orderBy('purchaseDate', 'desc')
     );
@@ -43,23 +44,20 @@ export default function AllVendorTicketsPage() {
   const { data: events, isLoading: areAssociatedEventsLoading } = useCollection<EventType>(eventsQuery);
 
   const enrichedTickets = useMemo(() => {
-    if (!tickets || !user) return [];
+    if (!tickets) return [];
     
-    return tickets
-      .filter(ticket => ticket.vendorId !== user.uid) // Filter out vendor's own crafted templates
-      .map(ticket => {
-        const event = events?.find(e => e.id === ticket.eventId);
-        let isExpired = false;
-        if (event && event.dates && event.dates.length > 0) {
-          const lastEventDateItem = event.dates[event.dates.length - 1];
-          if (lastEventDateItem?.date) {
-              isExpired = isBefore(parseISO(lastEventDateItem.date), startOfToday());
-          }
+    return tickets.map(ticket => {
+      const event = events?.find(e => e.id === ticket.eventId);
+      let isExpired = false;
+      if (event && event.dates && event.dates.length > 0) {
+        const lastEventDateItem = event.dates[event.dates.length - 1];
+        if (lastEventDateItem?.date) {
+            isExpired = isBefore(parseISO(lastEventDateItem.date), startOfToday());
         }
-        return { ...ticket, event, isExpired };
-      });
-  }, [tickets, events, user]);
-
+      }
+      return { ...ticket, event, isExpired };
+    });
+  }, [tickets, events]);
 
   const isLoading = areTicketsLoading;
 
@@ -84,15 +82,21 @@ export default function AllVendorTicketsPage() {
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
        <div className="flex items-center justify-between">
             <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tight">Purchased Tickets</h1>
-                <p className="text-muted-foreground">Manage and view all tickets you have purchased for other events.</p>
+                <h1 className="text-3xl font-bold tracking-tight">Crafted Tickets</h1>
+                <p className="text-muted-foreground">Manage and view all custom tickets you have crafted and published.</p>
             </div>
+            <Button asChild>
+                <Link href="/create-ticket">
+                    <Palette className="mr-2 h-4 w-4" />
+                    Craft New Ticket
+                </Link>
+            </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Your Purchased Tickets</CardTitle>
-          <CardDescription>A list of all tickets you have successfully purchased as an attendee.</CardDescription>
+          <CardTitle>Your Crafted Ticket Packages</CardTitle>
+          <CardDescription>A list of all ticket categories you have successfully designed and published.</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -109,14 +113,14 @@ export default function AllVendorTicketsPage() {
                   ticket={ticket}
                   event={ticket.event}
                   onShare={handleShare}
-                  detailsLink={ticket.eventId ? `/events/${ticket.eventId}/tickets/${ticket.id}` : undefined}
+                  detailsLink={ticket.eventId ? `/vendor/events/${ticket.eventId}/report` : undefined}
                 />
               ))}
             </div>
           ) : (
             <div className="text-center py-12">
               <Ticket className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-              <p className="text-muted-foreground">You haven't purchased any tickets yet.</p>
+              <p className="text-muted-foreground">You haven't crafted any tickets yet.</p>
             </div>
           )}
         </CardContent>
